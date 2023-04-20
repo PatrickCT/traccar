@@ -59,4 +59,20 @@ public class NotificatorCommand implements Notificator {
         }
     }
 
+    @Override
+    public void send(Notification notification, User user, Event event, Position position, Storage storage) throws MessageException {
+        if (notification == null || notification.getCommandId() <= 0) {
+            throw new MessageException("Saved command not provided");
+        }
+
+        try {
+            Command command = storage.getObject(Command.class, new Request(
+                    new Columns.All(), new Condition.Equals("id", notification.getCommandId())));
+            command.setDeviceId(event.getDeviceId());
+            commandsManager.sendCommand(command);
+        } catch (Exception e) {
+            throw new MessageException(e);
+        }
+    }
+
 }

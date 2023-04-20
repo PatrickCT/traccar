@@ -25,6 +25,8 @@ import org.traccar.session.ConnectionManager;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import org.traccar.notification.MessageException;
+import org.traccar.storage.Storage;
 
 @Singleton
 public final class NotificatorWeb implements Notificator {
@@ -41,6 +43,24 @@ public final class NotificatorWeb implements Notificator {
     @Override
     public void send(Notification notification, User user, Event event, Position position) {
 
+        Event copy = new Event();
+        copy.setId(event.getId());
+        copy.setDeviceId(event.getDeviceId());
+        copy.setType(event.getType());
+        copy.setEventTime(event.getEventTime());
+        copy.setPositionId(event.getPositionId());
+        copy.setGeofenceId(event.getGeofenceId());
+        copy.setMaintenanceId(event.getMaintenanceId());
+        copy.getAttributes().putAll(event.getAttributes());
+
+        var message = notificationFormatter.formatMessage(user, event, position, "short");
+        copy.set("message", message.getBody());
+
+        connectionManager.updateEvent(true, user.getId(), copy);
+    }
+
+    @Override
+    public void send(Notification notification, User user, Event event, Position position, Storage storage) throws MessageException {
         Event copy = new Event();
         copy.setId(event.getId());
         copy.setDeviceId(event.getDeviceId());

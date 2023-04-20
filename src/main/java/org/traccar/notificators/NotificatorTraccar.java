@@ -41,6 +41,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import org.traccar.model.Notification;
+import org.traccar.notification.MessageException;
 
 @Singleton
 public class NotificatorTraccar implements Notificator {
@@ -56,6 +58,7 @@ public class NotificatorTraccar implements Notificator {
     private final String key;
 
     public static class NotificationObject {
+
         @JsonProperty("title")
         private String title;
         @JsonProperty("body")
@@ -65,6 +68,7 @@ public class NotificatorTraccar implements Notificator {
     }
 
     public static class Message {
+
         @JsonProperty("registration_ids")
         private String[] tokens;
         @JsonProperty("notification")
@@ -85,6 +89,59 @@ public class NotificatorTraccar implements Notificator {
 
     @Override
     public void send(org.traccar.model.Notification notification, User user, Event event, Position position) {
+        if (user.hasAttribute("notificationTokens")) {
+
+            var shortMessage = notificationFormatter.formatMessage(user, event, position, "short");
+
+            NotificationObject item = new NotificationObject();
+            item.title = shortMessage.getSubject();
+            item.body = shortMessage.getBody();
+            item.sound = "default";
+
+            String[] tokenArray = user.getString("notificationTokens").split("[, ]");
+            List<String> registrationTokens = new ArrayList<>(Arrays.asList(tokenArray));
+
+            Message message = new Message();
+            message.tokens = user.getString("notificationTokens").split("[, ]");
+            message.notification = item;
+
+            var request = client.target(url).request().header("Authorization", "key=" + key);
+            try (Response result = request.post(Entity.json(message))) {
+                var json = result.readEntity(JsonObject.class);
+                List<String> failedTokens = new LinkedList<>();
+                var responses = json.getJsonArray("responses");
+                for (int i = 0; i < responses.size(); i++) {
+                    var response = responses.getJsonObject(i);
+                    if (!response.getBoolean("success")) {
+                        var error = response.getJsonObject("error");
+                        String errorCode = error.getString("code");
+                        if (errorCode.equals("messaging/invalid-argument")
+                                || errorCode.equals("messaging/registration-token-not-registered")) {
+                            failedTokens.add(registrationTokens.get(i));
+                        }
+                        LOGGER.warn("Push user {} error - {}", user.getId(), error.getString("message"));
+                    }
+                }
+                if (!failedTokens.isEmpty()) {
+                    registrationTokens.removeAll(failedTokens);
+                    if (registrationTokens.isEmpty()) {
+                        user.getAttributes().remove("notificationTokens");
+                    } else {
+                        user.set("notificationTokens", String.join(",", registrationTokens));
+                    }
+                    storage.updateObject(user, new Request(
+                            new Columns.Include("attributes"),
+                            new Condition.Equals("id", user.getId())));
+                    cacheManager.updateOrInvalidate(true, user);
+                }
+            } catch (StorageException e) {
+                LOGGER.warn("Push error", e);
+            }
+        }
+    }
+
+    @Override
+    public void send(Notification notification, User user, Event event, Position position, Storage storage) throws MessageException {
         if (user.hasAttribute("notificationTokens")) {
 
             var shortMessage = notificationFormatter.formatMessage(user, event, position, "short");

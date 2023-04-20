@@ -28,6 +28,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Entity;
+import org.traccar.notification.MessageException;
+import org.traccar.storage.Storage;
 
 @Singleton
 public class NotificatorPushover implements Notificator {
@@ -40,6 +42,7 @@ public class NotificatorPushover implements Notificator {
     private final String user;
 
     public static class Message {
+
         @JsonProperty("token")
         private String token;
         @JsonProperty("user")
@@ -83,4 +86,25 @@ public class NotificatorPushover implements Notificator {
         client.target(url).request().post(Entity.json(message)).close();
     }
 
+    @Override
+    public void send(Notification notification, User user, Event event, Position position, Storage storage) throws MessageException {
+        var shortMessage = notificationFormatter.formatMessage(user, event, position, "short");
+
+        Message message = new Message();
+        message.token = token;
+
+        message.user = user.getString("pushoverUserKey");
+        if (message.user == null) {
+            message.user = this.user;
+        }
+
+        if (user.hasAttribute("pushoverDeviceNames")) {
+            message.device = user.getString("pushoverDeviceNames").replaceAll(" *, *", ",");
+        }
+
+        message.title = shortMessage.getSubject();
+        message.message = shortMessage.getBody();
+
+        client.target(url).request().post(Entity.json(message)).close();
+    }
 }

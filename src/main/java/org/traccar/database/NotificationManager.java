@@ -107,7 +107,7 @@ public class NotificationManager {
                 cacheManager.getNotificationUsers(notification.getId(), event.getDeviceId()).forEach(user -> {
                     for (String notificator : notification.getNotificatorsTypes()) {
                         try {
-                            notificatorManager.getNotificator(notificator).send(notification, user, event, position);
+                            notificatorManager.getNotificator(notificator).send(notification, user, event, position, storage);
                         } catch (MessageException exception) {
                             LOGGER.warn("Notification failed", exception);
                         }

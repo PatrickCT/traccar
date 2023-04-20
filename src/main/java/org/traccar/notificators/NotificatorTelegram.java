@@ -29,6 +29,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Entity;
+import org.traccar.notification.MessageException;
+import org.traccar.storage.Storage;
 
 @Singleton
 public class NotificatorTelegram implements Notificator {
@@ -42,6 +44,7 @@ public class NotificatorTelegram implements Notificator {
     private final boolean sendLocation;
 
     public static class TextMessage {
+
         @JsonProperty("chat_id")
         private String chatId;
         @JsonProperty("text")
@@ -51,6 +54,7 @@ public class NotificatorTelegram implements Notificator {
     }
 
     public static class LocationMessage {
+
         @JsonProperty("chat_id")
         private String chatId;
         @JsonProperty("latitude")
@@ -102,4 +106,20 @@ public class NotificatorTelegram implements Notificator {
         }
     }
 
+    @Override
+    public void send(Notification notification, User user, Event event, Position position, Storage storage) throws MessageException {
+        var shortMessage = notificationFormatter.formatMessage(user, event, position, "short");
+
+        TextMessage message = new TextMessage();
+        message.chatId = user.getString("telegramChatId");
+        if (message.chatId == null) {
+            message.chatId = chatId;
+        }
+        message.text = shortMessage.getBody();
+        client.target(urlSendText).request().post(Entity.json(message)).close();
+        if (sendLocation && position != null) {
+            client.target(urlSendLocation).request().post(
+                    Entity.json(createLocationMessage(message.chatId, position))).close();
+        }
+    }
 }

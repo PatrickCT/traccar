@@ -143,4 +143,64 @@ public class NotificatorFirebase implements Notificator {
         }
     }
 
+    @Override
+    public void send(Notification notification, User user, Event event, Position position, Storage storage) throws MessageException {
+        if (user.hasAttribute("notificationTokens")) {
+
+            var shortMessage = notificationFormatter.formatMessage(user, event, position, "short");
+
+            List<String> registrationTokens = new ArrayList<>(
+                    Arrays.asList(user.getString("notificationTokens").split("[, ]")));
+
+            MulticastMessage message = MulticastMessage.builder()
+                    .setNotification(com.google.firebase.messaging.Notification.builder()
+                            .setTitle(shortMessage.getSubject())
+                            .setBody(shortMessage.getBody())
+                            .build())
+                    .setAndroidConfig(AndroidConfig.builder()
+                            .setNotification(AndroidNotification.builder()
+                                    .setSound("default")
+                                    .build())
+                            .build())
+                    .setApnsConfig(ApnsConfig.builder()
+                            .setAps(Aps.builder()
+                                    .setSound("default")
+                                    .build())
+                            .build())
+                    .addAllTokens(registrationTokens)
+                    .putData("eventId", String.valueOf(event.getId()))
+                    .build();
+
+            try {
+                var result = FirebaseMessaging.getInstance().sendMulticast(message);
+                List<String> failedTokens = new LinkedList<>();
+                var iterator = result.getResponses().listIterator();
+                while (iterator.hasNext()) {
+                    int index = iterator.nextIndex();
+                    var response = iterator.next();
+                    if (!response.isSuccessful()) {
+                        MessagingErrorCode error = response.getException().getMessagingErrorCode();
+                        if (error == MessagingErrorCode.INVALID_ARGUMENT || error == MessagingErrorCode.UNREGISTERED) {
+                            failedTokens.add(registrationTokens.get(index));
+                        }
+                        LOGGER.warn("Firebase user {} error", user.getId(), response.getException());
+                    }
+                }
+                if (!failedTokens.isEmpty()) {
+                    registrationTokens.removeAll(failedTokens);
+                    if (registrationTokens.isEmpty()) {
+                        user.getAttributes().remove("notificationTokens");
+                    } else {
+                        user.set("notificationTokens", String.join(",", registrationTokens));
+                    }
+                    storage.updateObject(user, new Request(
+                            new Columns.Include("attributes"),
+                            new Condition.Equals("id", user.getId())));
+                    cacheManager.updateOrInvalidate(true, user);
+                }
+            } catch (FirebaseMessagingException | StorageException e) {
+                LOGGER.warn("Firebase error", e);
+            }
+        }
+    }
 }

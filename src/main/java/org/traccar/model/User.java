@@ -295,4 +295,24 @@ public class User extends ExtendedModel implements UserRestrictions, Disableable
         return Hashing.validatePassword(password, hashedPassword, salt);
     }
 
+    private boolean main;
+
+    public boolean getMain() {
+        return main;
+    }
+
+    public void setMain(boolean main) {
+        this.main = main;
+    }
+
+    private int principal;
+
+    public int getPrincipal() {
+        return principal;
+    }
+
+    public void setPrincipal(int principal) {
+        this.principal = principal;
+    }
+        
 }

@@ -83,7 +83,7 @@ public class NotificationResource extends ExtendedObjectResource<Notification> {
     public Response testMessage() throws MessageException, StorageException {
         User user = permissionsService.getUser(getUserId());
         for (Typed method : notificatorManager.getAllNotificatorTypes()) {
-            notificatorManager.getNotificator(method.getType()).send(null, user, new Event("test", 0), null);
+            notificatorManager.getNotificator(method.getType()).send(null, user, new Event("test", 0), null, storage);
         }
         return Response.noContent().build();
     }
@@ -93,7 +93,7 @@ public class NotificationResource extends ExtendedObjectResource<Notification> {
     public Response testMessage(@PathParam("notificator") String notificator)
             throws MessageException, StorageException {
         User user = permissionsService.getUser(getUserId());
-        notificatorManager.getNotificator(notificator).send(null, user, new Event("test", 0), null);
+        notificatorManager.getNotificator(notificator).send(null, user, new Event("test", 0), null, storage);
         return Response.noContent().build();
     }
 

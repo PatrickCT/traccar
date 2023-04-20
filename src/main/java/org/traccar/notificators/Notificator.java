@@ -21,9 +21,11 @@ import org.traccar.model.Notification;
 import org.traccar.model.Position;
 import org.traccar.model.User;
 import org.traccar.notification.MessageException;
+import org.traccar.storage.Storage;
 
 public interface Notificator {
 
     void send(Notification notification, User user, Event event, Position position) throws MessageException;
 
+    void send(Notification notification, User user, Event event, Position position, Storage storage) throws MessageException;
 }

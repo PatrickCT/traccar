@@ -16,6 +16,13 @@
  */
 package org.traccar.notificators;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import org.traccar.database.StatisticsManager;
 import org.traccar.model.Event;
 import org.traccar.model.Notification;
@@ -27,6 +34,12 @@ import org.traccar.sms.SmsManager;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import org.traccar.model.ExtraPhone;
+import org.traccar.storage.Storage;
+import org.traccar.storage.StorageException;
+import org.traccar.storage.query.Columns;
+import org.traccar.storage.query.Condition;
+import org.traccar.storage.query.Request;
 
 @Singleton
 public class NotificatorSms implements Notificator {
@@ -49,6 +62,29 @@ public class NotificatorSms implements Notificator {
             var shortMessage = notificationFormatter.formatMessage(user, event, position, "short");
             statisticsManager.registerSms();
             smsManager.sendMessage(user.getPhone(), shortMessage.getBody(), false);
+        }
+    }
+
+    @Override
+    public void send(Notification notification, User user, Event event, Position position, Storage storaqe) throws MessageException {        
+        if (user.getPhone() != null) {
+            try {
+                var shortMessage = notificationFormatter.formatMessage(user, event, position, "short");
+                statisticsManager.registerSms();
+                List<String> phones = new ArrayList<>();
+                phones.add(user.getPhone());
+                phones.addAll(storaqe.getObjects(ExtraPhone.class, new Request(
+                        new Columns.Include("phone"),
+                        new Condition.Equals("userid", user.getId())
+                )).stream().map((ep) -> {
+                    return ep.getPhone();
+                }).collect(Collectors.toList()));
+                Set<String> set = new LinkedHashSet<>(phones);
+                String result = String.join(",", set.stream().map(s -> "\"" + s + "\"").toArray(String[]::new));                
+                smsManager.sendMessage(result, shortMessage.getBody(), false);
+            } catch (StorageException ex) {
+                Logger.getLogger(NotificatorSms.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
     }
 

@@ -27,6 +27,7 @@ import org.traccar.notification.NotificationFormatter;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.mail.MessagingException;
+import org.traccar.storage.Storage;
 
 @Singleton
 public class NotificatorMail implements Notificator {
@@ -42,6 +43,16 @@ public class NotificatorMail implements Notificator {
 
     @Override
     public void send(Notification notification, User user, Event event, Position position) throws MessageException {
+        try {
+            var fullMessage = notificationFormatter.formatMessage(user, event, position, "full");
+            mailManager.sendMessage(user, false, fullMessage.getSubject(), fullMessage.getBody());
+        } catch (MessagingException e) {
+            throw new MessageException(e);
+        }
+    }
+
+    @Override
+    public void send(Notification notification, User user, Event event, Position position, Storage storage) throws MessageException {
         try {
             var fullMessage = notificationFormatter.formatMessage(user, event, position, "full");
             mailManager.sendMessage(user, false, fullMessage.getSubject(), fullMessage.getBody());

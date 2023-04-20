@@ -38,6 +38,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Collection;
+import javax.ws.rs.PUT;
+import javax.ws.rs.PathParam;
+import org.traccar.model.ExtraMail;
+import org.traccar.model.ExtraPhone;
 
 @Path("users")
 @Produces(MediaType.APPLICATION_JSON)
@@ -111,4 +115,83 @@ public class UserResource extends BaseObjectResource<User> {
         return Response.ok(entity).build();
     }
 
+    @Path("main")
+    @GET
+    public Collection<User> getMainUsers() throws StorageException {
+
+        return storage.getObjects(baseClass, new Request(
+                new Columns.All(),
+                new Condition.Equals("main", true)
+        ));
+    }
+
+    @Path("{id}/mails")
+    @GET
+    public Collection<ExtraMail> getUserMails(@PathParam("id") long id) throws StorageException {
+
+        return storage.getObjects(ExtraMail.class, new Request(
+                new Columns.All(),
+                new Condition.Equals("userid", id)
+        ));
+    }
+
+    @Path("{id}/mails")
+    @PUT
+    public Collection<ExtraMail> setUserMail(ExtraMail entity) throws StorageException {
+        storage.updateObject(entity, new Request(
+                new Columns.All(),
+                new Condition.Equals("id", entity.getId())
+        ));
+        return storage.getObjects(ExtraMail.class, new Request(
+                new Columns.All(),
+                new Condition.Equals("userid", entity.getId())
+        ));
+    }
+
+    @Path("{id}/mails")
+    @POST
+    public Collection<ExtraMail> addUserMail(ExtraMail entity) throws StorageException {
+        Object e = storage.addObject(entity, new Request(
+                new Columns.All()
+        ));
+        return storage.getObjects(ExtraMail.class, new Request(
+                new Columns.All(),
+                new Condition.Equals("userid", entity.getUserid())
+        ));
+    }
+
+    @Path("{id}/phones")
+    @GET
+    public Collection<ExtraPhone> getUserPhones(@PathParam("id") long id) throws StorageException {
+
+        return storage.getObjects(ExtraPhone.class, new Request(
+                new Columns.All(),
+                new Condition.Equals("userid", id)
+        ));
+    }
+
+    @Path("{id}/phones")
+    @PUT
+    public Collection<ExtraPhone> setUserPhone(ExtraPhone entity) throws StorageException {
+        storage.updateObject(entity, new Request(
+                new Columns.All(),
+                new Condition.Equals("id", entity.getId())
+        ));
+        return storage.getObjects(ExtraPhone.class, new Request(
+                new Columns.All(),
+                new Condition.Equals("userid", entity.getId())
+        ));
+    }
+
+    @Path("{id}/phones")
+    @POST
+    public Collection<ExtraPhone> addUserPhone(ExtraPhone entity) throws StorageException {
+        Object e = storage.addObject(entity, new Request(
+                new Columns.All()
+        ));
+        return storage.getObjects(ExtraPhone.class, new Request(
+                new Columns.All(),
+                new Condition.Equals("userid", entity.getUserid())
+        ));
+    }
 }
