@@ -53,6 +53,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Date;
 import java.net.URI;
+import org.traccar.transporte.model.usuarios;
 
 @Path("session")
 @Produces(MediaType.APPLICATION_JSON)
@@ -184,5 +185,21 @@ public class SessionResource extends BaseResource {
         String requestUri = requestUrl.append('?').append(queryString).toString();
 
         return Response.seeOther(openIdProvider.handleCallback(URI.create(requestUri), request)).build();
+    }
+    
+    @PermitAll
+    @POST
+    @Path("transporte")
+    public usuarios addTransporte(
+            @FormParam("email") String email, @FormParam("password") String password) throws StorageException {
+        usuarios user = loginService.loginTransporte(email, password);
+        if (user != null) {
+            request.getSession().setAttribute(USER_ID_KEY, user.getId());
+            LogAction.login(user.getId(), WebHelper.retrieveRemoteAddress(request));
+            return user;
+        } else {
+            LogAction.failedLogin(WebHelper.retrieveRemoteAddress(request));
+            throw new WebApplicationException(Response.status(Response.Status.UNAUTHORIZED).build());
+        }
     }
 }

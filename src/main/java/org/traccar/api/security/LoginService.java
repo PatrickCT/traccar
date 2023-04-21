@@ -32,6 +32,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import org.traccar.transporte.model.usuarios;
 
 @Singleton
 public class LoginService {
@@ -100,8 +101,8 @@ public class LoginService {
 
     public User login(String email, String name, Boolean administrator) throws StorageException {
         User user = storage.getObject(User.class, new Request(
-            new Columns.All(),
-            new Condition.Equals("email", email)));
+                new Columns.All(),
+                new Condition.Equals("email", email)));
 
         if (user != null) {
             checkUserEnabled(user);
@@ -126,4 +127,23 @@ public class LoginService {
         user.checkDisabled();
     }
 
+    public usuarios loginTransporte(String email, String password) throws StorageException {
+        if (forceOpenId) {
+            return null;
+        }
+
+        email = email.trim();
+
+        usuarios user = storage.getObject(usuarios.class, new Request(
+                new Columns.All(),
+                new Condition.Equals("correo", email)));
+        if (user != null) {
+            if (user.getPASSWORD().equals(password)) {
+                return user;
+            }
+
+        }
+        
+        return null;
+    }
 }

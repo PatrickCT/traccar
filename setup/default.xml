@@ -32,7 +32,14 @@
 
     <entry key='media.path'>./media</entry>
 
-    <entry key='notificator.types'>web,mail,command</entry>
+    <entry key='notificator.types'>web,mail,command,sms</entry>
+    <entry key='sms.http.url'>http://45.79.53.38:8080/enviar</entry>
+    <entry key='sms.http.template'>
+    {
+         "destino": [{phone}],
+        "mensagem": "{message}"
+    }
+    </entry>
 
     <entry key='server.statistics'>https://www.traccar.org/analytics/</entry>
 
