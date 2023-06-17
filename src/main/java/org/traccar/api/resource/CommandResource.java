@@ -121,8 +121,9 @@ public class CommandResource extends ExtendedObjectResource<Command> {
             permissionsService.checkPermission(Group.class, getUserId(), groupId);
             var devices = DeviceUtil.getAccessibleDevices(storage, getUserId(), List.of(), List.of(groupId));
             for (Device device : devices) {
-                entity.setDeviceId(device.getId());
-                result = result && commandsManager.sendCommand(entity);
+                Command command = QueuedCommand.fromCommand(entity).toCommand();
+                command.setDeviceId(device.getId());
+                result = commandsManager.sendCommand(command) && result;
             }
         } else {
             permissionsService.checkPermission(Device.class, getUserId(), entity.getDeviceId());

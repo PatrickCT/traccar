@@ -1,6 +1,5 @@
 /*
- * Copyright 2017 - 2023 Anton Tananaev (anton@traccar.org)
- * Copyright 2017 Andrey Kunitsyn (andrey@traccar.org)
+ * Copyright 2023 Anton Tananaev (anton@traccar.org)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,31 +17,34 @@ package org.traccar.handler;
 
 import io.netty.channel.ChannelHandler;
 import org.traccar.BaseDataHandler;
-import org.traccar.config.Keys;
-import org.traccar.helper.model.AttributeUtil;
+import org.traccar.config.Config;
+import org.traccar.helper.model.GeofenceUtil;
 import org.traccar.model.Position;
 import org.traccar.session.cache.CacheManager;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.List;
 
 @Singleton
 @ChannelHandler.Sharable
-public class MotionHandler extends BaseDataHandler {
+public class GeofenceHandler extends BaseDataHandler {
 
+    private final Config config;
     private final CacheManager cacheManager;
 
     @Inject
-    public MotionHandler(CacheManager cacheManager) {
+    public GeofenceHandler(Config config, CacheManager cacheManager) {
+        this.config = config;
         this.cacheManager = cacheManager;
     }
 
     @Override
     protected Position handlePosition(Position position) {
-        if (!position.hasAttribute(Position.KEY_MOTION)) {
-            double threshold = AttributeUtil.lookup(
-                    cacheManager, Keys.EVENT_MOTION_SPEED_THRESHOLD, position.getDeviceId());
-            position.set(Position.KEY_MOTION, position.getSpeed() > threshold);
+
+        List<Long> geofenceIds = GeofenceUtil.getCurrentGeofences(config, cacheManager, position);
+        if (!geofenceIds.isEmpty()) {
+            position.setGeofenceIds(geofenceIds);
         }
         return position;
     }
