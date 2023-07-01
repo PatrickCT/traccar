@@ -428,8 +428,7 @@ public class AtrackProtocolDecoder extends BaseProtocolDecoder {
                     break;
                 case "MP":
                     buf.readUnsignedByte(); // manifold absolute pressure
-                    break;
-                case "EO":
+                    break;              case "EO":
                     position.set(Position.KEY_ODOMETER, UnitsConverter.metersFromMiles(buf.readUnsignedInt()));
                     break;
                 case "EH":

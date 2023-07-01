@@ -30,6 +30,7 @@ import org.traccar.model.Group;
 import org.traccar.model.Position;
 import org.traccar.model.Typed;
 import org.traccar.model.User;
+import org.traccar.model.QueuedCommand;
 import org.traccar.model.UserRestrictions;
 import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
