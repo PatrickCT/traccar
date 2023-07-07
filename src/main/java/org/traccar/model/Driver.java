@@ -41,4 +41,33 @@ public class Driver extends ExtendedModel {
         this.uniqueId = uniqueId;
     }
 
+    //extras for transport
+    private String phone;
+    private String license;
+    private int age;
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getLicense() {
+        return license;
+    }
+
+    public void setLicense(String license) {
+        this.license = license;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
 }
