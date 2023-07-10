@@ -18,5 +18,5 @@ public class Ticket extends BaseModel {
     private Date expectedTime;
     private Date realTime;
     private double difference;
-    private double punishment;
+    private int punishment;
 }
