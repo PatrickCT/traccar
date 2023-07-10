@@ -15,7 +15,7 @@ public class Tramo {
     private String name;    
     private int minTime;
     private int maxTime;
-    private long geofenceid;
+    private long geofenceId;
     private int punishment;
 
     public String getName() {
@@ -43,11 +43,11 @@ public class Tramo {
     }
 
     public long getGeofenceid() {
-        return geofenceid;
+        return geofenceId;
     }
 
     public void setGeofenceid(long geofenceid) {
-        this.geofenceid = geofenceid;
+        this.geofenceId = geofenceid;
     }
 
     public int getPunishment() {
