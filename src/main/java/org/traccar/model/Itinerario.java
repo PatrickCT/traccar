@@ -4,14 +4,20 @@
  */
 package org.traccar.model;
 
+import org.traccar.storage.StorageName;
+
 /**
  *
  * @author K
  */
+@StorageName("tc_itinerarios")
 public class Itinerario extends BaseModel {
     private String name;
     private int days;
+    //! Se cambio en la base de datos el nombre a ("de")
     private String from;
+    
+    //! Se cambio en la base de datos el nombre a ("a")
     private String to;
 
     public String getName() {
