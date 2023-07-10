@@ -19,7 +19,7 @@ public class Salida extends BaseModel {
     private long deviceId;
     private long scheduleId;
 
-    public boolean isFinished() {
+    public boolean getFinished() {
         return finished;
     }
 

@@ -4,10 +4,21 @@
  */
 package org.traccar.api.resource;
 
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import org.traccar.api.BaseObjectResource;
+import org.traccar.api.BaseResource;
+import org.traccar.model.Salida;
+
 /**
  *
  * @author K
  */
-public class SalidasResource {
+@Path("salidas")
+public class SalidasResource extends BaseObjectResource<Salida>{
+    
+    public SalidasResource() {
+        super(Salida.class);
+    }
     
 }

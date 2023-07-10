@@ -19,4 +19,54 @@ public class Ticket extends BaseModel {
     private Date realTime;
     private double difference;
     private double punishment;
+
+    public long getSalidaId() {
+        return salidaId;
+    }
+
+    public void setSalidaId(long salidaId) {
+        this.salidaId = salidaId;
+    }
+
+    public long getGeofenceId() {
+        return geofenceId;
+    }
+
+    public void setGeofenceId(long geofenceId) {
+        this.geofenceId = geofenceId;
+    }
+
+    public Date getExpectedTime() {
+        return expectedTime;
+    }
+
+    public void setExpectedTime(Date expectedTime) {
+        this.expectedTime = expectedTime;
+    }
+
+    public Date getRealTime() {
+        return realTime;
+    }
+
+    public void setRealTime(Date realTime) {
+        this.realTime = realTime;
+    }
+
+    public double getDifference() {
+        return difference;
+    }
+
+    public void setDifference(double difference) {
+        this.difference = difference;
+    }
+
+    public double getPunishment() {
+        return punishment;
+    }
+
+    public void setPunishment(double punishment) {
+        this.punishment = punishment;
+    }
+    
+    
 }
