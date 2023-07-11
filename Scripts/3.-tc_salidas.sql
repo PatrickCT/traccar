@@ -6,4 +6,4 @@ CREATE TABLE tc_salidas (
     deviceId INT,
     scheduleId INT
 );
---DESC tc_salidas;
+-- DESC tc_salidas;

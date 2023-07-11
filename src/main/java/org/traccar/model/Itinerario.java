@@ -14,11 +14,8 @@ import org.traccar.storage.StorageName;
 public class Itinerario extends BaseModel {
     private String name;
     private int days;
-    //! Se cambio en la base de datos el nombre a ("de")
-    private String from;
-    
-    //! Se cambio en la base de datos el nombre a ("a")
-    private String to;
+    private String from;    //! Se cambio en la base de datos el nombre a ("de")
+    private String to;     //! Se cambio en la base de datos el nombre a ("a")
 
     public String getName() {
         return name;
