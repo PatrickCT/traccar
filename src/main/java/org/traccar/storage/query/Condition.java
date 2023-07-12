@@ -21,6 +21,21 @@ import java.util.List;
 
 public interface Condition {
 
+    enum CompareAggrepations {
+        AND(1),
+        OR(2);
+
+        private final int value;
+
+        private CompareAggrepations(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+    }
+
     static Condition merge(List<Condition> conditions) {
         Condition result = null;
         var iterator = conditions.iterator();
@@ -32,14 +47,40 @@ public interface Condition {
         }
         return result;
     }
+    
+    static Condition merge(List<Condition> conditions, CompareAggrepations type) {
+        Condition result = null;
+        var iterator = conditions.iterator();
+        if (iterator.hasNext()) {
+            result = iterator.next();
+            while (iterator.hasNext()) {
+                if (type.equals(CompareAggrepations.AND)){
+                    result = new Condition.And(result, iterator.next());
+                } else {
+                    result = new Condition.Or(result, iterator.next());
+                }
+                
+            }
+        }
+        return result;
+    }
 
     class Equals extends Compare {
+
         public Equals(String column, Object value) {
             super(column, "=", column, value);
         }
     }
 
+    class In extends Compare {
+
+        public In(String column, Object value) {
+            super(column, "in", column, value);
+        }
+    }
+
     class Compare implements Condition {
+
         private final String column;
         private final String operator;
         private final String variable;
@@ -70,6 +111,7 @@ public interface Condition {
     }
 
     class Between implements Condition {
+
         private final String column;
         private final String fromVariable;
         private final Object fromValue;
@@ -106,18 +148,21 @@ public interface Condition {
     }
 
     class Or extends Binary {
+
         public Or(Condition first, Condition second) {
             super(first, second, "OR");
         }
     }
 
     class And extends Binary {
+
         public And(Condition first, Condition second) {
             super(first, second, "AND");
         }
     }
 
     class Binary implements Condition {
+
         private final Condition first;
         private final Condition second;
         private final String operator;
@@ -142,6 +187,7 @@ public interface Condition {
     }
 
     class Permission implements Condition {
+
         private final Class<?> ownerClass;
         private final long ownerId;
         private final Class<?> propertyClass;
@@ -193,6 +239,7 @@ public interface Condition {
     }
 
     class LatestPositions implements Condition {
+
         private final long deviceId;
 
         public LatestPositions(long deviceId) {
@@ -207,5 +254,4 @@ public interface Condition {
             return deviceId;
         }
     }
-
 }

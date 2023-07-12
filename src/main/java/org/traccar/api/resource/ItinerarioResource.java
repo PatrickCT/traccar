@@ -13,6 +13,11 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import org.traccar.model.Itinerario;
+import org.traccar.storage.StorageException;
+import org.traccar.storage.query.Columns;
+import org.traccar.storage.query.Condition;
+import org.traccar.storage.query.Request;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -20,31 +25,25 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.glassfish.hk2.utilities.general.GeneralUtilities;
 import org.traccar.api.SimpleObjectResource;
 import org.traccar.api.security.ServiceAccountUser;
-import org.traccar.config.Config;
 import org.traccar.helper.LogAction;
 import org.traccar.model.Group;
 import org.traccar.model.Subroute;
 import org.traccar.model.User;
 import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
-import org.traccar.storage.StorageException;
-import org.traccar.storage.query.Columns;
-import org.traccar.storage.query.Condition;
-import org.traccar.storage.query.Request;
+import org.traccar.utils.GenericUtils;
 
 /**
  *
  * @author K
  */
-@Path("subroutes")
+@Path("itinerarios")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class SubrouteResource extends SimpleObjectResource<Subroute> {
-
-    @Inject
-    private Config config;
+public class ItinerarioResource extends SimpleObjectResource<Itinerario> {
 
     @Inject
     private CacheManager cacheManager;
@@ -52,30 +51,40 @@ public class SubrouteResource extends SimpleObjectResource<Subroute> {
     @Inject
     private ConnectionManager connectionManager;
 
-    public SubrouteResource() {
-        super(Subroute.class);
+    public ItinerarioResource() {
+        super(Itinerario.class);
     }
 
     @GET
-    public Collection<Subroute> get(
+    public Collection<Itinerario> get(
             @QueryParam("all") boolean all, @QueryParam("userId") long userId) throws StorageException {
-
-        Collection<Subroute> result = new ArrayList<>();
+        Collection<Itinerario> result = new ArrayList<>();
         var conditions = new LinkedList<Condition>();
         List<Long> grupos = storage.getPermissions(User.class, Group.class).stream().map((item) -> item.getPropertyId()).collect(Collectors.toList());
+        conditions.clear();
+        List<Long> subrutas = new ArrayList<>();
         grupos.forEach(id -> {
             try {
-                result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("groupId", id))));
+                subrutas.addAll(storage.getObjects(Subroute.class, new Request(new Columns.All(), new Condition.Equals("groupId", id))).stream().map(item ->item.getId()).collect(Collectors.toList()));
             } catch (StorageException ex) {
+                ex.printStackTrace();
+                Logger.getLogger(ItinerarioResource.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });        
+        conditions.clear();
+        subrutas.forEach(id -> {
+            try {
+                result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("subrouteId", id))));
+            } catch (StorageException ex) {
+                ex.printStackTrace();
                 Logger.getLogger(ItinerarioResource.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
         return result;
-
     }
 
     @POST
-    public Response add(Subroute entity) throws StorageException {
+    public Response add(Itinerario entity) throws StorageException {
         permissionsService.checkEdit(getUserId(), entity, true);
 
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));

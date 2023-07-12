@@ -25,7 +25,10 @@ import org.traccar.api.security.ServiceAccountUser;
 import org.traccar.config.Config;
 import org.traccar.helper.LogAction;
 import org.traccar.model.Group;
+import org.traccar.model.Itinerario;
+import org.traccar.model.Permission;
 import org.traccar.model.Subroute;
+import org.traccar.model.Tramo;
 import org.traccar.model.User;
 import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
@@ -38,11 +41,10 @@ import org.traccar.storage.query.Request;
  *
  * @author K
  */
-@Path("subroutes")
+@Path("tramos")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class SubrouteResource extends SimpleObjectResource<Subroute> {
-
+public class TramosResource extends SimpleObjectResource<Tramo>{
     @Inject
     private Config config;
 
@@ -52,30 +54,57 @@ public class SubrouteResource extends SimpleObjectResource<Subroute> {
     @Inject
     private ConnectionManager connectionManager;
 
-    public SubrouteResource() {
-        super(Subroute.class);
+    public TramosResource() {
+        super(Tramo.class);
     }
-
+    
     @GET
-    public Collection<Subroute> get(
+    public Collection<Tramo> get(
             @QueryParam("all") boolean all, @QueryParam("userId") long userId) throws StorageException {
 
-        Collection<Subroute> result = new ArrayList<>();
+        Collection<Tramo> result = new ArrayList<>();
+        Collection<Long> itinerarios = new ArrayList<>();
         var conditions = new LinkedList<Condition>();
         List<Long> grupos = storage.getPermissions(User.class, Group.class).stream().map((item) -> item.getPropertyId()).collect(Collectors.toList());
+        conditions.clear();
+        List<Long> subrutas = new ArrayList<>();
         grupos.forEach(id -> {
             try {
-                result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("groupId", id))));
+                subrutas.addAll(storage.getObjects(Subroute.class, new Request(new Columns.All(), new Condition.Equals("groupId", id))).stream().map(item ->item.getId()).collect(Collectors.toList()));
             } catch (StorageException ex) {
+                ex.printStackTrace();
                 Logger.getLogger(ItinerarioResource.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });        
+        conditions.clear();
+        subrutas.forEach(id -> {
+            try {
+                itinerarios.addAll(storage.getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("subrouteId", id))).stream().map(item -> item.getId()).collect(Collectors.toList()));
+            } catch (StorageException ex) {
+                ex.printStackTrace();
+                Logger.getLogger(ItinerarioResource.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });
+        conditions.clear();
+        itinerarios.forEach(id -> {
+            try {
+                List<Permission> p = storage.getPermissions(Itinerario.class, Tramo.class);
+                p.forEach(item -> {
+                    try {
+                        result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("id", item.getPropertyId()))));
+                    } catch (StorageException ex) {
+                        Logger.getLogger(TramosResource.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                });                
+            } catch (StorageException e) {
             }
         });
         return result;
 
     }
-
+    
     @POST
-    public Response add(Subroute entity) throws StorageException {
+    public Response add(Tramo entity) throws StorageException {
         permissionsService.checkEdit(getUserId(), entity, true);
 
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));

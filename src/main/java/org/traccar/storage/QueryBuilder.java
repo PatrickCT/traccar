@@ -399,6 +399,7 @@ public final class QueryBuilder {
         if (config.getBoolean(Keys.LOGGER_QUERIES)) {
             LOGGER.info(query);
         }
+        LOGGER.info(query);//remover
     }
 
     public <T> List<T> executeQuery(Class<T> clazz) throws SQLException {

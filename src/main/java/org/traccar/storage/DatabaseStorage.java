@@ -294,8 +294,18 @@ public class DatabaseStorage extends Storage {
                 }
                 result.append(")");
 
+            } else if (genericCondition instanceof Condition.In) {
+
+                var condition = (Condition.In) genericCondition;
+                result.append(condition.getColumn());
+                result.append(" ");
+                result.append(condition.getOperator());
+                result.append(" :");
+                result.append(condition.getVariable().replaceAll("'", ""));
+
             }
         }
+        
         return result.toString();
     }
 

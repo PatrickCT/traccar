@@ -302,6 +302,13 @@ public class ConnectionManager implements BroadcastInterface {
 
     @Override
     public synchronized void updatePosition(boolean local, Position position) {
+        //filtrar posiciones
+        if (position.getLongitude() > 0) {
+            position.setLongitude(position.getLongitude() * -1);
+        }
+        if (position.getLatitude() == 0 && position.getLongitude() == 0) {
+            return;
+        }
         if (local) {
             broadcastService.updatePosition(true, position);
         }

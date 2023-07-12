@@ -15,10 +15,12 @@ public class Itinerario extends BaseModel {
     private String name;
     private int days;
     //! Se cambio en la base de datos el nombre a ("de")
-    private String from;
+    private String de;
     
     //! Se cambio en la base de datos el nombre a ("a")
-    private String to;
+    private String a;
+    
+    private long subrouteId;
 
     public String getName() {
         return name;
@@ -36,20 +38,28 @@ public class Itinerario extends BaseModel {
         this.days = days;
     }
 
-    public String getFrom() {
-        return from;
+    public String getDe() {
+        return de;
     }
 
-    public void setFrom(String from) {
-        this.from = from;
+    public void setDe(String de) {
+        this.de = de;
     }
 
-    public String getTo() {
-        return to;
+    public String getA() {
+        return a;
     }
 
-    public void setTo(String to) {
-        this.to = to;
+    public void setA(String a) {
+        this.a = a;
+    }
+    
+    public long getSubrouteId() {
+        return subrouteId;
+    }
+
+    public void setSubrouteId(long subrouteId) {
+        this.subrouteId = subrouteId;
     }
     
     

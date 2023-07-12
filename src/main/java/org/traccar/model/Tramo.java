@@ -11,7 +11,7 @@ import org.traccar.storage.StorageName;
  * @author K
  */
 @StorageName("tc_tramos")
-public class Tramo {
+public class Tramo extends BaseModel{
     private String name;    
     private int minTime;
     private int maxTime;
