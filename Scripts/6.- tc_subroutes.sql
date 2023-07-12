@@ -4,4 +4,4 @@ CREATE TABLE tc_subroutes(
     name VARCHAR(50),
     groupId INT
 );
-DESCRIBE tc_subroutes;
+-- DESCRIBE tc_subroutes;
