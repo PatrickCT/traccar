@@ -24,11 +24,16 @@ import org.traccar.TrackerServer;
 import org.traccar.config.Config;
 
 import javax.inject.Inject;
+import org.traccar.model.Command;
 
 public class OsmAndProtocol extends BaseProtocol {
 
     @Inject
     public OsmAndProtocol(Config config) {
+        setSupportedDataCommands(
+                Command.TYPE_ENGINE_STOP,
+                Command.TYPE_ENGINE_RESUME,
+                Command.TYPE_CUSTOM);
         addServer(new TrackerServer(config, getName(), false) {
             @Override
             protected void addProtocolHandlers(PipelineBuilder pipeline, Config config) {
