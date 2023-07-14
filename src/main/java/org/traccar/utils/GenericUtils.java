@@ -6,6 +6,7 @@ package org.traccar.utils;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import org.traccar.model.BaseModel;
 
@@ -80,5 +81,12 @@ public class GenericUtils {
         sb.append(")");
 
         return sb.toString();
+    }
+    
+    public static Date addTimeToDate(Date date, int field, int amount) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.add(field, amount);
+        return calendar.getTime();
     }
 }

@@ -38,7 +38,8 @@ import org.traccar.storage.query.Request;
 @Path("tickets")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class TicketsResource extends BaseObjectResource<Ticket>{
+public class TicketsResource extends BaseObjectResource<Ticket> {
+
     @Inject
     private Config config;
 
@@ -51,28 +52,52 @@ public class TicketsResource extends BaseObjectResource<Ticket>{
     public TicketsResource() {
         super(Ticket.class);
     }
-    
+
     @GET
     public Collection<Ticket> get(
-            @QueryParam("all") boolean all, @QueryParam("finished") boolean finished) throws StorageException {
+            @QueryParam("all") boolean all,
+            @QueryParam("finished") boolean finished,
+            @QueryParam("deviceId") long deviceId) throws StorageException {
 
         Collection<Ticket> result = new ArrayList<>();
         Collection<Long> salidas = new ArrayList<>();
-        List<Long> devices = storage.getPermissions(User.class, Device.class).stream().map((item) -> item.getPropertyId()).collect(Collectors.toList());
-        devices.forEach(id -> {
-            try {
-                salidas.addAll(storage.getObjects(Salida.class, new Request(new Columns.All(), new Condition.Equals("deviceId", id))).stream().map(item -> item.getId()).collect(Collectors.toList()));
-            } catch (StorageException ex) {
-                Logger.getLogger(ItinerarioResource.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        });
-        
-        salidas.forEach(id -> {
-            try {
-                result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("salidaId", id))));
-            } catch (Exception e) {
-            }
-        });
+        if (deviceId != 0) {
+            List<Long> devices = new ArrayList<>() {
+                {
+                    add(deviceId);
+                }
+            };
+            devices.forEach(id -> {
+                try {
+                    salidas.addAll(storage.getObjects(Salida.class, new Request(new Columns.All(), new Condition.Equals("deviceId", id))).stream().map(item -> item.getId()).collect(Collectors.toList()));
+                } catch (StorageException ex) {
+                    Logger.getLogger(ItinerarioResource.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            });
+
+            salidas.forEach(id -> {
+                try {
+                    result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("salidaId", id))));
+                } catch (Exception e) {
+                }
+            });
+        } else {
+            List<Long> devices = storage.getPermissions(User.class, Device.class).stream().map((item) -> item.getPropertyId()).collect(Collectors.toList());
+            devices.forEach(id -> {
+                try {
+                    salidas.addAll(storage.getObjects(Salida.class, new Request(new Columns.All(), new Condition.Equals("deviceId", id))).stream().map(item -> item.getId()).collect(Collectors.toList()));
+                } catch (StorageException ex) {
+                    Logger.getLogger(ItinerarioResource.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            });
+
+            salidas.forEach(id -> {
+                try {
+                    result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("salidaId", id))));
+                } catch (Exception e) {
+                }
+            });
+        }
         return result;
 
     }

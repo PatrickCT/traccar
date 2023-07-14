@@ -80,6 +80,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 Event event = new Event(Event.TYPE_GEOFENCE_ENTER, position);
                 event.setGeofenceId(geofenceId);
                 events.put(event, position);
+                System.out.println("entro geocerca " + geofenceId);
             }
         }
         return events;

@@ -46,9 +46,21 @@ import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import org.json.JSONObject;
+import org.traccar.model.Driver;
+import org.traccar.model.Permission;
+import org.traccar.model.Salida;
+import org.traccar.model.Ticket;
+import org.traccar.utils.GenericUtils;
 
 @Path("devices")
 @Produces(MediaType.APPLICATION_JSON)
@@ -183,4 +195,39 @@ public class DeviceResource extends BaseObjectResource<Device> {
         return Response.status(Response.Status.NOT_FOUND).build();
     }
 
+    @GET
+    @Path("{id}/ticket")
+    public Response ticket(@PathParam("id") long deviceId) throws StorageException {
+        JSONObject response = new JSONObject("{}");
+        Salida salida = storage.getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+            {
+                add(new Condition.Equals("deviceId", deviceId));
+                add(new Condition.Equals("finished", false));
+            }
+        })));
+        List<Salida> salidas = storage.getObjects(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+            {
+                add(new Condition.Equals("deviceId", deviceId));
+                add(new Condition.Between("date", "from", new Date(), "to", GenericUtils.addTimeToDate(new Date(), Calendar.DAY_OF_MONTH, 1)));
+            }
+        })));
+        response.put("vueltas", salidas.size());
+        List<Driver> choferes = new ArrayList<>();
+        List<Long> permisos = storage.getPermissions(Device.class, Driver.class).stream().filter((p) -> p.getOwnerId() == deviceId).map((p) -> p.getPropertyId()).collect(Collectors.toList());
+        permisos.forEach((id) -> {
+            try {
+                choferes.add(storage.getObject(Driver.class,  new Request(new Columns.All(), new Condition.Equals("id", id))));
+            } catch (StorageException ex) {
+                Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });
+        response.put("choferes", choferes);
+        if (salida != null) {
+            response.put("salida", salida);
+            List<Ticket> tickets = storage.getObjects(Ticket.class, new Request(new Columns.All(), new Condition.Equals("salidaId", salida.getId())));
+            response.put("ticket", tickets);
+
+        }
+        return Response.ok(response.toMap()).build();
+    }
 }
