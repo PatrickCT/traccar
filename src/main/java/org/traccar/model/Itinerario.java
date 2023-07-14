@@ -13,9 +13,7 @@ import org.traccar.storage.StorageName;
 @StorageName("tc_itinerarios")
 public class Itinerario extends BaseModel {
     private String name;
-    private int days;    
-    private String de;
-    private String a;   
+    private int days;      
     private long subrouteId;
     private long geofenceId;
     private String start;
@@ -34,22 +32,6 @@ public class Itinerario extends BaseModel {
 
     public void setDays(int days) {
         this.days = days;
-    }
-
-    public String getDe() {
-        return de;
-    }
-
-    public void setDe(String de) {
-        this.de = de;
-    }
-
-    public String getA() {
-        return a;
-    }
-
-    public void setA(String a) {
-        this.a = a;
     }
 
     public long getSubrouteId() {
