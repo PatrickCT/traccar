@@ -24,6 +24,7 @@ import org.traccar.api.SimpleObjectResource;
 import org.traccar.api.security.ServiceAccountUser;
 import org.traccar.config.Config;
 import org.traccar.helper.LogAction;
+import org.traccar.model.Geofence;
 import org.traccar.model.Group;
 import org.traccar.model.Itinerario;
 import org.traccar.model.Permission;
@@ -44,7 +45,8 @@ import org.traccar.storage.query.Request;
 @Path("tramos")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class TramosResource extends SimpleObjectResource<Tramo>{
+public class TramosResource extends SimpleObjectResource<Tramo> {
+
     @Inject
     private Config config;
 
@@ -57,52 +59,30 @@ public class TramosResource extends SimpleObjectResource<Tramo>{
     public TramosResource() {
         super(Tramo.class);
     }
-    
+
     @GET
     public Collection<Tramo> get(
-            @QueryParam("all") boolean all, @QueryParam("userId") long userId) throws StorageException {
+            @QueryParam("all") boolean all, @QueryParam("scheduleId") long scheduleId) throws StorageException {
 
         Collection<Tramo> result = new ArrayList<>();
-        Collection<Long> itinerarios = new ArrayList<>();
-        var conditions = new LinkedList<Condition>();
-        List<Long> grupos = storage.getPermissions(User.class, Group.class).stream().map((item) -> item.getPropertyId()).collect(Collectors.toList());
-        conditions.clear();
-        List<Long> subrutas = new ArrayList<>();
-        grupos.forEach(id -> {
-            try {
-                subrutas.addAll(storage.getObjects(Subroute.class, new Request(new Columns.All(), new Condition.Equals("groupId", id))).stream().map(item ->item.getId()).collect(Collectors.toList()));
-            } catch (StorageException ex) {
-                ex.printStackTrace();
-                Logger.getLogger(ItinerarioResource.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        });        
-        conditions.clear();
-        subrutas.forEach(id -> {
-            try {
-                itinerarios.addAll(storage.getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("subrouteId", id))).stream().map(item -> item.getId()).collect(Collectors.toList()));
-            } catch (StorageException ex) {
-                ex.printStackTrace();
-                Logger.getLogger(ItinerarioResource.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        });
-        conditions.clear();
-        itinerarios.forEach(id -> {
-            try {
-                List<Permission> p = storage.getPermissions(Itinerario.class, Tramo.class);
-                p.forEach(item -> {
-                    try {
-                        result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("id", item.getPropertyId()))));
-                    } catch (StorageException ex) {
-                        Logger.getLogger(TramosResource.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                });                
-            } catch (StorageException e) {
-            }
-        });
+        Collection<Geofence> geocercas = new ArrayList<>();
+        if (scheduleId != 0) {
+            result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Permission(Itinerario.class, scheduleId, baseClass))));
+        } else {
+            geocercas.addAll(storage.getObjects(Geofence.class, new Request(new Columns.All(), new Condition.Permission(User.class, getUserId(), Geofence.class))));
+            geocercas.forEach(item -> {
+                try {
+                    result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("geofenceId", item.getId()))));
+                } catch (StorageException ex) {
+                    Logger.getLogger(ItinerarioResource.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            });
+        }
+
         return result;
 
     }
-    
+
     @POST
     public Response add(Tramo entity) throws StorageException {
         permissionsService.checkEdit(getUserId(), entity, true);

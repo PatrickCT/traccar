@@ -42,12 +42,12 @@ public class Tramo extends BaseModel{
         this.maxTime = maxTime;
     }
 
-    public long getGeofenceid() {
+    public long getGeofenceId() {
         return geofenceId;
     }
 
-    public void setGeofenceid(long geofenceid) {
-        this.geofenceId = geofenceid;
+    public void setGeofenceId(long geofenceId) {
+        this.geofenceId = geofenceId;
     }
 
     public int getPunishment() {
