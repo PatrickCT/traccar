@@ -11,8 +11,9 @@ import org.traccar.storage.StorageName;
  * @author K
  */
 @StorageName("tc_tramos")
-public class Tramo extends BaseModel{
-    private String name;    
+public class Tramo extends BaseModel {
+
+    private String name;
     private int minTime;
     private int maxTime;
     private long geofenceId;
@@ -57,6 +58,10 @@ public class Tramo extends BaseModel{
     public void setPunishment(int punishment) {
         this.punishment = punishment;
     }
-    
-    
+
+    @Override
+    public String toString() {
+        return "Tramo{" + "name=" + name + ", minTime=" + minTime + ", maxTime=" + maxTime + ", geofenceId=" + geofenceId + ", punishment=" + punishment + '}';
+    }
+
 }

@@ -18,6 +18,7 @@ public class Salida extends BaseModel {
     private Date date;
     private long deviceId;
     private long scheduleId;
+    private Date endingDate;
 
     public boolean getFinished() {
         return finished;
@@ -50,6 +51,17 @@ public class Salida extends BaseModel {
     public void setScheduleId(long scheduleId) {
         this.scheduleId = scheduleId;
     }
-    
-    
+
+    public Date getEndingDate() {
+        return endingDate;
+    }
+
+    public void setEndingDate(Date endingDate) {
+        this.endingDate = endingDate;
+    }        
+
+    @Override
+    public String toString() {
+        return "Salida{" + "finished=" + finished + ", date=" + date + ", deviceId=" + deviceId + ", scheduleId=" + scheduleId + ", endingDate=" + endingDate + '}';
+    }       
 }

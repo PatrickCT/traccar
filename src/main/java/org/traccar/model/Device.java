@@ -236,4 +236,9 @@ public class Device extends GroupedModel implements Disableable {
         this.overspeedGeofenceId = overspeedGeofenceId;
     }
 
+    @Override
+    public String toString() {
+        return "Device{" + "name=" + name + ", uniqueId=" + uniqueId + ", status=" + status + ", lastUpdate=" + lastUpdate + ", positionId=" + positionId + ", phone=" + phone + ", model=" + model + ", contact=" + contact + ", category=" + category + ", disabled=" + disabled + ", expirationTime=" + expirationTime + ", motionStreak=" + motionStreak + ", motionState=" + motionState + ", motionTime=" + motionTime + ", motionDistance=" + motionDistance + ", overspeedState=" + overspeedState + ", overspeedTime=" + overspeedTime + ", overspeedGeofenceId=" + overspeedGeofenceId + '}';
+    }
+
 }

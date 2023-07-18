@@ -422,4 +422,8 @@ public class CacheManager implements BroadcastInterface {
         }
     }
 
+    public Storage getStorage() {
+        return storage;
+    }
+
 }

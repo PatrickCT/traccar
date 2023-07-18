@@ -22,7 +22,7 @@ public class Subroute extends BaseModel {
     public void setName(String name) {
         this.name = name;
     }
-    
+
     private long groupId;
 
     public long getGroupId() {
@@ -31,5 +31,11 @@ public class Subroute extends BaseModel {
 
     public void setGroupId(long groupId) {
         this.groupId = groupId;
-    }      
+    }
+
+    @Override
+    public String toString() {
+        return "Subroute{" + "name=" + name + ", groupId=" + groupId + '}';
+    }
+
 }

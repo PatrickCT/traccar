@@ -12,8 +12,9 @@ import org.traccar.storage.StorageName;
  */
 @StorageName("tc_itinerarios")
 public class Itinerario extends BaseModel {
+
     private String name;
-    private int days;      
+    private int days;
     private long subrouteId;
     private long geofenceId;
     private String start;
@@ -56,5 +57,11 @@ public class Itinerario extends BaseModel {
 
     public void setStart(String start) {
         this.start = start;
-    }       
+    }
+
+    @Override
+    public String toString() {
+        return "Itinerario{" + "name=" + name + ", days=" + days + ", subrouteId=" + subrouteId + ", geofenceId=" + geofenceId + ", start=" + start + '}';
+    }
+
 }

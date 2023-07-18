@@ -4,11 +4,12 @@
  */
 package org.traccar.utils;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import org.traccar.model.BaseModel;
 
 /**
  *
@@ -46,19 +47,19 @@ public class GenericUtils {
     public static boolean isDaySelected(int selectedDays, int day) {
 
         switch (day) {
-            case 0:
+            case 64:
                 return (selectedDays & SUNDAY) != 0;
             case 1:
                 return (selectedDays & MONDAY) != 0;
             case 2:
                 return (selectedDays & TUESDAY) != 0;
-            case 3:
-                return (selectedDays & WEDNESDAY) != 0;
             case 4:
+                return (selectedDays & WEDNESDAY) != 0;
+            case 8:
                 return (selectedDays & THURSDAY) != 0;
-            case 5:
+            case 16:
                 return (selectedDays & FRIDAY) != 0;
-            case 6:
+            case 32:
                 return (selectedDays & SATURDAY) != 0;
             default:
                 return false;  // Invalid day provided
@@ -88,5 +89,61 @@ public class GenericUtils {
         calendar.setTime(date);
         calendar.add(field, amount);
         return calendar.getTime();
+    }
+    
+    public static boolean isSameDate(Date date1, Date date2) {
+        Calendar cal1 = Calendar.getInstance();
+        cal1.setTime(date1);
+        Calendar cal2 = Calendar.getInstance();
+        cal2.setTime(date2);
+
+        int year1 = cal1.get(Calendar.YEAR);
+        int month1 = cal1.get(Calendar.MONTH);
+        int day1 = cal1.get(Calendar.DAY_OF_MONTH);
+
+        int year2 = cal2.get(Calendar.YEAR);
+        int month2 = cal2.get(Calendar.MONTH);
+        int day2 = cal2.get(Calendar.DAY_OF_MONTH);
+
+        return (year1 == year2) && (month1 == month2) && (day1 == day2);
+    }
+    
+    public static int getDayValue(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+
+        int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK);
+        int dayValue = 0;
+
+        switch (dayOfWeek) {
+            case Calendar.MONDAY:
+                dayValue = MONDAY;
+                break;
+            case Calendar.TUESDAY:
+                dayValue = TUESDAY;
+                break;
+            case Calendar.WEDNESDAY:
+                dayValue = WEDNESDAY;
+                break;
+            case Calendar.THURSDAY:
+                dayValue = THURSDAY;
+                break;
+            case Calendar.FRIDAY:
+                dayValue = FRIDAY;
+                break;
+            case Calendar.SATURDAY:
+                dayValue = SATURDAY;
+                break;
+            case Calendar.SUNDAY:
+                dayValue = SUNDAY;
+                break;
+        }
+
+        return dayValue;
+    }
+    
+    public static Date parseTime(String time) throws ParseException {
+        SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+        return format.parse(time);
     }
 }

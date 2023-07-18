@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.traccar.utils.TransporteUtils;
 
 @Singleton
 @ChannelHandler.Sharable
@@ -81,6 +82,12 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 event.setGeofenceId(geofenceId);
                 events.put(event, position);
                 System.out.println("entro geocerca " + geofenceId);
+                if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+                    TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, cacheManager);
+                } else {
+                    TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getServerTime(), cacheManager);
+                }
+
             }
         }
         return events;
