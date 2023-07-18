@@ -4,6 +4,7 @@ CREATE TABLE tc_itinerarios (
     name VARCHAR(70),
     days INT,
     de VARCHAR(70),
-    a VARCHAR(70)
+    a VARCHAR(70), 
+    start VARCHAR(10)
 );
 -- DESCRIBE tc_itinerarios;
