@@ -17,7 +17,8 @@ public class Ticket extends BaseModel {
     private long salidaId;
     private long geofenceId;
     private Date expectedTime;
-    private Date realTime;
+    private Date enterTime;
+    private Date exitTime;
     private double difference;
     private int punishment;
 
@@ -45,13 +46,21 @@ public class Ticket extends BaseModel {
         this.expectedTime = expectedTime;
     }
 
-    public Date getRealTime() {
-        return realTime;
+    public Date getEnterTime() {
+        return enterTime;
     }
 
-    public void setRealTime(Date realTime) {
-        this.realTime = realTime;
+    public void setEnterTime(Date enterTime) {
+        this.enterTime = enterTime;
     }
+
+    public Date getExitTime() {
+        return exitTime;
+    }
+
+    public void setExitTime(Date exitTime) {
+        this.exitTime = exitTime;
+    }    
 
     public double getDifference() {
         return difference;
@@ -71,6 +80,6 @@ public class Ticket extends BaseModel {
 
     @Override
     public String toString() {
-        return "Ticket{" + "salidaId=" + salidaId + ", geofenceId=" + geofenceId + ", expectedTime=" + expectedTime + ", realTime=" + realTime + ", difference=" + difference + ", punishment=" + punishment + '}';
-    }
+        return "Ticket{" + "salidaId=" + salidaId + ", geofenceId=" + geofenceId + ", expectedTime=" + expectedTime + ", enterTime=" + enterTime + ", exitTime=" + exitTime + ", difference=" + difference + ", punishment=" + punishment + '}';
+    }    
 }

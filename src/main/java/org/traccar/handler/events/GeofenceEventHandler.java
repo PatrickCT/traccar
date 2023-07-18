@@ -29,6 +29,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.traccar.model.Itinerario;
+import org.traccar.storage.StorageException;
+import org.traccar.storage.query.Columns;
+import org.traccar.storage.query.Condition;
+import org.traccar.storage.query.Request;
 import org.traccar.utils.TransporteUtils;
 
 @Singleton
@@ -71,6 +78,12 @@ public class GeofenceEventHandler extends BaseEventHandler {
                     Event event = new Event(Event.TYPE_GEOFENCE_EXIT, position);
                     event.setGeofenceId(geofenceId);
                     events.put(event, position);
+                    if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+                        TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
+                    } else {
+                        TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
+                    }
+
                 }
             }
         }
@@ -83,11 +96,10 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 events.put(event, position);
                 System.out.println("entro geocerca " + geofenceId);
                 if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
-                    TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, cacheManager);
+                    TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
                 } else {
-                    TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getServerTime(), cacheManager);
+                    TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
                 }
-
             }
         }
         return events;

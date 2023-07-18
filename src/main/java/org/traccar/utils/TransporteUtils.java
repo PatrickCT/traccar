@@ -35,7 +35,7 @@ public class TransporteUtils {
 
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(TransporteUtils.class);
 
-    public static void generarSalida(long deviceId, long geofenceId, CacheManager cacheManager) {
+    public static void generarSalida(long deviceId, long geofenceId, Date time, CacheManager cacheManager) {
         try {
 
             System.out.println("Generando salida");
@@ -91,8 +91,12 @@ public class TransporteUtils {
             //encontrar itinerario
             //Itinerario itinerario = cacheManager.getStorage().getObject(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofence", salida)));
             System.out.println("Obtener itinerarios");
+            
             List<Itinerario> itinerarios = cacheManager.getStorage().getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofenceId", geofenceId)));
             System.out.println(itinerarios);
+            if (itinerarios.isEmpty()) {
+                return;
+            }            
             Itinerario itinerarioSelected = null;
             System.out.println("Obtener itinerario");
             for (Itinerario itinerario : itinerarios) {
@@ -151,7 +155,7 @@ public class TransporteUtils {
             Date ticketStart = (itinerarioSelected.getStart() != null ? GenericUtils.parseTime(itinerarioSelected.getStart()) : today);
             for (Tramo tramo : tramos) {
                 Ticket ticket = new Ticket();
-                ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, tramo.getMaxTime());
+                ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, tramo.getMinTime());
                 ticket.setExpectedTime(ticketStart);
                 ticket.setGeofenceId(tramo.getGeofenceId());
                 ticket.setPunishment(0);
@@ -159,7 +163,7 @@ public class TransporteUtils {
                 ticket.setId(cacheManager.getStorage().addObject(ticket, new Request(new Columns.Exclude("id"))));
                 System.out.println(ticket);
             }
-
+            updateSalida(deviceId, geofenceId, time, cacheManager);
             return;
         } catch (StorageException ex) {
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
@@ -223,7 +227,11 @@ public class TransporteUtils {
                         new Condition.Equals("id", salida.getId())));
             }
 
-            ticket.setRealTime(realTime);
+            if (ticket.getEnterTime() == null) {
+                ticket.setEnterTime(realTime);
+            } else {
+                ticket.setExitTime(realTime);
+            }
 
             long differenceInMillis = realTime.getTime() - ticket.getExpectedTime().getTime();
             long minutesDifference = differenceInMillis / (1000 * 60);
