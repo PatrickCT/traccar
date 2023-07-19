@@ -29,13 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.traccar.model.Itinerario;
-import org.traccar.storage.StorageException;
-import org.traccar.storage.query.Columns;
-import org.traccar.storage.query.Condition;
-import org.traccar.storage.query.Request;
+import java.util.concurrent.CompletableFuture;
 import org.traccar.utils.TransporteUtils;
 
 @Singleton
@@ -78,12 +72,19 @@ public class GeofenceEventHandler extends BaseEventHandler {
                     Event event = new Event(Event.TYPE_GEOFENCE_EXIT, position);
                     event.setGeofenceId(geofenceId);
                     events.put(event, position);
-                    if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
-                        TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-                    } else {
-                        TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-                    }
 
+                    CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+                        try {
+                            if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+                                TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
+                            } else {
+                                TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
+                            }
+                        } catch (Exception e) {
+                            // Handle exceptions if needed
+                        }
+                        return null;
+                    });
                 }
             }
         }
@@ -95,11 +96,18 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 event.setGeofenceId(geofenceId);
                 events.put(event, position);
                 System.out.println("entro geocerca " + geofenceId);
-                if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
-                    TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-                } else {
-                    TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-                }
+                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+                            TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
+                        } else {
+                            TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
+                        }
+                    } catch (Exception e) {
+                        // Handle exceptions if needed
+                    }
+                    return null;
+                });
             }
         }
         return events;

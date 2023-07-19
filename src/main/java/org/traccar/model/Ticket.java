@@ -21,6 +21,7 @@ public class Ticket extends BaseModel {
     private Date exitTime;
     private double difference;
     private int punishment;
+    private boolean passed;
 
     public long getSalidaId() {
         return salidaId;
@@ -78,8 +79,17 @@ public class Ticket extends BaseModel {
         this.punishment = punishment;
     }
 
+    public boolean getPassed() {
+        return passed;
+    }
+
+    public void setPassed(boolean passed) {
+        this.passed = passed;
+    }
+
     @Override
     public String toString() {
-        return "Ticket{" + "salidaId=" + salidaId + ", geofenceId=" + geofenceId + ", expectedTime=" + expectedTime + ", enterTime=" + enterTime + ", exitTime=" + exitTime + ", difference=" + difference + ", punishment=" + punishment + '}';
-    }    
+        return "Ticket{" + "salidaId=" + salidaId + ", geofenceId=" + geofenceId + ", expectedTime=" + expectedTime + ", enterTime=" + enterTime + ", exitTime=" + exitTime + ", difference=" + difference + ", punishment=" + punishment + ", passed=" + passed + '}';
+    }
+       
 }
