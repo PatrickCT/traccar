@@ -154,7 +154,6 @@ public class TransporteUtils {
             System.out.println("Nuevos tickets");
             Date ticketStart = (itinerarioSelected.getStart() != null ? GenericUtils.parseTime(itinerarioSelected.getStart()) : today);
             Ticket ticket = new Ticket();
-            ticketStart = ticketStart;
             ticket.setExpectedTime(ticketStart);
             ticket.setGeofenceId(itinerarioSelected.getGeofenceId());
             ticket.setPunishment(0);
@@ -268,6 +267,21 @@ public class TransporteUtils {
                     new Condition.Equals("id", ticket.getId())));
             System.out.println(ticket);
 
+        } catch (StorageException ex) {
+            Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private void updateOldTramos(long itinerarioId, CacheManager cacheManager) {
+        try {
+            Itinerario itinerario = cacheManager.getStorage().getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                {
+                    add(new Condition.Equals("id", itinerarioId));                    
+                }
+            })));
+            if(itinerario == null) return;
+            
+            
         } catch (StorageException ex) {
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
         }
