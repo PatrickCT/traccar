@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.slf4j.LoggerFactory;
 import org.traccar.model.Device;
+import org.traccar.model.Event;
 import org.traccar.model.Group;
 import org.traccar.model.Itinerario;
 import org.traccar.model.Permission;
@@ -271,17 +272,90 @@ public class TransporteUtils {
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
-    private void updateOldTramos(long itinerarioId, CacheManager cacheManager) {
+
+    private void updateOldTramos(long salidaId, long itinerarioId, CacheManager cacheManager) {
         try {
-            Itinerario itinerario = cacheManager.getStorage().getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+            Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
-                    add(new Condition.Equals("id", itinerarioId));                    
+                    add(new Condition.Equals("id", salidaId));
                 }
             })));
-            if(itinerario == null) return;
-            
-            
+            if (salida == null) {
+                return;
+            }
+            if (salida.getFinished()) {
+                return;
+            }
+
+            Itinerario itinerario = cacheManager.getStorage().getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                {
+                    add(new Condition.Equals("id", itinerarioId));
+                }
+            })));
+            if (itinerario == null) {
+                return;
+            }
+            if (itinerario.getStart() == null) {
+                return;
+            }
+
+            List<Ticket> tickets = cacheManager.getStorage().getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                {
+                    add(new Condition.Equals("salidaId", salida.getId()));
+                }
+            })));
+
+            for (Ticket ticket : tickets) {
+                if (ticket.getEnterTime() == null) {
+                    Event event = cacheManager.getStorage().getObject(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        {
+                            add(new Condition.Equals("type", "geofenceEnter"));
+                            add(new Condition.Equals("deviceid", salida.getDeviceId()));
+                            add(new Condition.Equals("geofenceid", ticket.getGeofenceId()));
+                            add(new Condition.Between("eventtime", "from", salida.getDate(), "to", new Date()));
+                        }
+                    })));
+
+                    if (event == null) {
+                        continue;
+                    }
+
+                    ticket.setEnterTime(event.getEventTime());
+
+                    long differenceInMillis = ticket.getEnterTime().getTime() - ticket.getExpectedTime().getTime();
+                    long minutesDifference = differenceInMillis / (1000 * 60);
+
+                    if (differenceInMillis < 0) {
+                        minutesDifference *= -1;
+                    }
+                    ticket.setPunishment((int) (minutesDifference * ticket.getPunishment()));
+                    if (ticket.getEnterTime().getTime() < ticket.getExpectedTime().getTime()) {
+                        minutesDifference *= -1;
+                    }
+                    ticket.setDifference(minutesDifference);
+                }
+                if (ticket.getExitTime() == null) {
+                    Event event = cacheManager.getStorage().getObject(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        {
+                            add(new Condition.Equals("type", "geofenceExit"));
+                            add(new Condition.Equals("deviceid", salida.getDeviceId()));
+                            add(new Condition.Equals("geofenceid", ticket.getGeofenceId()));
+                            add(new Condition.Between("eventtime", "from", salida.getDate(), "to", new Date()));
+                        }
+                    })));
+
+                    if (event == null) {
+                        continue;
+                    }
+
+                    ticket.setExitTime(event.getEventTime());
+                }
+
+                cacheManager.getStorage().updateObject(ticket, new Request(
+                        new Columns.Exclude("id"),
+                        new Condition.Equals("id", ticket.getId())));
+            }
+
         } catch (StorageException ex) {
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
         }

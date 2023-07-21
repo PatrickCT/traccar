@@ -26,7 +26,6 @@ import javax.ws.rs.core.Response;
 import org.json.JSONObject;
 import org.traccar.api.BaseObjectResource;
 import org.traccar.model.Device;
-import org.traccar.model.Driver;
 import org.traccar.model.Itinerario;
 import org.traccar.model.Permission;
 import org.traccar.model.Salida;
@@ -107,35 +106,27 @@ public class SalidasResource extends BaseObjectResource<Salida> {
             }
         });
 
-        Date newDate = tickets.get(0).getExpectedTime();
+        Date newDate = new Date(tickets.get(0).getExpectedTime().getTime());
+        System.out.println("new " + newDate);
         Date parsedDate = GenericUtils.parseTime((String) values.get("time"));
         newDate.setHours(parsedDate.getHours());
         newDate.setMinutes(parsedDate.getMinutes());
+        System.out.println("new " + newDate);
 
-        long enterDiff = newDate.getTime() - tickets.get(0).getEnterTime().getTime();
-        long exitDiff = newDate.getTime() - tickets.get(0).getExitTime().getTime();
-        Ticket ticket = tickets.get(0);
-        ticket.setExpectedTime(newDate);
-        ticket.setEnterTime(new Date(ticket.getEnterTime().getTime() + enterDiff));
-        ticket.setExitTime(new Date(ticket.getExitTime().getTime() + exitDiff));
-        storage.updateObject(ticket, new Request(
-                new Columns.Exclude("id"),
-                new Condition.Equals("id", ticket.getId())));
-        Date oldDate = newDate;
-        for (Ticket ticket1 : tickets) {
-            long expectedDifference = ticket1.getExpectedTime().getTime() - oldDate.getTime();
-            Date newExpected = new Date(ticket1.getExpectedTime().getTime() + expectedDifference);
+        long differenceInMillis = newDate.getTime() - tickets.get(0).getExpectedTime().getTime();
+        long minutesDifference = differenceInMillis / (1000 * 60);
+        if (differenceInMillis < 0) {
+            minutesDifference *= -1;
+        }
 
-            long enterDifference = ticket1.getExpectedTime().getTime() - oldDate.getTime();
-            Date newEnter = new Date(ticket1.getEnterTime().getTime() + enterDifference);
+        System.out.println("minutes " + minutesDifference);
 
-            long exitDifference = ticket1.getExpectedTime().getTime() - oldDate.getTime();
-            Date newExit = new Date(ticket1.getExitTime().getTime() + expectedDifference);
+        for (int i = 0; i < tickets.size(); i++) {
+            Ticket ticket = tickets.get(i);
+            System.out.println("adding min " + minutesDifference);
+            ticket.setExpectedTime(GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.MINUTE, (int) minutesDifference));
 
-            oldDate = ticket1.getExpectedTime();
-            ticket1.setExpectedTime(newExpected);
-            ticket1.setEnterTime(newEnter);
-            ticket1.setExitTime(newExit);
+            System.out.println(ticket);
             storage.updateObject(ticket, new Request(
                     new Columns.Exclude("id"),
                     new Condition.Equals("id", ticket.getId())));
