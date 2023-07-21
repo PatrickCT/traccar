@@ -60,7 +60,7 @@ public class ItinerarioResource extends SimpleObjectResource<Itinerario> {
             @QueryParam("all") boolean all, @QueryParam("userId") long userId) throws StorageException {
         Collection<Itinerario> result = new ArrayList<>();
         var conditions = new LinkedList<Condition>();
-        List<Long> grupos = storage.getPermissions(User.class, Group.class).stream().map((item) -> item.getPropertyId()).collect(Collectors.toList());
+        List<Long> grupos = storage.getPermissions(User.class, Group.class).stream().filter((item) -> item.getOwnerId() == getUserId()).map((item) -> item.getPropertyId()).collect(Collectors.toList());
         conditions.clear();
         List<Long> subrutas = new ArrayList<>();
         grupos.forEach(id -> {
