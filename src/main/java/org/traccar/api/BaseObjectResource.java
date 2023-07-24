@@ -37,6 +37,8 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Response;
+import org.traccar.model.Subroute;
+import org.traccar.model.Tramo;
 
 public abstract class BaseObjectResource<T extends BaseModel> extends BaseResource {
 
@@ -86,7 +88,9 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
     @PUT
     public Response update(T entity) throws StorageException {
         permissionsService.checkEdit(getUserId(), entity, false);
-        permissionsService.checkPermission(baseClass, getUserId(), entity.getId());
+        if (!baseClass.equals(Subroute.class) || !baseClass.equals(Tramo.class)) {
+            permissionsService.checkPermission(baseClass, getUserId(), entity.getId());
+        }
 
         if (entity instanceof User) {
             User before = storage.getObject(User.class, new Request(

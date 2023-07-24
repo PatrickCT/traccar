@@ -50,13 +50,16 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.json.JSONObject;
 import org.traccar.model.Driver;
+import org.traccar.model.Geofence;
 import org.traccar.model.Permission;
 import org.traccar.model.Salida;
 import org.traccar.model.Ticket;
@@ -216,7 +219,7 @@ public class DeviceResource extends BaseObjectResource<Device> {
         List<Long> permisos = storage.getPermissions(Device.class, Driver.class).stream().filter((p) -> p.getOwnerId() == deviceId).map((p) -> p.getPropertyId()).collect(Collectors.toList());
         permisos.forEach((id) -> {
             try {
-                choferes.add(storage.getObject(Driver.class,  new Request(new Columns.All(), new Condition.Equals("id", id))));
+                choferes.add(storage.getObject(Driver.class, new Request(new Columns.All(), new Condition.Equals("id", id))));
             } catch (StorageException ex) {
                 Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -226,8 +229,19 @@ public class DeviceResource extends BaseObjectResource<Device> {
             response.put("salida", salida);
             List<Ticket> tickets = storage.getObjects(Ticket.class, new Request(new Columns.All(), new Condition.Equals("salidaId", salida.getId())));
             response.put("ticket", tickets);
-
+            List<Geofence> geoNames = new ArrayList<>();
+            tickets.forEach((ticket) -> {
+                Geofence g;
+                try {
+                    g = storage.getObject(Geofence.class, new Request(new Columns.All(), new Condition.Equals("id", ticket.getGeofenceId())));
+                    geoNames.add(g);
+                } catch (StorageException ex) {
+                    Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
+                }                
+            });
+            response.put("geofencesNames", geoNames);                    
         }
+
         return Response.ok(response.toMap()).build();
     }
 }

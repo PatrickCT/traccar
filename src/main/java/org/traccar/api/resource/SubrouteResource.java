@@ -62,7 +62,7 @@ public class SubrouteResource extends SimpleObjectResource<Subroute> {
 
         Collection<Subroute> result = new ArrayList<>();
         var conditions = new LinkedList<Condition>();
-        List<Long> grupos = storage.getPermissions(User.class, Group.class).stream().map((item) -> item.getPropertyId()).collect(Collectors.toList());
+        List<Long> grupos = storage.getPermissions(User.class, Group.class).stream().filter((item) -> item.getOwnerId() == getUserId()).map((item) -> item.getPropertyId()).collect(Collectors.toList());
         grupos.forEach(id -> {
             try {
                 result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("groupId", id))));
