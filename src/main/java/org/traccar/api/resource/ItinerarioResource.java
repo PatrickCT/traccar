@@ -13,6 +13,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import org.traccar.model.Itinerario;
 import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
@@ -20,12 +21,13 @@ import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.glassfish.hk2.utilities.general.GeneralUtilities;
 import org.traccar.api.SimpleObjectResource;
 import org.traccar.api.security.ServiceAccountUser;
 import org.traccar.helper.LogAction;
@@ -34,7 +36,6 @@ import org.traccar.model.Subroute;
 import org.traccar.model.User;
 import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
-import org.traccar.utils.GenericUtils;
 
 /**
  *
@@ -97,5 +98,44 @@ public class ItinerarioResource extends SimpleObjectResource<Itinerario> {
         }
 
         return Response.ok(entity).build();
+    }
+    
+    @Path("{id}")
+    @GET
+    public Response getSingle(@PathParam("id") long id) throws StorageException {
+        Itinerario entity = storage.getObject(baseClass, new Request(
+                new Columns.All(), new Condition.Equals("id", id)));
+        if (entity != null) {
+            return Response.ok(entity).build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+    }
+
+    @Path("{id}")
+    @PUT
+    public Response update(Itinerario entity) throws StorageException {
+        permissionsService.checkEdit(getUserId(), entity, false);
+
+        storage.updateObject(entity, new Request(
+                new Columns.Exclude("id"),
+                new Condition.Equals("id", entity.getId())));
+        cacheManager.updateOrInvalidate(true, entity);
+        LogAction.edit(getUserId(), entity);
+
+        return Response.ok(entity).build();
+    }
+
+    @Path("{id}")
+    @DELETE
+    public Response remove(@PathParam("id") long id) throws StorageException {
+        permissionsService.checkEdit(getUserId(), baseClass, false);
+
+        storage.removeObject(baseClass, new Request(new Condition.Equals("id", id)));
+        cacheManager.invalidate(baseClass, id);
+
+        LogAction.remove(getUserId(), baseClass, id);
+
+        return Response.noContent().build();
     }
 }

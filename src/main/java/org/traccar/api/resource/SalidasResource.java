@@ -114,10 +114,9 @@ public class SalidasResource extends BaseObjectResource<Salida> {
         System.out.println("new " + newDate);
 
         long differenceInMillis = newDate.getTime() - tickets.get(0).getExpectedTime().getTime();
+        System.out.println("millis "+differenceInMillis);
         long minutesDifference = differenceInMillis / (1000 * 60);
-        if (differenceInMillis < 0) {
-            minutesDifference *= -1;
-        }
+        
 
         System.out.println("minutes " + minutesDifference);
 
