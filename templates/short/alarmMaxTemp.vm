@@ -1,0 +1,5 @@
+#set($a = 1.8)
+#set($b = 32)
+#{if}($position.getDouble("temp1")) #set ($cg = $position.getDouble("temp1")) #{else} #set ($cg = $position.getDouble("bleeTemperature")) #{end}
+#set($fg = $cg * $a +$b)
+ALERTA DEL SISTEMA DE RASTREO\nEquipo: $device.name\nAlarma:  *Temperatura por encima del limite*\nTemperatura: $cg°C , $fg°F \nFecha y hora: $dateTool.format("YYYY-MM-dd HH:mm:ss", $event.serverTime, $locale, $timezone)\nhttps://www.google.com/maps/search/$position.latitude,$position.longitude

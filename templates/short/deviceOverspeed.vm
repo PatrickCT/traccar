@@ -8,4 +8,4 @@
 #else
 #set($speedString = $numberTool.format("0.0 kn", $position.speed))
 #end
-$device.name exceeds the speed $speedString#{if}($geofence) in $geofence.name#{else}#{end} at $dateTool.format("YYYY-MM-dd HH:mm:ss", $event.eventTime, $locale, $timezone)
+ALERTA DEL SISTEMA DE RASTREO\nEquipo: $device.name\nAlarma: *Exceso de velocidad*\nVelocidad: $speedString\nFecha y hora: $dateTool.format("YYYY-MM-dd HH:mm:ss", $event.serverTime, $locale, $timezone)\nhttps://www.google.com/maps/search/$position.latitude,$position.longitude

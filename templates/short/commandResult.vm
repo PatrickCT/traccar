@@ -1,2 +1,2 @@
-#set($subject = "$device.name: command result received")
-$device.name command result received: $position.getString("result") at $dateTool.format("YYYY-MM-dd HH:mm:ss", $event.eventTime, $locale, $timezone)
+#set($subject = "$device.name: Resultado de comando")
+ALERTA DEL SISTEMA DE RASTREO\nEquipo: $device.name \nResultado del comando recibido: $position.getString("result")\n Fecha y Hora: $dateTool.format("YYYY-MM-dd HH:mm:ss", $event.eventTime, $locale, $timezone)
