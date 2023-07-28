@@ -55,7 +55,7 @@ public class TextTemplateFormatter {
     public VelocityContext prepareContext(Server server, User user) {
 
         VelocityContext velocityContext = new VelocityContext();
-
+        
         if (user != null) {
             velocityContext.put("user", user);
             velocityContext.put("timezone", UserUtil.getTimezone(server, user));

@@ -66,9 +66,9 @@ public class NotificatorSms implements Notificator {
     }
 
     @Override
-    public void send(Notification notification, User user, Event event, Position position, Storage storaqe) throws MessageException {        
+    public void send(Notification notification, User user, Event event, Position position, Storage storaqe) throws MessageException {
         if (user.getPhone() != null) {
-            try {
+            try {                
                 var shortMessage = notificationFormatter.formatMessage(user, event, position, "short");
                 statisticsManager.registerSms();
                 List<String> phones = new ArrayList<>();
@@ -80,7 +80,7 @@ public class NotificatorSms implements Notificator {
                     return ep.getPhone();
                 }).collect(Collectors.toList()));
                 Set<String> set = new LinkedHashSet<>(phones);
-                String result = String.join(",", set.stream().map(s -> "\"" + s + "\"").toArray(String[]::new));                
+                String result = String.join(",", set.stream().map(s -> "\"" + s + "\"").toArray(String[]::new));
                 smsManager.sendMessage(result, shortMessage.getBody(), false);
             } catch (StorageException ex) {
                 Logger.getLogger(NotificatorSms.class.getName()).log(Level.SEVERE, null, ex);
