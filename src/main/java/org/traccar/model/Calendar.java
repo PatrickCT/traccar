@@ -70,10 +70,14 @@ public class Calendar extends ExtendedModel {
     }
 
     private Collection<VEvent> findEvents(Date date) {
-        if (calendar != null) {
+        try {
+            if (calendar != null) {
             var filter = new Filter<VEvent>(new PeriodRule<>(new Period(new DateTime(date), Duration.ZERO)));
             return filter.filter(calendar.getComponents(CalendarComponent.VEVENT));
         } else {
+            return List.of();
+        }
+        } catch (Exception e) {
             return List.of();
         }
     }

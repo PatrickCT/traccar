@@ -72,7 +72,7 @@ public class Gt06ProtocolEncoder extends BaseProtocolEncoder {
                 getCacheManager(), Keys.PROTOCOL_ALTERNATIVE.withPrefix(getProtocolName()), command.getDeviceId());
 
         String password = AttributeUtil.getDevicePassword(
-                getCacheManager(), command.getDeviceId(), getProtocolName(), "123456");
+                getCacheManager(), command.getDeviceId(), getProtocolName(), "000000");
 
         Device device = getCacheManager().getObject(Device.class, command.getDeviceId());
 
@@ -83,7 +83,7 @@ public class Gt06ProtocolEncoder extends BaseProtocolEncoder {
                 } else if (alternative) {
                     return encodeContent(command.getDeviceId(), "DYD," + password + "#");
                 } else {
-                    return encodeContent(command.getDeviceId(), "Relay,1#");
+                    return encodeContent(command.getDeviceId(), "DYD,000000#");
                 }
             case Command.TYPE_ENGINE_RESUME:
                 if ("G109".equals(device.getModel())) {
@@ -91,7 +91,7 @@ public class Gt06ProtocolEncoder extends BaseProtocolEncoder {
                 } else if (alternative) {
                     return encodeContent(command.getDeviceId(), "HFYD," + password + "#");
                 } else {
-                    return encodeContent(command.getDeviceId(), "Relay,0#");
+                    return encodeContent(command.getDeviceId(), "HFYD,000000#");
                 }
             case Command.TYPE_CUSTOM:
                 return encodeContent(command.getDeviceId(), command.getString(Command.KEY_DATA));

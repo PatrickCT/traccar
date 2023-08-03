@@ -89,7 +89,7 @@ public class HttpSmsClient implements SmsManager {
     }
 
     @Override
-    public void sendMessage(String destAddress, String message, boolean command) throws MessageException {
+    public void sendMessage(String destAddress, String message, boolean command) throws MessageException {        
         try (Response response = getRequestBuilder()
                 .post(Entity.entity(preparePayload(destAddress, message), mediaType))) {
             if (response.getStatus() / 100 != 2) {

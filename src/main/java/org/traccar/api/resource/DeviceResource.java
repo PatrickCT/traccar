@@ -230,16 +230,38 @@ public class DeviceResource extends BaseObjectResource<Device> {
             List<Ticket> tickets = storage.getObjects(Ticket.class, new Request(new Columns.All(), new Condition.Equals("salidaId", salida.getId())));
             response.put("ticket", tickets);
             List<Geofence> geoNames = new ArrayList<>();
+            Map<Long, Object> otros = new HashMap<>();
             tickets.forEach((ticket) -> {
                 Geofence g;
+                List<Ticket> t;
                 try {
                     g = storage.getObject(Geofence.class, new Request(new Columns.All(), new Condition.Equals("id", ticket.getGeofenceId())));
                     geoNames.add(g);
+
+                    t = storage.getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        {
+                            add(new Condition.Equals("geofenceId", deviceId));
+                            add(new Condition.Between("enterTime", "from", GenericUtils.addTimeToDate(new Date(), Calendar.HOUR_OF_DAY, -1), "to", new Date()));
+                        }
+                    })));
+                    if (!t.isEmpty()) {
+                        otros.put(ticket.getId(), new JSONObject().put("ticket", t.get(t.size() - 1)).put("device", storage.getObject(Device.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                            {
+                                add(new Condition.Equals("id", storage.getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                                    {
+                                        add(new Condition.Equals("deviceId", t.get(t.size() - 1).getSalidaId()));
+                                    }
+                                }))).getDeviceId()));
+                            }
+                        })))));
+                    }
+
                 } catch (StorageException ex) {
                     Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
-                }                
+                }
+                response.put("geofencesNames", geoNames);
+                response.put("geofencesPassed", otros);
             });
-            response.put("geofencesNames", geoNames);                    
         }
 
         return Response.ok(response.toMap()).build();
