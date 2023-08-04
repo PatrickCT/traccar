@@ -51,6 +51,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -231,39 +232,70 @@ public class DeviceResource extends BaseObjectResource<Device> {
             response.put("ticket", tickets);
             List<Geofence> geoNames = new ArrayList<>();
             Map<Long, Object> otros = new HashMap<>();
-            tickets.forEach((ticket) -> {
+            for (int i = 0; i < tickets.size(); i++) {
+                Ticket ticket = tickets.get(i);
                 Geofence g;
                 List<Ticket> t;
+                List<Ticket> t2;
                 try {
                     g = storage.getObject(Geofence.class, new Request(new Columns.All(), new Condition.Equals("id", ticket.getGeofenceId())));
                     geoNames.add(g);
 
                     t = storage.getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                         {
-                            add(new Condition.Equals("geofenceId", deviceId));
+                            add(new Condition.Equals("geofenceId", g.getId()));
                             add(new Condition.Between("enterTime", "from", GenericUtils.addTimeToDate(new Date(), Calendar.HOUR_OF_DAY, -1), "to", new Date()));
                         }
                     })));
+
+                    t2 = storage.getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        {
+                            add(new Condition.Equals("geofenceId", tickets.get(i+1).getGeofenceId()));
+                            add(new Condition.Between("enterTime", "from", new Date(), "to", GenericUtils.addTimeToDate(new Date(), Calendar.HOUR_OF_DAY, 1)));
+                        }
+                    })));
+
                     if (!t.isEmpty()) {
-                        otros.put(ticket.getId(), new JSONObject().put("ticket", t.get(t.size() - 1)).put("device", storage.getObject(Device.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        otros.put(ticket.getId(), new JSONObject().put("ticket", getLastNItems(t, 5)).put("device", storage.getObject(Device.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                             {
                                 add(new Condition.Equals("id", storage.getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                                     {
-                                        add(new Condition.Equals("deviceId", t.get(t.size() - 1).getSalidaId()));
+                                        add(new Condition.Equals("id", t.get(t.size() - 1).getSalidaId()));
                                     }
                                 }))).getDeviceId()));
                             }
                         })))));
-                    }
 
+                        for (Ticket tt : t) {
+                            if (i + 1 < tickets.size() && ((List<Ticket>) otros.get(tickets.get(i + 1).getId())).stream().filter((item) -> item.getId() == tt.getId()).count() > 0) {
+                                Iterator<Ticket> iterator = ((List<Ticket>) otros.get(tickets.get(i + 1).getId()))
+                                        .stream()
+                                        .filter((item) -> item.getId() == tt.getId()).iterator();
+                                while (iterator.hasNext()) {
+                                    Ticket item = iterator.next();
+                                    if (item.getId() == tt.getId()) {
+                                        iterator.remove(); // Remove the item
+                                    }
+                                }
+                            }
+
+                        }
+
+                    }
                 } catch (StorageException ex) {
                     Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 response.put("geofencesNames", geoNames);
                 response.put("geofencesPassed", otros);
-            });
+            }
         }
 
         return Response.ok(response.toMap()).build();
+    }
+
+    private static <T> List<T> getLastNItems(List<T> list, int n) {
+        int startIndex = Math.max(0, list.size() - n);
+        int endIndex = list.size();
+        return list.subList(startIndex, endIndex);
     }
 }
