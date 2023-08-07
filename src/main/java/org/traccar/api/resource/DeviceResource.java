@@ -190,8 +190,7 @@ public class DeviceResource extends BaseObjectResource<Device> {
         if (device != null) {
             String name = "device";
             String extension = type.substring("image/".length());
-            try (var input = new FileInputStream(file);
-                    var output = mediaManager.createFileStream(device.getUniqueId(), name, extension)) {
+            try (var input = new FileInputStream(file); var output = mediaManager.createFileStream(device.getUniqueId(), name, extension)) {
                 input.transferTo(output);
             }
             return Response.ok(name + "." + extension).build();
@@ -236,7 +235,6 @@ public class DeviceResource extends BaseObjectResource<Device> {
                 Ticket ticket = tickets.get(i);
                 Geofence g;
                 List<Ticket> t;
-                List<Ticket> t2;
                 try {
                     g = storage.getObject(Geofence.class, new Request(new Columns.All(), new Condition.Equals("id", ticket.getGeofenceId())));
                     geoNames.add(g);
@@ -245,13 +243,6 @@ public class DeviceResource extends BaseObjectResource<Device> {
                         {
                             add(new Condition.Equals("geofenceId", g.getId()));
                             add(new Condition.Between("enterTime", "from", GenericUtils.addTimeToDate(new Date(), Calendar.HOUR_OF_DAY, -1), "to", new Date()));
-                        }
-                    })));
-
-                    t2 = storage.getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                        {
-                            add(new Condition.Equals("geofenceId", tickets.get(i+1).getGeofenceId()));
-                            add(new Condition.Between("enterTime", "from", new Date(), "to", GenericUtils.addTimeToDate(new Date(), Calendar.HOUR_OF_DAY, 1)));
                         }
                     })));
 
