@@ -51,6 +51,7 @@ import javax.ws.rs.core.StreamingOutput;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import org.traccar.reports.model.TicketReportItem;
 
 @Path("reports")
 @Produces(MediaType.APPLICATION_JSON)
@@ -319,4 +320,32 @@ public class ReportResource extends SimpleObjectResource<Report> {
         return getStopsExcel(deviceIds, groupIds, from, to, type.equals("mail"));
     }
 
+    
+//    @Path("tickets")
+//    @GET
+//    public Collection<TicketReportItem> getTickets(
+//            @QueryParam("deviceId") List<Long> deviceIds,
+//            @QueryParam("groupId") List<Long> groupIds,
+//            @QueryParam("from") Date from,
+//            @QueryParam("to") Date to) throws StorageException {
+//        permissionsService.checkRestriction(getUserId(), UserRestrictions::getDisableReports);
+//        LogAction.logReport(getUserId(), "stops", from, to, deviceIds, groupIds);
+//        return stopsReportProvider.getObjects(getUserId(), deviceIds, groupIds, from, to);
+//    }
+//
+//    @Path("tickets")
+//    @GET
+//    @Produces(EXCEL)
+//    public Response getTciketsExcel(
+//            @QueryParam("deviceId") List<Long> deviceIds,
+//            @QueryParam("groupId") List<Long> groupIds,
+//            @QueryParam("from") Date from,
+//            @QueryParam("to") Date to,
+//            @QueryParam("mail") boolean mail) throws StorageException {
+//        permissionsService.checkRestriction(getUserId(), UserRestrictions::getDisableReports);
+//        return executeReport(getUserId(), mail, stream -> {
+//            LogAction.logReport(getUserId(), "stops", from, to, deviceIds, groupIds);
+//            stopsReportProvider.getExcel(stream, getUserId(), deviceIds, groupIds, from, to);
+//        });
+//    }
 }

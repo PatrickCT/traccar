@@ -48,7 +48,7 @@ public class MaintenanceEventHandler extends BaseEventHandler {
 
         Map<Event, Position> events = new HashMap<>();
         for (Maintenance maintenance : cacheManager.getDeviceObjects(position.getDeviceId(), Maintenance.class)) {
-            if (maintenance.getPeriod() != 0) {
+            if (maintenance.getPeriod() != 0) {                
                 double oldValue = lastPosition.getDouble(maintenance.getType());
                 double newValue = position.getDouble(maintenance.getType());
                 if (oldValue != 0.0 && newValue != 0.0 && newValue >= maintenance.getStart()) {

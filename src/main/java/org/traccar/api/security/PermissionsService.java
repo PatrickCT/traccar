@@ -104,7 +104,8 @@ public class PermissionsService {
             if (getServer().getReadonly() || getUser(userId).getReadonly()) {
                 denied = true;
             } else if (clazz.equals(Device.class)) {
-                denied = getServer().getDeviceReadonly() || getUser(userId).getDeviceReadonly()
+                denied = getServer().getDeviceReadonly() 
+//                        || getUser(userId).getDeviceReadonly()
                         || addition && getUser(userId).getDeviceLimit() == 0;
                 if (!denied && addition && getUser(userId).getDeviceLimit() > 0) {
                     int deviceCount = storage.getObjects(Device.class, new Request(

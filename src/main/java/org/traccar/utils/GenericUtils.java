@@ -6,6 +6,9 @@ package org.traccar.utils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -145,5 +148,20 @@ public class GenericUtils {
     public static Date parseTime(String time) throws ParseException {
         SimpleDateFormat format = new SimpleDateFormat("HH:mm");
         return format.parse(time);
+    }
+    
+    public static boolean checkElapsedTime(Date initial, Date last, int compareto) {
+        ////System.out.println("ini " + initial.toString());
+        ////System.out.println("last " + last.toString());
+        LocalDateTime dateini = initial.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
+        LocalDateTime datefin = last.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
+        Duration duration = Duration.between(datefin, dateini);
+        ////System.out.println("duration " + duration.toMinutes());
+        ////System.out.println(duration.toMinutes() >= compareto ? true : false);
+        return duration.toMinutes() >= compareto ? true : false;
     }
 }

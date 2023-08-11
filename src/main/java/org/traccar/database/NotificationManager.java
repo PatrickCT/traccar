@@ -42,14 +42,20 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+import org.traccar.model.User;
+import org.traccar.storage.query.Condition;
+import org.traccar.utils.GenericUtils;
 
 @Singleton
 public class NotificationManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NotificationManager.class);
+    private final Map<Long, Map<Long, Map<String, Date>>> alerted = new HashMap<>();
 
     private final Storage storage;
     private final CacheManager cacheManager;
@@ -107,7 +113,36 @@ public class NotificationManager {
                 cacheManager.getNotificationUsers(notification.getId(), event.getDeviceId()).forEach(user -> {
                     for (String notificator : notification.getNotificatorsTypes()) {
                         try {
-                            notificatorManager.getNotificator(notificator).send(notification, user, event, position, storage);
+
+                            int tiempoEspera = 0;
+                            switch (event.getType()) {
+                                case Event.TYPE_DEVICE_ONLINE:
+                                    tiempoEspera = user.getOfflineTimeout();
+                                    break;
+                                case Event.TYPE_DEVICE_STOPPED:
+                                    tiempoEspera = user.getStopTimeout();
+                                    break;
+                                default:
+                                    tiempoEspera = 0;
+                            }
+                            if(position != null){
+                                Date check = alerted.get(position.getDeviceId()).get(user.getId()).putIfAbsent(notificator, new Date());
+                            if (check == null) {
+                                notificatorManager.getNotificator(notificator).send(notification, user, event, position, storage);
+                            } else {
+                                if (GenericUtils.checkElapsedTime(new Date(),
+                                        alerted.get(position.getDeviceId()).get(user.getId()).get(notificator),
+                                        tiempoEspera) || check == null) {
+
+                                    alerted.get(position.getDeviceId()).get(user.getId()).put(notificator, new Date());
+                                    notificatorManager.getNotificator(notificator).send(notification, user, event, position, storage);
+                                }
+
+                            }
+                            } else {
+                                notificatorManager.getNotificator(notificator).send(notification, user, event, position, storage);
+                            }
+
                         } catch (MessageException exception) {
                             LOGGER.warn("Notification failed", exception);
                         }

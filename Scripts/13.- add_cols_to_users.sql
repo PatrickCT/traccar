@@ -1,0 +1,1 @@
+ALTER TABLE `tc_users` ADD COLUMN `offlineTimeout` INT(2) NULL AFTER `principal`, ADD COLUMN `stopTimeout` INT(2) NULL AFTER `offlineTimeout`; 

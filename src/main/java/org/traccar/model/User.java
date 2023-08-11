@@ -314,5 +314,24 @@ public class User extends ExtendedModel implements UserRestrictions, Disableable
     public void setPrincipal(int principal) {
         this.principal = principal;
     }
-        
+    
+    private int offlineTimeout;
+   
+    public int getOfflineTimeout() {
+        return offlineTimeout;
+    }
+
+    public void setOfflineTimeout(int offlineTimeout) {
+        this.offlineTimeout = offlineTimeout;
+    }
+
+    private int stopTimeout;
+
+    public int getStopTimeout() {
+        return stopTimeout;
+    }
+
+    public void setStopTimeout(int stopTimeout) {
+        this.stopTimeout = stopTimeout;
+    }
 }
