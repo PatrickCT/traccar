@@ -17,7 +17,7 @@ public class TicketReportItem {
     private Date expectedTime;
     private Date enterTime;
     private Date exitTime;
-    private int difference;
+    private double difference;
     private int punishment;
 
     public long getId() {
@@ -68,11 +68,11 @@ public class TicketReportItem {
         this.exitTime = exitTime;
     }
 
-    public int getDifference() {
+    public double getDifference() {
         return difference;
     }
 
-    public void setDifference(int difference) {
+    public void setDifference(double difference) {
         this.difference = difference;
     }
 

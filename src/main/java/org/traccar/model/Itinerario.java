@@ -11,13 +11,13 @@ import org.traccar.storage.StorageName;
  * @author K
  */
 @StorageName("tc_itinerarios")
-public class Itinerario extends BaseModel {
+public class Itinerario extends ExtendedModel {
 
     private String name;
     private int days;
     private long subrouteId;
+    private long horasId;
     private long geofenceId;
-    private String start;
 
     public String getName() {
         return name;
@@ -43,6 +43,14 @@ public class Itinerario extends BaseModel {
         this.subrouteId = subrouteId;
     }
 
+    public long getHorasId() {
+        return horasId;
+    }
+
+    public void setHorasId(long horasId) {
+        this.horasId = horasId;
+    }
+
     public long getGeofenceId() {
         return geofenceId;
     }
@@ -51,17 +59,9 @@ public class Itinerario extends BaseModel {
         this.geofenceId = geofenceId;
     }
 
-    public String getStart() {
-        return start;
-    }
-
-    public void setStart(String start) {
-        this.start = start;
-    }
-
     @Override
     public String toString() {
-        return "Itinerario{" + "name=" + name + ", days=" + days + ", subrouteId=" + subrouteId + ", geofenceId=" + geofenceId + ", start=" + start + '}';
+        return "Itinerario{" + "name=" + name + ", days=" + days + ", subrouteId=" + subrouteId + ", geofenceId=" + geofenceId + '}';
     }
 
 }

@@ -164,4 +164,20 @@ public class GenericUtils {
         ////System.out.println(duration.toMinutes() >= compareto ? true : false);
         return duration.toMinutes() >= compareto ? true : false;
     }
+    
+    public static boolean checkIfBetween2Dates(Date origin, Date min, Date max) {
+        Date first = new Date();
+        first.setHours(min.getHours());
+        first.setMinutes(min.getMinutes());
+        Date last = new Date();
+        last.setHours(max.getHours());
+        last.setMinutes(max.getMinutes());
+
+        Date original = new Date();
+        original.setHours(origin.getHours());
+        original.setMinutes(origin.getMinutes());
+
+        return min.compareTo(origin) * origin.compareTo(max) >= 0;
+        //return original.after(first) && original.before(last);
+    }
 }

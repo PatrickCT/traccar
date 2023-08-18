@@ -125,7 +125,7 @@ public class NotificationManager {
                                 default:
                                     tiempoEspera = 0;
                             }
-                            if(position != null){
+                            if(position != null && alerted.containsKey(position.getDeviceId()) && alerted.get(position.getDeviceId()).containsKey(user.getId())){           
                                 Date check = alerted.get(position.getDeviceId()).get(user.getId()).putIfAbsent(notificator, new Date());
                             if (check == null) {
                                 notificatorManager.getNotificator(notificator).send(notification, user, event, position, storage);

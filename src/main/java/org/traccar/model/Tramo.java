@@ -15,7 +15,7 @@ public class Tramo extends BaseModel {
 
     private String name;
     private int minTime;
-    private int maxTime;
+    private int delay;
     private long geofenceId;
     private int punishment;
 
@@ -35,14 +35,6 @@ public class Tramo extends BaseModel {
         this.minTime = minTime;
     }
 
-    public int getMaxTime() {
-        return maxTime;
-    }
-
-    public void setMaxTime(int maxTime) {
-        this.maxTime = maxTime;
-    }
-
     public long getGeofenceId() {
         return geofenceId;
     }
@@ -59,9 +51,17 @@ public class Tramo extends BaseModel {
         this.punishment = punishment;
     }
 
+    public int getDelay() {
+        return delay;
+    }
+
+    public void setDelay(int delay) {
+        this.delay = delay;
+    }   
+
     @Override
     public String toString() {
-        return "Tramo{" + "name=" + name + ", minTime=" + minTime + ", maxTime=" + maxTime + ", geofenceId=" + geofenceId + ", punishment=" + punishment + '}';
-    }
+        return "Tramo{" + "name=" + name + ", minTime=" + minTime + ", delay=" + delay + ", geofenceId=" + geofenceId + ", punishment=" + punishment + '}';
+    }       
 
 }
