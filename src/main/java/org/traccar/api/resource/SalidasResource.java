@@ -107,25 +107,20 @@ public class SalidasResource extends BaseObjectResource<Salida> {
         });
 
         Date newDate = new Date(tickets.get(0).getExpectedTime().getTime());
-        System.out.println("new " + newDate);
+
         Date parsedDate = GenericUtils.parseTime((String) values.get("time"));
         newDate.setHours(parsedDate.getHours());
         newDate.setMinutes(parsedDate.getMinutes());
-        System.out.println("new " + newDate);
 
         long differenceInMillis = newDate.getTime() - tickets.get(0).getExpectedTime().getTime();
-        System.out.println("millis "+differenceInMillis);
-        long minutesDifference = differenceInMillis / (1000 * 60);
-        
 
-        System.out.println("minutes " + minutesDifference);
+        long minutesDifference = differenceInMillis / (1000 * 60);
 
         for (int i = 0; i < tickets.size(); i++) {
             Ticket ticket = tickets.get(i);
-            System.out.println("adding min " + minutesDifference);
+
             ticket.setExpectedTime(GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.MINUTE, (int) minutesDifference));
 
-            System.out.println(ticket);
             storage.updateObject(ticket, new Request(
                     new Columns.Exclude("id"),
                     new Condition.Equals("id", ticket.getId())));

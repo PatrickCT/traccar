@@ -12,7 +12,8 @@ import org.traccar.storage.StorageName;
  * @author K
  */
 @StorageName("tc_horas")
-public class HoraSalida extends BaseModel{
+public class HoraSalida extends BaseModel {
+
     private String name;
     private Date hour;
 
@@ -23,12 +24,18 @@ public class HoraSalida extends BaseModel{
     public void setName(String name) {
         this.name = name;
     }
-        
+
     public Date getHour() {
         return hour;
     }
 
     public void setHour(Date hour) {
         this.hour = hour;
-    }        
+    }
+
+    @Override
+    public String toString() {
+        return "HoraSalida{" + "name=" + name + ", hour=" + hour + '}';
+    }
+
 }

@@ -44,7 +44,7 @@ public class TicketsReportProvider {
         reportUtils.checkPeriodLimit(from, to);
 
         for (Device device : DeviceUtil.getAccessibleDevices(storage, userId, deviceIds, groupIds)) {
-            
+
             JSONObject obj = TransporteUtils.obtenerTickets(device.getId(), from, to, storage);
             JSONArray ticketsArray = obj.getJSONArray("ticket");
 
@@ -53,16 +53,16 @@ public class TicketsReportProvider {
             for (int i = 0; i < ticketsArray.length(); i++) {
                 JSONObject ticketObj = ticketsArray.getJSONObject(i);
                 int id = ticketObj.getInt("id");
-                System.out.println(ticketObj);
+
                 Ticket ticket = new Ticket();
                 ticket.setId(ticketObj.getInt("id"));
                 ticket.setDifference(ticketObj.getDouble("difference"));
-                if(ticketObj.has("enterTime")){
+                if (ticketObj.has("enterTime")) {
                     ticket.setEnterTime(new Date(ticketObj.optString("enterTime", null)));
                 }
-                if(ticketObj.has("exitTime")){
+                if (ticketObj.has("exitTime")) {
                     ticket.setExitTime(new Date(ticketObj.optString("exitTime", null)));
-                }                
+                }
                 ticket.setExpectedTime(new Date(ticketObj.getString("expectedTime")));
                 ticket.setGeofenceId(ticketObj.getInt("geofenceId"));
                 ticket.setPassed(ticketObj.getBoolean("passed"));
@@ -72,7 +72,7 @@ public class TicketsReportProvider {
             }
 
             for (Ticket ticket : tickets) {
-                System.out.println(ticket);
+
                 TicketReportItem tri = new TicketReportItem();
                 tri.setDifference(ticket.getDifference());
                 tri.setEnterTime(ticket.getEnterTime());
@@ -80,10 +80,10 @@ public class TicketsReportProvider {
                 tri.setExpectedTime(ticket.getExpectedTime());
                 tri.setId(ticket.getId());
                 tri.setPunishment(ticket.getPunishment());
-                                
+
                 result.add(tri);
             }
-            
+
         }
 
         return result;

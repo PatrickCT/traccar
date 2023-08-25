@@ -4,6 +4,7 @@
  */
 package org.traccar.utils;
 
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -48,9 +49,7 @@ public class TransporteUtils {
     public static void generarSalida(long deviceId, long geofenceId, Date time, CacheManager cacheManager) throws ParseException {
         try {
 
-            System.out.println("Generando salida");
             //revisar salidas pendientes
-            System.out.println("Revisar salidas pendientes");
             Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("finished", false));
@@ -69,60 +68,61 @@ public class TransporteUtils {
                     }
                 }
             }
-            System.out.println(salida);
+
             //obtener dispositivo
-            System.out.println("Obtener dispositivo");
             Device device = cacheManager.getStorage().getObject(Device.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("id", deviceId));
                 }
             })));
-            System.out.println(device);
+
             if (device == null) {
                 return;
             }
             //obetener grupo
-            System.out.println("Obtener grupo");
+
             Group group = cacheManager.getStorage().getObject(Group.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("id", device.getGroupId()));
                 }
             })));
-            System.out.println(group);
+
             if (group == null) {
                 return;
             }
 
             //obtener subrutas
-            System.out.println("Obtener sub-rutas");
             List<Subroute> subroutes = cacheManager.getStorage().getObjects(Subroute.class, new Request(new Columns.All(), new Condition.Equals("groupId", group.getId())));
             List<Long> subroutesId = subroutes.stream().map((s) -> s.getId()).collect(Collectors.toList());
-            System.out.println(subroutes);
+
             //encontrar itinerario
             //Itinerario itinerario = cacheManager.getStorage().getObject(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofence", salida)));
-            System.out.println("Obtener itinerarios");
-
             List<Itinerario> itinerarios = cacheManager.getStorage().getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofenceId", geofenceId)));
-            System.out.println(itinerarios);
+
             if (itinerarios.isEmpty()) {
                 return;
             }
             Itinerario itinerarioSelected = null;
-            System.out.println("Obtener itinerario");
+
+            List<Itinerario> todayItinerarios = new ArrayList<>();
             for (Itinerario itinerario : itinerarios) {
                 if (subroutesId.contains(itinerario.getSubrouteId())) {
+
                     if (GenericUtils.isDaySelected(itinerario.getDays(), GenericUtils.getDayValue(new Date()))) {
-                        itinerarioSelected = findClosestObject(itinerarios, new Date(), 3, cacheManager.getStorage());
-                        if (itinerarioSelected == null) {
-                            return;
-                        }
+
+                        todayItinerarios.add(itinerario);
                     }
                 }
             }
+
+            itinerarioSelected = findClosestObject(todayItinerarios, new Date(), 3, cacheManager.getStorage());
             System.out.println(itinerarioSelected);
+            if (itinerarioSelected == null) {
+
+                return;
+            }
 
             //encontrar puntos de control
-            System.out.println("Obtener tramos");
             final Itinerario finalItinerarioSelected = itinerarioSelected;
             List<Permission> permisos = cacheManager.getStorage().getPermissions(Itinerario.class, Tramo.class).stream().filter((p) -> p.getOwnerId() == finalItinerarioSelected.getId()).collect(Collectors.toList());
             List<Tramo> tramos = new ArrayList<>();
@@ -138,14 +138,11 @@ public class TransporteUtils {
                 }
             });
 
-            System.out.println(tramos);
-
             if (tramos.isEmpty()) {
                 return;
             }
 
             //crear nueva salida
-            System.out.println("Nueva salida");
             Date today = new Date();
             Date endDate = today;
             Salida newSalida = new Salida();
@@ -158,19 +155,13 @@ public class TransporteUtils {
             }
             newSalida.setEndingDate(endDate);
             newSalida.setId(cacheManager.getStorage().addObject(newSalida, new Request(new Columns.Exclude("id"))));
-            System.out.println(newSalida);
 
             //crear tickets
-            System.out.println("Nuevos tickets");
-            Date ticketStart = (itinerarioSelected.getDays()>0 ? (Date)itinerarioSelected.getAttributes().get("horaFinal") : today);
-            Ticket ticket = new Ticket();
-            ticket.setExpectedTime(ticketStart);
-            ticket.setGeofenceId(itinerarioSelected.getGeofenceId());
-            ticket.setPunishment(0);
-            ticket.setSalidaId(newSalida.getId());
-            ticket.setId(cacheManager.getStorage().addObject(ticket, new Request(new Columns.Exclude("id"))));
-            System.out.println(ticket);
+            Date ticketStart = (itinerarioSelected.hasAttribute("horaFinal") ? (Date) itinerarioSelected.getAttributes().get("horaFinal") : today);
+
+            Ticket ticket = null;
             for (Tramo tramo : tramos) {
+
                 ticket = new Ticket();
                 ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, tramo.getMinTime());
                 ticket.setExpectedTime(ticketStart);
@@ -178,7 +169,7 @@ public class TransporteUtils {
                 ticket.setPunishment(0);
                 ticket.setSalidaId(newSalida.getId());
                 ticket.setId(cacheManager.getStorage().addObject(ticket, new Request(new Columns.Exclude("id"))));
-                System.out.println(ticket);
+
             }
             updateSalida(deviceId, geofenceId, time, cacheManager);
             return;
@@ -204,20 +195,20 @@ public class TransporteUtils {
 
     public static void updateSalida(long deviceId, long geofenceId, Date realTime, CacheManager cacheManager) {
         try {
-            System.out.println("update salida");
+
             Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("finished", false));
                     add(new Condition.Equals("deviceId", deviceId));
                 }
             })));
-            System.out.println(salida);
+
             List<Ticket> tickets = cacheManager.getStorage().getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("salidaId", salida.getId()));
                 }
             })));
-            System.out.println(tickets);
+
             Ticket ticket = cacheManager.getStorage().getObject(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("salidaId", salida.getId()));
@@ -225,7 +216,7 @@ public class TransporteUtils {
                     add(new Condition.Equals("passed", false));
                 }
             })));
-            System.out.println(ticket);
+
             boolean isFirstTicket = ticket.getId() == tickets.get(0).getId();
             if (ticket == null && !isFirstTicket) {
                 salida.setFinished(true);
@@ -237,7 +228,7 @@ public class TransporteUtils {
             }
 
             boolean isLastTicket = ticket.getId() == tickets.get(tickets.size() - 1).getId();
-            System.out.println(isLastTicket);
+
             if (isLastTicket && tickets.get(0).getEnterTime() != null) {
                 salida.setFinished(true);
                 cacheManager.getStorage().updateObject(salida, new Request(
@@ -265,15 +256,12 @@ public class TransporteUtils {
             if (realTime.getTime() < ticket.getExpectedTime().getTime()) {
                 minutesDifference *= -1;
             }
-            System.out.println(minutesDifference);
+
             ticket.setDifference(minutesDifference);
 
-            System.out.println("Guardando ticket");
-            System.out.println(ticket);
             cacheManager.getStorage().updateObject(ticket, new Request(
                     new Columns.Exclude("id"),
                     new Condition.Equals("id", ticket.getId())));
-            System.out.println(ticket);
 
         } catch (StorageException ex) {
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
@@ -302,9 +290,9 @@ public class TransporteUtils {
             if (itinerario == null) {
                 return;
             }
-            if(itinerario.getDays() <=0){
+            if (itinerario.getDays() <= 0) {
                 return;
-            } 
+            }
 
             List<Ticket> tickets = cacheManager.getStorage().getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -371,18 +359,21 @@ public class TransporteUtils {
     public static Itinerario findClosestObject(List<Itinerario> objects, Date date, int rangeInMinutes, Storage storage) throws ParseException, StorageException {
         Itinerario closestObject = null;
         long closestDifference = Long.MAX_VALUE;
-        List<Itinerario> filteredByDay = objects.stream().filter((i) -> GenericUtils.isDaySelected(i.getDays(), GenericUtils.getDayValue(new Date()))).collect(Collectors.toList());
+        List<Itinerario> filteredByDay = objects;
         List<Itinerario> filteredByHours = filterByHours(filteredByDay);
         for (Itinerario obj : filteredByHours) {
             if (obj.getHorasId() > 0) {
                 for (HoraSalida h : storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", obj.getHorasId()))).getName())))) {
+                    h.getHour().setDate(new Date().getDate());
                     long difference = Math.abs(date.getTime() - h.getHour().getTime());
+                    System.out.println(h);
+                    System.out.println(difference);
                     if (difference <= rangeInMinutes * 60000 && difference < closestDifference) {
                         closestObject = obj;
                         closestObject.getAttributes().put("horaFinal", h.getHour());
                         closestDifference = difference;
                     }
-                }  // Parse "start" value to Date
+                }  // Parse "desde" value to Date
 
             } else {
                 if (closestObject == null) {
@@ -398,20 +389,33 @@ public class TransporteUtils {
         List<Itinerario> filterd = new ArrayList<>();
 
         i.forEach((iti) -> {
+
             if (iti.hasAttribute("hours")) {
                 JSONObject obj = new JSONObject(iti.getAttributes().get("hours").toString()
                         .replaceAll(String.valueOf(GenericUtils.getDayValue(new Date())) + "=", "\"" + GenericUtils.getDayValue(new Date()) + "\":")
-                        .replaceAll("start=", "\"start\":")
-                        .replaceAll("end=", "\"end\":")
+                        .replaceAll("desde=", "\"desde\":")
+                        .replaceAll("hasta=", "\"hasta\":")
                         .replaceAll("=", ":"));
+
+                System.out.println(obj.toMap());
 
                 if (obj.has(String.valueOf(GenericUtils.getDayValue(new Date())))) {
                     try {
                         JSONObject horas = obj.getJSONObject(String.valueOf(GenericUtils.getDayValue(new Date())));
-                        if (GenericUtils.checkIfBetween2Dates(new Date(), GenericUtils.parseTime(horas.getJSONArray("start").join(":")), GenericUtils.parseTime(horas.getJSONArray("end").join(":")))) {
+                        System.out.println(horas.toMap());
+                        int[] a = new int[2];
+                        a[0]=horas.getJSONArray("desde").optInt(0);
+                        a[1]=horas.getJSONArray("desde").optInt(1);
+                        int[] b = new int[2];
+                        b[0]=horas.getJSONArray("hasta").optInt(0);
+                        b[1]=horas.getJSONArray("hasta").optInt(1);
+                        System.out.println(GenericUtils.isTimeInRange(GenericUtils.fetchUTCDate(),a , b));
+                        if (GenericUtils.isTimeInRange(GenericUtils.fetchUTCDate(),a , b)) {
                             filterd.add(iti);
                         }
                     } catch (ParseException ex) {
+                        Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
+                    } catch (IOException ex) {
                         Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }

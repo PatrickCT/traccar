@@ -16,17 +16,20 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import org.apache.poi.ss.formula.functions.T;
 import org.traccar.api.BaseObjectResource;
+import org.traccar.api.security.ServiceAccountUser;
+import org.traccar.helper.LogAction;
 import org.traccar.model.Group;
 import org.traccar.model.HoraSalida;
-import org.traccar.model.Itinerario;
 import org.traccar.model.Permission;
-import org.traccar.model.Subroute;
 import org.traccar.model.User;
 import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
@@ -67,7 +70,7 @@ public class HorasSalidasResource extends BaseObjectResource<HoraSalida> {
         }
 
         List<Permission> directas = storage.getPermissions(User.class, HoraSalida.class);
-        directas.stream().filter((i) -> i.getOwnerId() == userId).forEach((p) -> {
+        directas.stream().filter((i) -> i.getOwnerId() == getUserId()).forEach((p) -> {
             try {
                 result.add(storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", p.getPropertyId()))));
             } catch (StorageException ex) {
@@ -95,6 +98,30 @@ public class HorasSalidasResource extends BaseObjectResource<HoraSalida> {
         });
 
         return removeDuplicates(result.stream().collect(Collectors.toList()));
+    }
+    
+    @POST
+    public Response add(HoraSalida entity) throws StorageException {
+        if(entity.getName() == null)return Response.ok(entity).build();
+        permissionsService.checkEdit(getUserId(), entity, true);
+
+        entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
+        LogAction.create(getUserId(), entity);
+
+        if (getUserId() != ServiceAccountUser.ID) {
+            storage.addPermission(new Permission(User.class, getUserId(), baseClass, entity.getId()));
+            cacheManager.invalidatePermission(true, User.class, getUserId(), baseClass, entity.getId());
+            connectionManager.invalidatePermission(true, User.class, getUserId(), baseClass, entity.getId());
+            LogAction.link(getUserId(), User.class, getUserId(), baseClass, entity.getId());
+        }
+
+        return Response.ok(entity).build();
+    }
+    
+    @POST
+    @Path("empty")
+    public Response empty(HoraSalida entity) throws StorageException {
+        return Response.ok().build();    
     }
 
     @GET

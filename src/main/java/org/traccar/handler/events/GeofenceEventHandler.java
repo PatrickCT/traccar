@@ -30,6 +30,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.traccar.model.Device;
+import org.traccar.storage.StorageException;
+import org.traccar.storage.query.Columns;
+import org.traccar.storage.query.Condition;
+import org.traccar.storage.query.Request;
 import org.traccar.utils.TransporteUtils;
 
 @Singleton
@@ -92,10 +99,27 @@ public class GeofenceEventHandler extends BaseEventHandler {
             long calendarId = cacheManager.getObject(Geofence.class, geofenceId).getCalendarId();
             Calendar calendar = calendarId != 0 ? cacheManager.getObject(Calendar.class, calendarId) : null;
             if (calendar == null || calendar.checkMoment(position.getFixTime())) {
+                //antes que nada cambiar de grupo si es necesario
+                Geofence g = null;
+                try {
+                    g = cacheManager.getStorage().getObject(Geofence.class, new Request(new Columns.All(), new Condition.Equals("id", geofenceId)));
+                } catch (StorageException ex) {
+                    Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                if (g != null && g.hasAttribute("groupChange")) {
+                    Device d = cacheManager.getObject(Device.class, position.getDeviceId());
+                    d.setGroupId(Long.parseLong(String.valueOf(g.getAttributes().get("groupChange"))));
+                    try {
+                        cacheManager.getStorage().updateObject(d, new Request(new Columns.All(), new Condition.Equals("id", d.getId())));
+                    } catch (StorageException ex) {
+                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+
                 Event event = new Event(Event.TYPE_GEOFENCE_ENTER, position);
                 event.setGeofenceId(geofenceId);
                 events.put(event, position);
-                System.out.println("entro geocerca " + geofenceId);
+                
                 CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
                     try {
                         if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {

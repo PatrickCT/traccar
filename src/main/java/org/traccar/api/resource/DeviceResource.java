@@ -46,6 +46,7 @@ import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -210,12 +211,14 @@ public class DeviceResource extends BaseObjectResource<Device> {
                         add(new Condition.Equals("finished", false));
                     }
                 })));
+        Date StartDate = new Date();
+        StartDate.setHours(0);
         List<Salida> salidas = storage.getObjects(Salida.class,
                 new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                     {
                         add(new Condition.Equals("deviceId", deviceId));
-                        add(new Condition.Between("date", "from", new Date(), "to",
-                                GenericUtils.addTimeToDate(new Date(), Calendar.DAY_OF_MONTH, 1)));
+                        add(new Condition.Between("date", "from", StartDate, "to",
+                                GenericUtils.addTimeToDate(StartDate, Calendar.DAY_OF_MONTH, 1)));
                     }
                 })));
         response.put("vueltas", salidas.size());

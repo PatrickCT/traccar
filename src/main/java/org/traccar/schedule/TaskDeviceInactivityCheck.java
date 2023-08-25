@@ -40,7 +40,7 @@ public class TaskDeviceInactivityCheck implements ScheduleTask {
     public static final String ATTRIBUTE_DEVICE_INACTIVITY_PERIOD = "deviceInactivityPeriod";
     public static final String ATTRIBUTE_LAST_UPDATE = "lastUpdate";
 
-    private static final long CHECK_PERIOD_MINUTES = 15;
+    private static final long CHECK_PERIOD_MINUTES = 2;
 
     private final Storage storage;
     private final NotificationManager notificationManager;
