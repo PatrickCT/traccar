@@ -61,7 +61,8 @@ public class Itinerario extends ExtendedModel {
 
     @Override
     public String toString() {
-        return "Itinerario{" + "name=" + name + ", days=" + days + ", subrouteId=" + subrouteId + ", geofenceId=" + geofenceId + '}';
+        return "Itinerario{" + "name=" + name + ", days=" + days + ", subrouteId=" + subrouteId + ", horasId=" + horasId + ", geofenceId=" + geofenceId + ", attributes=" + getAttributes() + '}';
     }
+    
 
 }

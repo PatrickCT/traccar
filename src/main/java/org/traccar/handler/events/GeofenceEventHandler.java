@@ -16,6 +16,7 @@
 package org.traccar.handler.events;
 
 import io.netty.channel.ChannelHandler;
+import java.io.IOException;
 import org.traccar.helper.model.PositionUtil;
 import org.traccar.model.Calendar;
 import org.traccar.model.Event;
@@ -32,11 +33,15 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.traccar.helper.LogAction;
 import org.traccar.model.Device;
+import org.traccar.session.ConnectionManager;
+import org.traccar.storage.Storage;
 import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
+import org.traccar.utils.GenericUtils;
 import org.traccar.utils.TransporteUtils;
 
 @Singleton
@@ -52,7 +57,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
 
     @Override
     protected Map<Event, Position> analyzePosition(Position position) {
-        if (!PositionUtil.isLatest(cacheManager, position)) {
+        if (!PositionUtil.isLatest(cacheManager, position)) {            
             return null;
         }
 
@@ -109,8 +114,13 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 if (g != null && g.hasAttribute("groupChange")) {
                     Device d = cacheManager.getObject(Device.class, position.getDeviceId());
                     d.setGroupId(Long.parseLong(String.valueOf(g.getAttributes().get("groupChange"))));
+
                     try {
-                        cacheManager.getStorage().updateObject(d, new Request(new Columns.All(), new Condition.Equals("id", d.getId())));
+                        cacheManager.getStorage().updateObject(d, new Request(
+                                new Columns.Exclude("id"),
+                                new Condition.Equals("id", d.getId())));
+                        cacheManager.invalidate(Device.class, d.getId());
+                        LogAction.edit(0, d);
                     } catch (StorageException ex) {
                         Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, ex);
                     }
@@ -119,7 +129,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 Event event = new Event(Event.TYPE_GEOFENCE_ENTER, position);
                 event.setGeofenceId(geofenceId);
                 events.put(event, position);
-                
+
                 CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
                     try {
                         if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
@@ -128,6 +138,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
                             TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
                         }
                     } catch (Exception e) {
+                        e.printStackTrace();
                         // Handle exceptions if needed
                     }
                     return null;

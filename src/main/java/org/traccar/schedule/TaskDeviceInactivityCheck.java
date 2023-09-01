@@ -80,8 +80,15 @@ public class TaskDeviceInactivityCheck implements ScheduleTask {
 
     private boolean checkDevice(Device device, long currentTime, long checkPeriod) {
         long deviceInactivityStart = device.getLong(ATTRIBUTE_DEVICE_INACTIVITY_START);
+        
+        if (deviceInactivityStart <= 0) {
+            deviceInactivityStart = 30 * 60 * 1000;
+        }
+        
         if (deviceInactivityStart > 0) {
             long timeThreshold = device.getLastUpdate().getTime() + deviceInactivityStart;
+            
+            
             if (currentTime >= timeThreshold) {
 
                 if (currentTime - checkPeriod < timeThreshold) {
@@ -89,9 +96,15 @@ public class TaskDeviceInactivityCheck implements ScheduleTask {
                 }
 
                 long deviceInactivityPeriod = device.getLong(ATTRIBUTE_DEVICE_INACTIVITY_PERIOD);
+
+                if (deviceInactivityPeriod <= 0) {
+                    deviceInactivityPeriod = 7 * 60 * 1000;
+                }
+                
                 if (deviceInactivityPeriod > 0) {
-                    long count = (currentTime - timeThreshold - 1) / deviceInactivityPeriod;
+                    long count = (currentTime - timeThreshold - 1) / deviceInactivityPeriod;                    
                     timeThreshold += count * deviceInactivityPeriod;
+
                     return currentTime - checkPeriod < timeThreshold;
                 }
 

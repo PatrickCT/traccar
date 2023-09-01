@@ -304,7 +304,10 @@ public class Device extends GroupedModel implements Disableable {
 
     @Override
     public String toString() {
-        return "Device{" + "name=" + name + ", uniqueId=" + uniqueId + ", status=" + status + ", lastUpdate=" + lastUpdate + ", positionId=" + positionId + ", phone=" + phone + ", model=" + model + ", contact=" + contact + ", category=" + category + ", disabled=" + disabled + ", expirationTime=" + expirationTime + ", motionStreak=" + motionStreak + ", motionState=" + motionState + ", motionTime=" + motionTime + ", motionDistance=" + motionDistance + ", overspeedState=" + overspeedState + ", overspeedTime=" + overspeedTime + ", overspeedGeofenceId=" + overspeedGeofenceId + '}';
+        return "Device{" + "name=" + name + ", uniqueId=" + uniqueId + ", status=" + status + ", lastUpdate=" + lastUpdate + ", positionId=" + positionId + ", phone=" + phone + ", model=" + model + ", contact=" + contact + ", category=" + category + ", disabled=" + disabled + ", expirationTime=" + expirationTime + ", motionStreak=" + motionStreak + ", motionState=" + motionState + ", motionTime=" + motionTime + ", motionDistance=" + motionDistance + ", overspeedState=" + overspeedState + ", overspeedTime=" + overspeedTime + ", overspeedGeofenceId=" + overspeedGeofenceId + ", carPlate=" + carPlate + ", serie=" + serie + ", year=" + year + ", maker=" + maker + ", policy=" + policy + ", insuranceExpiration=" + insuranceExpiration + ", simType=" + simType + '}';
     }
-
+    
+    public String toJson() {
+        return "{" + "name=" + name + ", uniqueId=" + uniqueId + ", status=" + status + ", lastUpdate=" + lastUpdate + ", positionId=" + positionId + ", phone=" + phone + ", model=" + model + ", contact=" + contact + ", category=" + category + ", disabled=" + disabled + ", expirationTime=" + expirationTime + ", motionStreak=" + motionStreak + ", motionState=" + motionState + ", motionTime=" + motionTime + ", motionDistance=" + motionDistance + ", overspeedState=" + overspeedState + ", overspeedTime=" + overspeedTime + ", overspeedGeofenceId=" + overspeedGeofenceId + ", carPlate=" + carPlate + ", serie=" + serie + ", year=" + year + ", maker=" + maker + ", policy=" + policy + ", insuranceExpiration=" + insuranceExpiration + ", simType=" + simType + '}';
+    }
 }

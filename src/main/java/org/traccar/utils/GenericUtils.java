@@ -18,7 +18,19 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.apache.commons.compress.utils.IOUtils;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpPut;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.json.JSONObject;
 import org.threeten.bp.LocalTime;
 
@@ -191,93 +203,206 @@ public class GenericUtils {
     }
 
     public static boolean isDateBetween(Date dateToCheck, Date startDate, Date endDate) {
-        System.out.println(dateToCheck);
-        System.out.println(startDate);
-        System.out.println(endDate);
         return dateToCheck.after(startDate) && dateToCheck.before(endDate);
     }
-    
-    public static boolean isTimeInRange(int[] current, int[] start, int[]end) {
+
+    public static boolean isTimeInRange(int[] current, int[] start, int[] end) {
         LocalTime startRange = LocalTime.of(start[0], start[1]);
         LocalTime endRange = LocalTime.of(end[0], end[1]);
         LocalTime timeToCheck = LocalTime.of(current[0], current[1]);
-        System.out.println(startRange);
-        System.out.println(endRange);
-        System.out.println(timeToCheck);
 
-        return timeToCheck.isAfter(startRange) && timeToCheck.isBefore(endRange);
+        if (endRange.isBefore(startRange)) {
+            // If the end time is before the start time, check if the time to check is after the start time
+            // or before the end time (i.e., it's between midnight and the end of the range)
+            return timeToCheck.isAfter(startRange) || timeToCheck.isBefore(endRange);
+        } else {
+            // Normal case where the end time is after the start time
+            return timeToCheck.isAfter(startRange) && timeToCheck.isBefore(endRange);
+        }
     }
-    
+
     public static int[] fetchUTCDate() throws IOException, ParseException {
         int[] result = new int[2];
-        result[0] = new Date().getHours();
-        result[1] = new Date().getMinutes();
-        try {
-            URL url = new URL("https://worldtimeapi.org/api/timezone/utc");
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
+        Date utcFallBack = dateToUTC(new Date());
+        result[0] = utcFallBack.getHours();
+        result[1] = utcFallBack.getMinutes();
 
-            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                response.append(line);
-            }
-            reader.close();
-
-            JSONObject json = new JSONObject(response.toString());
-            System.out.println(json);
-            String datetime = json.getString("datetime");
-            String time = datetime.split("T")[1];
-            result[0]=Integer.parseInt(time.split(":")[0]);
-            result[1]=Integer.parseInt(time.split(":")[1]);
-
-            
-            return result;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         return result;
-    
+
+    }
+
+    public static int[] fetchUTCDateWithRetry() throws IOException, ParseException {
+        int maxRetries = 3;
+        int[] result = new int[2];
+        Date utcFallBack = dateToUTC(new Date());
+        result[0] = utcFallBack.getHours();
+        result[1] = utcFallBack.getMinutes();
+
+        for (int retry = 0; retry < maxRetries; retry++) {
+            try {
+                URL url = new URL("https://worldtimeapi.org/api/timezone/utc");
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                JSONObject json = new JSONObject(response.toString());
+                
+                String datetime = json.getString("datetime");
+                String time = datetime.split("T")[1];
+                result[0] = Integer.parseInt(time.split(":")[0]);
+                result[1] = Integer.parseInt(time.split(":")[1]);
+
+                return result;
+            } catch (Exception e) {
+                // Print the exception for the current retry
+                e.printStackTrace();
+
+                // If not the last retry, wait before the next retry
+                if (retry < maxRetries - 1) {
+                    try {
+                        Thread.sleep(1000); // Wait for 1 second before retry
+                    } catch (InterruptedException ignored) {
+                    }
+                }
+            }
+        }
+
+        // If all retries fail, return the default result
+        return result;
     }
 
     public static Date localDate2UTC() throws ParseException {
         // Create a Date object representing the local time
         Date localDate = new Date();
-        System.out.println(localDate);
+        
 
         // Define the time zone for UTC
         TimeZone utcTimeZone = TimeZone.getTimeZone("UTC");
-        System.out.println(utcTimeZone);
+        
 
         // Get the time zone offset
         int timeZoneOffset = utcTimeZone.getOffset(localDate.getTime());
-        System.out.println(timeZoneOffset);
+        
 
         // Adjust the time by subtracting the offset
         long utcTime = localDate.getTime() - timeZoneOffset;
-        System.out.println(utcTime);
+        
 
         // Create a new Date object with the adjusted time
         Date utcDate = new Date(utcTime);
-        System.out.println(utcDate);
+        
 
         return utcDate;
     }
-//    public static Date localDate2UTC() throws ParseException {
-//        // Create a Date object representing the local time
-//        Date localDate = new Date();
-//
-//        // Define the time zone for UTC
-//        TimeZone utcTimeZone = TimeZone.getTimeZone("UTC");
-//
-//        // Create a SimpleDateFormat object with UTC time zone
-//        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//        sdf.setTimeZone(utcTimeZone);
-//
-//        // Convert the local date to UTC and format it
-//        String utcDateStr = sdf.format(localDate);
-//
-//        return sdf.parse(utcDateStr);
-//    }
+
+    public static Date dateToUTC(Date date) {
+        return new Date(date.getTime() - Calendar.getInstance().getTimeZone().getOffset(date.getTime()));
+    }
+
+    public static String genericPOST(String url, String json, Map<String, Object> headers) throws IOException {
+        //
+        try {
+            CloseableHttpClient client = HttpClients.createDefault();
+            HttpPost httpPost = new HttpPost(url);
+            StringEntity entity = new StringEntity(json);
+            httpPost.setEntity(entity);
+            if (headers.isEmpty()) {
+                httpPost.setHeader("Accept", "application/json");
+                httpPost.setHeader("Content-type", "application/json");
+            } else {
+                headers.forEach((a, b) -> {
+                    httpPost.addHeader(a, b);
+                });
+            }
+
+            CloseableHttpResponse response = client.execute(httpPost);
+            HttpEntity responseEntity = response.getEntity();
+            String responseString = EntityUtils.toString(responseEntity, "UTF-8");
+            
+            
+            client.close();
+
+            return responseString;
+        } catch (org.apache.hc.core5.http.ParseException ex) {
+            //
+            //System.out.println(ex.getMessage());
+            //
+        }
+        return "";
+    }
+
+    public static String genericPUT(String url, String json, Map<String, Object> headers) throws IOException {
+        //
+        try {
+            CloseableHttpClient client = HttpClients.createDefault();
+            HttpPut httpPost = new HttpPut(url);
+            StringEntity entity = new StringEntity(json);
+            httpPost.setEntity(entity);
+            if (headers.isEmpty()) {
+                httpPost.setHeader("Accept", "application/json");
+                httpPost.setHeader("Content-type", "application/json");
+            } else {
+                headers.forEach((a, b) -> {
+                    httpPost.addHeader(a, b);
+                });
+            }
+
+            CloseableHttpResponse response = client.execute(httpPost);
+            HttpEntity responseEntity = response.getEntity();
+            String responseString = EntityUtils.toString(responseEntity, "UTF-8");
+            
+            
+            client.close();
+
+            return responseString;
+        } catch (org.apache.hc.core5.http.ParseException ex) {
+            //
+            //System.out.println(ex.getMessage());
+            //
+        }
+        return "";
+    }
+
+    public HttpEntity genericPOSTResponse(String url, String json) throws IOException {
+        try {
+            CloseableHttpClient client = HttpClients.createDefault();
+            HttpPost httpPost = new HttpPost(url);
+            StringEntity entity = new StringEntity(json);
+            httpPost.setEntity(entity);
+            httpPost.setHeader("Accept", "application/json");
+            httpPost.setHeader("Content-type", "application/json");
+
+            CloseableHttpResponse response = client.execute(httpPost);
+            HttpEntity responseEntity = response.getEntity();
+            String responseString = EntityUtils.toString(responseEntity, "UTF-8");
+            //
+            client.close();
+
+            return responseEntity;
+        } catch (org.apache.hc.core5.http.ParseException ex) {
+        }
+        return null;
+    }
+
+    public byte[] genericPOSTResponseBytes(String url, String json) throws IOException {
+        CloseableHttpClient client = HttpClients.createDefault();
+        HttpPost httpPost = new HttpPost(url);
+        StringEntity entity = new StringEntity(json);
+        httpPost.setEntity(entity);
+        httpPost.setHeader("Accept", "application/json");
+        httpPost.setHeader("Content-type", "application/json");
+        CloseableHttpResponse response = client.execute(httpPost);
+        HttpEntity responseEntity = response.getEntity();
+        byte[] res = IOUtils.toByteArray(responseEntity.getContent());
+        client.close();
+        return res;
+
+    }
 }

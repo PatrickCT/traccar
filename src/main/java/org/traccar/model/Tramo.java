@@ -57,11 +57,11 @@ public class Tramo extends BaseModel {
 
     public void setDelay(int delay) {
         this.delay = delay;
-    }   
+    }
 
     @Override
     public String toString() {
-        return "Tramo{" + "name=" + name + ", minTime=" + minTime + ", delay=" + delay + ", geofenceId=" + geofenceId + ", punishment=" + punishment + '}';
-    }       
+        return "Tramo{id=" + getId() + "name=" + name + ", minTime=" + minTime + ", delay=" + delay + ", geofenceId=" + geofenceId + ", punishment=" + punishment + '}';
+    }
 
 }

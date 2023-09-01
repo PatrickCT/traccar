@@ -59,6 +59,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javax.annotation.security.PermitAll;
 import org.json.JSONObject;
 import org.traccar.model.Driver;
 import org.traccar.model.Geofence;
