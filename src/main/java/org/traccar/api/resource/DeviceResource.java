@@ -46,6 +46,7 @@ import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -291,5 +292,24 @@ public class DeviceResource extends BaseObjectResource<Device> {
         int startIndex = Math.max(0, list.size() - n);
         int endIndex = list.size();
         return list.subList(startIndex, endIndex);
+    }
+
+    @Path("user/{id}")
+    @GET
+    public Collection<Device> getDevices(@PathParam("id") long id
+    ) throws SQLException {
+        try {
+            var conditions = new LinkedList<Condition>();
+            
+            permissionsService.checkUser(getUserId(), id);
+            conditions.add(new Condition.Permission(User.class, id, baseClass).excludeGroups());
+            
+            return storage.getObjects(baseClass, new Request(new Columns.All(), Condition.merge(conditions)));
+        } catch (StorageException ex) {
+            Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SecurityException ex) {
+            Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return new ArrayList<>();
     }
 }

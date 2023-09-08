@@ -334,4 +334,14 @@ public class User extends ExtendedModel implements UserRestrictions, Disableable
     public void setStopTimeout(int stopTimeout) {
         this.stopTimeout = stopTimeout;
     }
+    
+    private boolean billing;
+
+    public boolean getBilling() {
+        return billing;
+    }
+
+    public void setBilling(boolean billing) {
+        this.billing = billing;
+    }    
 }

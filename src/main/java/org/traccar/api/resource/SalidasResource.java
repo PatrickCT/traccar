@@ -129,4 +129,16 @@ public class SalidasResource extends BaseObjectResource<Salida> {
         return Response.ok(response.toMap()).build();
     }
 
+    
+    @POST  
+    @Path("crear")
+    public Response crear(Salida entity) throws StorageException, ParseException {
+        System.out.println(entity);
+        if(TransporteUtils.hasSalida(entity.getDeviceId(), storage)){
+           return Response.status(Response.Status.BAD_REQUEST).build();
+        }
+        TransporteUtils.generarSalida(entity.getDeviceId(), entity.getScheduleId(), entity.getDate(), storage);
+        return Response.ok(entity).build();
+    }
+
 }

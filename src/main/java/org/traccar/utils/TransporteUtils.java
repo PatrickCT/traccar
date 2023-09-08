@@ -203,6 +203,91 @@ public class TransporteUtils {
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    
+    public static void generarSalida(long deviceId, long itinerario, Date start, Storage storage) throws ParseException {
+        try {
+
+            //obtener dispositivo
+            Device device = storage.getObject(Device.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                {
+                    add(new Condition.Equals("id", deviceId));
+                }
+            })));
+
+            if (device == null) {
+                return;
+            }
+            
+            Itinerario itinerarioSelected = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                {
+                    add(new Condition.Equals("id", itinerario));
+                }
+            })));
+
+            //encontrar puntos de control
+            final Itinerario finalItinerarioSelected = itinerarioSelected;
+            List<Permission> permisos = storage.getPermissions(Itinerario.class, Tramo.class);
+            
+            List<Tramo> tramos = new ArrayList<>();
+            permisos.forEach((p) -> {
+                try {                    
+                    Tramo t = storage.getObject(Tramo.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        {
+                            add(new Condition.Equals("id", p.getPropertyId()));
+                        }
+                    })));
+                    
+                    if (t != null && p.getOwnerId() == itinerario) { 
+                        System.out.println(p);
+                        System.out.println(t);
+                        tramos.add(t);
+                    }
+                } catch (StorageException ex) {
+                    Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            });
+            
+            if (tramos.isEmpty()) {
+                return;
+            }
+
+            //crear nueva salida
+            Date today = new Date();
+            Date endDate = today;
+            Salida newSalida = new Salida();
+            newSalida.setDate(today);
+            newSalida.setDeviceId(deviceId);
+            newSalida.setFinished(false);
+            newSalida.setScheduleId(itinerarioSelected.getId());
+            for (Tramo tramo : tramos) {
+                endDate = GenericUtils.addTimeToDate(endDate, Calendar.MINUTE, tramo.getMinTime());
+            }
+            newSalida.setEndingDate(endDate);
+            newSalida.setId(storage.addObject(newSalida, new Request(new Columns.Exclude("id"))));
+
+            //crear tickets
+            Date ticketStart = start;
+            
+            boolean isFirstTicket = true;
+            
+            Ticket ticket = null;
+            for (Tramo tramo : tramos) {
+
+                ticket = new Ticket();
+                ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, tramo.getMinTime());
+                ticket.setExpectedTime(ticketStart);
+                ticket.setGeofenceId(tramo.getGeofenceId());
+                ticket.setPunishment(0);
+                ticket.setSalidaId(newSalida.getId());
+                ticket.setId(storage.addObject(ticket, new Request(new Columns.Exclude("id"))));
+
+            }
+            return;
+        } catch (StorageException ex) {
+            ex.printStackTrace();
+            Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 
     public static boolean hasSalida(long deviceId, CacheManager cacheManager) {
         try {
@@ -244,6 +329,47 @@ public class TransporteUtils {
         return false;
     }
 
+    public static boolean hasSalida(long deviceId, Storage storage) {
+        try {
+            Salida salida = storage.getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                {
+                    add(new Condition.Equals("finished", false));
+                    add(new Condition.Equals("deviceId", deviceId));
+                }
+            })));
+
+            if (salida != null) {
+
+                if (GenericUtils.isSameDate(salida.getDate(), new Date())) {
+
+                    if (salida.getEndingDate().getTime() <= new Date().getTime()) {
+
+                        salida.setFinished(true);
+                        storage.updateObject(salida, new Request(
+                                new Columns.Exclude("id"),
+                                new Condition.Equals("id", salida.getId())));
+                        return false;
+                    } else {
+                        return true;
+                    }
+                } else {
+
+                    salida.setFinished(true);
+                    storage.updateObject(salida, new Request(
+                            new Columns.Exclude("id"),
+                            new Condition.Equals("id", salida.getId())));
+                    return false;
+                }
+            }
+            return salida != null;
+        } catch (StorageException ex) {
+            ex.printStackTrace();
+            Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
+    }
+
+    
     public static void updateSalida(long deviceId, long geofenceId, Date realTime, CacheManager cacheManager) {
         try {
 
