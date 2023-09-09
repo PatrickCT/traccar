@@ -36,17 +36,21 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import org.traccar.model.Itinerario;
+import org.traccar.model.Tramo;
 
 @Path("permissions")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-public class PermissionsResource  extends BaseResource {
+public class PermissionsResource extends BaseResource {
 
     @Inject
     private CacheManager cacheManager;
 
-    private void checkPermission(Permission permission) throws StorageException {
-        if (permissionsService.notAdmin(getUserId())) {
+    private void checkPermission(Permission permission) throws StorageException {        
+        if (permissionsService.notAdmin(getUserId())
+                && (!permission.getOwnerClass().equals(Itinerario.class)
+                && !permission.getOwnerClass().equals(Tramo.class))) {
             permissionsService.checkPermission(permission.getOwnerClass(), getUserId(), permission.getOwnerId());
             permissionsService.checkPermission(permission.getPropertyClass(), getUserId(), permission.getPropertyId());
         }
@@ -54,7 +58,7 @@ public class PermissionsResource  extends BaseResource {
 
     private void checkPermissionTypes(List<LinkedHashMap<String, Long>> entities) {
         Set<String> keys = null;
-        for (LinkedHashMap<String, Long> entity: entities) {
+        for (LinkedHashMap<String, Long> entity : entities) {
             if (keys != null & !entity.keySet().equals(keys)) {
                 throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST).build());
             }
@@ -67,7 +71,7 @@ public class PermissionsResource  extends BaseResource {
     public Response add(List<LinkedHashMap<String, Long>> entities) throws StorageException, ClassNotFoundException {
         permissionsService.checkRestriction(getUserId(), UserRestrictions::getReadonly);
         checkPermissionTypes(entities);
-        for (LinkedHashMap<String, Long> entity: entities) {
+        for (LinkedHashMap<String, Long> entity : entities) {
             Permission permission = new Permission(entity);
             checkPermission(permission);
             storage.addPermission(permission);
@@ -92,7 +96,7 @@ public class PermissionsResource  extends BaseResource {
     public Response remove(List<LinkedHashMap<String, Long>> entities) throws StorageException, ClassNotFoundException {
         permissionsService.checkRestriction(getUserId(), UserRestrictions::getReadonly);
         checkPermissionTypes(entities);
-        for (LinkedHashMap<String, Long> entity: entities) {
+        for (LinkedHashMap<String, Long> entity : entities) {
             Permission permission = new Permission(entity);
             checkPermission(permission);
             storage.removePermission(permission);

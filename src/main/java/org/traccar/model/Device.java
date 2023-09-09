@@ -236,9 +236,78 @@ public class Device extends GroupedModel implements Disableable {
         this.overspeedGeofenceId = overspeedGeofenceId;
     }
 
-    @Override
-    public String toString() {
-        return "Device{" + "name=" + name + ", uniqueId=" + uniqueId + ", status=" + status + ", lastUpdate=" + lastUpdate + ", positionId=" + positionId + ", phone=" + phone + ", model=" + model + ", contact=" + contact + ", category=" + category + ", disabled=" + disabled + ", expirationTime=" + expirationTime + ", motionStreak=" + motionStreak + ", motionState=" + motionState + ", motionTime=" + motionTime + ", motionDistance=" + motionDistance + ", overspeedState=" + overspeedState + ", overspeedTime=" + overspeedTime + ", overspeedGeofenceId=" + overspeedGeofenceId + '}';
+    private String carPlate;
+    private String serie;
+    private String year;
+    private String maker;
+
+    public String getCarPlate() {
+        return carPlate;
     }
 
+    public void setCarPlate(String carPlate) {
+        this.carPlate = carPlate;
+    }
+
+    public String getSerie() {
+        return serie;
+    }
+
+    public void setSerie(String serie) {
+        this.serie = serie;
+    }
+
+    public String getYear() {
+        return year;
+    }
+
+    public void setYear(String year) {
+        this.year = year;
+    }
+
+    public String getMaker() {
+        return maker;
+    }
+
+    public void setMaker(String maker) {
+        this.maker = maker;
+    }
+    
+    private String policy;
+    private Date insuranceExpiration;
+
+    public String getPolicy() {
+        return policy;
+    }
+
+    public void setPolicy(String policy) {
+        this.policy = policy;
+    }
+
+    public Date getInsuranceExpiration() {
+        return insuranceExpiration;
+    }
+
+    public void setInsuranceExpiration(Date insuranceExpiration) {
+        this.insuranceExpiration = insuranceExpiration;
+    }
+    
+    private int simType;
+
+    public int getSimType() {
+        return simType;
+    }
+
+    public void setSimType(int simType) {
+        this.simType = simType;
+    }       
+
+    @Override
+    public String toString() {
+        return "Device{" + "name=" + name + ", uniqueId=" + uniqueId + ", status=" + status + ", lastUpdate=" + lastUpdate + ", positionId=" + positionId + ", phone=" + phone + ", model=" + model + ", contact=" + contact + ", category=" + category + ", disabled=" + disabled + ", expirationTime=" + expirationTime + ", motionStreak=" + motionStreak + ", motionState=" + motionState + ", motionTime=" + motionTime + ", motionDistance=" + motionDistance + ", overspeedState=" + overspeedState + ", overspeedTime=" + overspeedTime + ", overspeedGeofenceId=" + overspeedGeofenceId + ", carPlate=" + carPlate + ", serie=" + serie + ", year=" + year + ", maker=" + maker + ", policy=" + policy + ", insuranceExpiration=" + insuranceExpiration + ", simType=" + simType + '}';
+    }
+    
+    public String toJson() {
+        return "{" + "name=" + name + ", uniqueId=" + uniqueId + ", status=" + status + ", lastUpdate=" + lastUpdate + ", positionId=" + positionId + ", phone=" + phone + ", model=" + model + ", contact=" + contact + ", category=" + category + ", disabled=" + disabled + ", expirationTime=" + expirationTime + ", motionStreak=" + motionStreak + ", motionState=" + motionState + ", motionTime=" + motionTime + ", motionDistance=" + motionDistance + ", overspeedState=" + overspeedState + ", overspeedTime=" + overspeedTime + ", overspeedGeofenceId=" + overspeedGeofenceId + ", carPlate=" + carPlate + ", serie=" + serie + ", year=" + year + ", maker=" + maker + ", policy=" + policy + ", insuranceExpiration=" + insuranceExpiration + ", simType=" + simType + '}';
+    }
 }

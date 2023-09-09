@@ -114,7 +114,8 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
                         new Condition.Equals("id", entity.getId())));
             }
         }
-        cacheManager.updateOrInvalidate(true, entity);
+        cacheManager.updateOrInvalidate(true, entity);       
+        
         LogAction.edit(getUserId(), entity);
 
         return Response.ok(entity).build();

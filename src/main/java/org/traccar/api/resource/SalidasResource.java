@@ -107,31 +107,38 @@ public class SalidasResource extends BaseObjectResource<Salida> {
         });
 
         Date newDate = new Date(tickets.get(0).getExpectedTime().getTime());
-        System.out.println("new " + newDate);
+
         Date parsedDate = GenericUtils.parseTime((String) values.get("time"));
         newDate.setHours(parsedDate.getHours());
         newDate.setMinutes(parsedDate.getMinutes());
-        System.out.println("new " + newDate);
 
         long differenceInMillis = newDate.getTime() - tickets.get(0).getExpectedTime().getTime();
-        System.out.println("millis "+differenceInMillis);
-        long minutesDifference = differenceInMillis / (1000 * 60);
-        
 
-        System.out.println("minutes " + minutesDifference);
+        long minutesDifference = differenceInMillis / (1000 * 60);
 
         for (int i = 0; i < tickets.size(); i++) {
             Ticket ticket = tickets.get(i);
-            System.out.println("adding min " + minutesDifference);
+
             ticket.setExpectedTime(GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.MINUTE, (int) minutesDifference));
 
-            System.out.println(ticket);
             storage.updateObject(ticket, new Request(
                     new Columns.Exclude("id"),
                     new Condition.Equals("id", ticket.getId())));
         }
 
         return Response.ok(response.toMap()).build();
+    }
+
+    
+    @POST  
+    @Path("crear")
+    public Response crear(Salida entity) throws StorageException, ParseException {
+        System.out.println(entity);
+        if(TransporteUtils.hasSalida(entity.getDeviceId(), storage)){
+           return Response.status(Response.Status.BAD_REQUEST).build();
+        }
+        TransporteUtils.generarSalida(entity.getDeviceId(), entity.getScheduleId(), entity.getDate(), storage);
+        return Response.ok(entity).build();
     }
 
 }

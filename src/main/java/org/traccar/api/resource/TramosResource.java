@@ -86,10 +86,10 @@ public class TramosResource extends SimpleObjectResource<Tramo> {
 
     }
 
-    @POST
+    @POST    
     public Response add(Tramo entity) throws StorageException {
         permissionsService.checkEdit(getUserId(), entity, true);
-
+        
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
         LogAction.create(getUserId(), entity);
 

@@ -1,0 +1,1 @@
+CREATE TABLE `tc_horas` ( `id` INT(11) NOT NULL AUTO_INCREMENT, `name` VARCHAR(255), `hour` DATETIME, PRIMARY KEY (`id`) );

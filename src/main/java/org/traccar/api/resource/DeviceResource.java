@@ -46,6 +46,8 @@ import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -58,6 +60,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javax.annotation.security.PermitAll;
 import org.json.JSONObject;
 import org.traccar.model.Driver;
 import org.traccar.model.Geofence;
@@ -210,12 +213,14 @@ public class DeviceResource extends BaseObjectResource<Device> {
                         add(new Condition.Equals("finished", false));
                     }
                 })));
+        Date StartDate = new Date();
+        StartDate.setHours(0);
         List<Salida> salidas = storage.getObjects(Salida.class,
                 new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                     {
                         add(new Condition.Equals("deviceId", deviceId));
-                        add(new Condition.Between("date", "from", new Date(), "to",
-                                GenericUtils.addTimeToDate(new Date(), Calendar.DAY_OF_MONTH, 1)));
+                        add(new Condition.Between("date", "from", StartDate, "to",
+                                GenericUtils.addTimeToDate(StartDate, Calendar.DAY_OF_MONTH, 1)));
                     }
                 })));
         response.put("vueltas", salidas.size());
@@ -287,5 +292,24 @@ public class DeviceResource extends BaseObjectResource<Device> {
         int startIndex = Math.max(0, list.size() - n);
         int endIndex = list.size();
         return list.subList(startIndex, endIndex);
+    }
+
+    @Path("user/{id}")
+    @GET
+    public Collection<Device> getDevices(@PathParam("id") long id
+    ) throws SQLException {
+        try {
+            var conditions = new LinkedList<Condition>();
+            
+            permissionsService.checkUser(getUserId(), id);
+            conditions.add(new Condition.Permission(User.class, id, baseClass).excludeGroups());
+            
+            return storage.getObjects(baseClass, new Request(new Columns.All(), Condition.merge(conditions)));
+        } catch (StorageException ex) {
+            Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SecurityException ex) {
+            Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return new ArrayList<>();
     }
 }

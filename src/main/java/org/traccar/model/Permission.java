@@ -133,4 +133,9 @@ public class Permission {
         return propertyId;
     }
 
+    @Override
+    public String toString() {
+        return "Permission{" + "data=" + data + ", ownerClass=" + ownerClass + ", ownerId=" + ownerId + ", propertyClass=" + propertyClass + ", propertyId=" + propertyId + '}';
+    }
+
 }

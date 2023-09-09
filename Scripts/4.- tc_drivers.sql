@@ -1,5 +1,5 @@
 -- Active: 1688747211561@@127.0.0.1@3306@tc_traccer
---CREATE TABLE tc_drivers (
+-- CREATE TABLE tc_drivers (
 --    driverID INTEGER PRIMARY KEY AUTO_INCREMENT,
 --    name VARCHAR(75),
 --    uniqueId VARCHAR(50)

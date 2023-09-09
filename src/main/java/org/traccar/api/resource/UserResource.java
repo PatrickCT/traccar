@@ -15,6 +15,8 @@
  */
 package org.traccar.api.resource;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
 import org.traccar.api.BaseObjectResource;
 import org.traccar.config.Config;
 import org.traccar.helper.LogAction;
@@ -115,16 +117,6 @@ public class UserResource extends BaseObjectResource<User> {
         return Response.ok(entity).build();
     }
 
-    @Path("main")
-    @GET
-    public Collection<User> getMainUsers() throws StorageException {
-
-        return storage.getObjects(baseClass, new Request(
-                new Columns.All(),
-                new Condition.Equals("main", true)
-        ));
-    }
-
     @Path("{id}/mails")
     @GET
     public Collection<ExtraMail> getUserMails(@PathParam("id") long id) throws StorageException {
@@ -193,5 +185,12 @@ public class UserResource extends BaseObjectResource<User> {
                 new Columns.All(),
                 new Condition.Equals("userid", entity.getUserid())
         ));
+    }
+
+    @Path("main")
+    @GET
+    public Collection<User> getMainUsers(@QueryParam("userId") long userId) throws SQLException, StorageException {
+        permissionsService.checkAdmin(getUserId());
+        return storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("main", true)));
     }
 }
