@@ -4,9 +4,8 @@
  */
 package org.traccar.api.resource;
 
-import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -32,6 +31,7 @@ import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
+import org.traccar.utils.GenericUtils;
 
 /**
  *
@@ -52,21 +52,32 @@ public class WSResource extends BaseResource {
             JSONArray events = new JSONArray();
             JSONObject obj = new JSONObject();
 
+            Date today = new Date();
+            today.setHours(0);
+            System.out.println(today);
+            System.out.println(GenericUtils.addTimeToDate(today, Calendar.DAY_OF_MONTH, 1));
             List<Event> eventos = storage.getObjects(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("geofenceId", id));
                     add(new Condition.Equals("type", "geofenceEnter"));
-                    add(new Condition.Compare("eventtime", ">=", "time", "CURDATE()"));
-                    add(new Condition.Compare("eventtime", "<", "time", "CURDATE() + INTERVAL 1 DAY"));
+                    add(new Condition.Between("eventtime", "from", today, "to", GenericUtils.addTimeToDate(today, Calendar.DAY_OF_MONTH, 1)));
                 }
             })));
 
             //Collection<Event> eventos = Context.getDataManager().getEventsGeo(id, from, from);
             for (Event ev : eventos) {
+                Device dev = cacheManager.getObject(Device.class, ev.getDeviceId());
+                if (dev == null) {
+                    dev = storage.getObject(Device.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        {
+                            add(new Condition.Equals("id", ev.getDeviceId()));
+                        }
+                    })));
+                }
                 obj = new JSONObject();
                 obj.put("geofenceid", ev.getGeofenceId());
                 obj.put("deviceid", ev.getDeviceId());
-                obj.put("devicename", cacheManager.getObject(Device.class, ev.getDeviceId()).getName());
+                obj.put("devicename", dev != null ? dev.getName() : "Desconocido");
                 obj.put("time", ev.getEventTime());
                 events.put(obj);
             }
@@ -89,21 +100,31 @@ public class WSResource extends BaseResource {
 
                 JSONArray events = new JSONArray();
                 JSONObject obj = new JSONObject();
+                Date today = new Date();
+                today.setHours(0);
+
                 List<Event> eventos = storage.getObjects(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                     {
                         add(new Condition.Equals("geofenceId", o.toString()));
                         add(new Condition.Equals("type", "geofenceEnter"));
-                        add(new Condition.Compare("eventtime", ">=", "time", "CURDATE()"));
-                        add(new Condition.Compare("eventtime", "<", "time", "CURDATE() + INTERVAL 1 DAY"));
+                        add(new Condition.Between("eventtime", "from", today, "to", GenericUtils.addTimeToDate(today, Calendar.DAY_OF_MONTH, 1)));
                     }
                 })));
 
                 //Collection<Event> eventos = Context.getDataManager().getEventsGeo(id, from, from);
                 for (Event ev : eventos) {
+                    Device dev = cacheManager.getObject(Device.class, ev.getDeviceId());
+                    if (dev == null) {
+                        dev = storage.getObject(Device.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                            {
+                                add(new Condition.Equals("id", ev.getDeviceId()));
+                            }
+                        })));
+                    }
                     obj = new JSONObject();
                     obj.put("geofenceid", ev.getGeofenceId());
                     obj.put("deviceid", ev.getDeviceId());
-                    obj.put("devicename", cacheManager.getObject(Device.class, ev.getDeviceId()).getName());
+                    obj.put("devicename", dev != null ? dev.getName() : "Desconocido");
                     obj.put("time", ev.getEventTime());
                     events.put(obj);
                 }
