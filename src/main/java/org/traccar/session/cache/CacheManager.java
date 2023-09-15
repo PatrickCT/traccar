@@ -199,6 +199,7 @@ public class CacheManager implements BroadcastInterface {
     public void updatePosition(Position position) {
         try {
             lock.writeLock().lock();
+            
             if (deviceLinks.containsKey(position.getDeviceId())) {
                 devicePositions.put(position.getDeviceId(), position);
             }

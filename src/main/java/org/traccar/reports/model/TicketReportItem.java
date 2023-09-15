@@ -12,13 +12,15 @@ import java.util.Date;
  */
 public class TicketReportItem {
     private long id;
-    private String salida;
+    private long salida;
     private String geofence;
     private Date expectedTime;
     private Date enterTime;
     private Date exitTime;
     private double difference;
     private int punishment;
+    private long device;
+    private String deviceName;
 
     public long getId() {
         return id;
@@ -28,13 +30,13 @@ public class TicketReportItem {
         this.id = id;
     }
 
-    public String getSalida() {
+    public long getSalida() {
         return salida;
     }
 
-    public void setSalida(String salida) {
+    public void setSalida(long salida) {
         this.salida = salida;
-    }
+    }    
 
     public String getGeofence() {
         return geofence;
@@ -83,7 +85,20 @@ public class TicketReportItem {
     public void setPunishment(int punishment) {
         this.punishment = punishment;
     }
-    
-    
-    
+
+    public long getDevice() {
+        return device;
+    }
+
+    public void setDevice(long device) {
+        this.device = device;
+    }    
+
+    public String getDeviceName() {
+        return deviceName;
+    }
+
+    public void setDeviceName(String deviceName) {
+        this.deviceName = deviceName;
+    }        
 }

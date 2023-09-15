@@ -19,11 +19,13 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.apache.commons.lang3.ObjectUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.traccar.api.BaseResource;
 import org.traccar.model.Device;
 import org.traccar.model.Event;
+import org.traccar.model.Position;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
@@ -35,7 +37,7 @@ import org.traccar.utils.GenericUtils;
  *
  * @author K
  */
-@Path("ws")
+@Path("dev")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class DevResource extends BaseResource{
@@ -57,11 +59,22 @@ public class DevResource extends BaseResource{
             List<Device> dispositivos = storage.getObjects(Device.class, new Request(new Columns.All()));
 
             //Collection<Event> eventos = Context.getDataManager().getEventsGeo(id, from, from);
-            for (Device dev : dispositivos) {
-                
+            for (Device dev : dispositivos) {               
                 obj = new JSONObject();
                 obj.put("imei", dev.getUniqueId());
-                obj.put("protocol", cacheManager.getPosition(dev.getId()).getProtocol());
+                Position pos = cacheManager.getPosition(dev.getId());
+                if(pos == null){
+                    pos = cacheManager.getObject(Position.class, dev.getPositionId());
+                    if(pos == null){
+                        pos = storage.getObject(Position.class, new Request(new Columns.All(), new Condition.Equals("id", dev.getPositionId())));
+                    }
+                }
+                if(pos != null){
+                    obj.put("protocol", pos.getProtocol());
+                } else {
+                    obj.put("protocol", "");
+                }
+                
                 data.put(obj);
             }
 

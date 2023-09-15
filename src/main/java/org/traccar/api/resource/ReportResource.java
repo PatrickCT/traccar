@@ -337,19 +337,19 @@ public class ReportResource extends SimpleObjectResource<Report> {
         return ticketsReportProvider.getObjects(getUserId(), deviceIds, groupIds, from, to);
     }
 //
-//    @Path("tickets")
-//    @GET
-//    @Produces(EXCEL)
-//    public Response getTciketsExcel(
-//            @QueryParam("deviceId") List<Long> deviceIds,
-//            @QueryParam("groupId") List<Long> groupIds,
-//            @QueryParam("from") Date from,
-//            @QueryParam("to") Date to,
-//            @QueryParam("mail") boolean mail) throws StorageException {
-//        permissionsService.checkRestriction(getUserId(), UserRestrictions::getDisableReports);
-//        return executeReport(getUserId(), mail, stream -> {
-//            LogAction.logReport(getUserId(), "stops", from, to, deviceIds, groupIds);
-//            stopsReportProvider.getExcel(stream, getUserId(), deviceIds, groupIds, from, to);
-//        });
-//    }
+    @Path("tickets/{type:xlsx|mail}")
+    @GET
+    @Produces(EXCEL)
+    public Response getTciketsExcel(
+            @QueryParam("deviceId") List<Long> deviceIds,
+            @QueryParam("groupId") List<Long> groupIds,
+            @QueryParam("from") Date from,
+            @QueryParam("to") Date to,
+            @QueryParam("mail") boolean mail) throws StorageException {
+        permissionsService.checkRestriction(getUserId(), UserRestrictions::getDisableReports);
+        return executeReport(getUserId(), mail, stream -> {
+            LogAction.logReport(getUserId(), "tickets", from, to, deviceIds, groupIds);
+            ticketsReportProvider.getExcel(stream, getUserId(), deviceIds, groupIds, from, to);
+        });
+    }
 }
