@@ -337,10 +337,11 @@ public class ReportResource extends SimpleObjectResource<Report> {
         return ticketsReportProvider.getObjects(getUserId(), deviceIds, groupIds, from, to);
     }
 //
-    @Path("tickets/{type:xlsx|mail}")
+    
+    @Path("tickets")
     @GET
     @Produces(EXCEL)
-    public Response getTciketsExcel(
+    public Response getTicketsExcel(
             @QueryParam("deviceId") List<Long> deviceIds,
             @QueryParam("groupId") List<Long> groupIds,
             @QueryParam("from") Date from,
@@ -351,5 +352,18 @@ public class ReportResource extends SimpleObjectResource<Report> {
             LogAction.logReport(getUserId(), "tickets", from, to, deviceIds, groupIds);
             ticketsReportProvider.getExcel(stream, getUserId(), deviceIds, groupIds, from, to);
         });
+    
+    }
+    
+    @Path("tickets/{type:xlsx|mail}")
+    @GET
+    @Produces(EXCEL)
+    public Response getTicketsExcel(
+            @QueryParam("deviceId") List<Long> deviceIds,
+            @QueryParam("groupId") List<Long> groupIds,
+            @QueryParam("from") Date from,
+            @QueryParam("to") Date to,
+            @PathParam("type") String type) throws StorageException {
+        return getTicketsExcel(deviceIds, groupIds, from, to, type.equals("mail"));
     }
 }

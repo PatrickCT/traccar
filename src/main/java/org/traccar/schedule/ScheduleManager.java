@@ -42,7 +42,8 @@ public class ScheduleManager implements LifecycleObject {
                 TaskReports.class,
                 TaskDeviceInactivityCheck.class,
                 TaskWebSocketKeepalive.class,
-                TaskHealthCheck.class);
+                TaskHealthCheck.class,
+                TaskFinishExits.class);
         tasks.forEach(task -> injector.getInstance(task).schedule(executor));
     }
 

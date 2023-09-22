@@ -52,4 +52,10 @@ public class DeviceReportSection {
         this.objects = new ArrayList<>(objects);
     }
 
+    @Override
+    public String toString() {
+        return "DeviceReportSection{" + "deviceName=" + deviceName + ", groupName=" + groupName + ", objects=" + objects + '}';
+    }
+
+    
 }

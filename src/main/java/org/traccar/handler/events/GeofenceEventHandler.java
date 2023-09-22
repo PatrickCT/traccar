@@ -130,19 +130,19 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 event.setGeofenceId(geofenceId);
                 events.put(event, position);
 
-                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
-                    try {
-                        if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
-                            TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-                        } else {
-                            TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        // Handle exceptions if needed
-                    }
-                    return null;
-                });
+//                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+//                    try {
+//                        if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+//                            TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
+//                        } else {
+//                            TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
+//                        }
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                        // Handle exceptions if needed
+//                    }
+//                    return null;
+//                });
             }
         }
         return events;

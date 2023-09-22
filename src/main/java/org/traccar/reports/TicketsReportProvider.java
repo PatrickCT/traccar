@@ -31,6 +31,7 @@ import org.traccar.model.Device;
 import org.traccar.model.Geofence;
 import org.traccar.model.Salida;
 import org.traccar.model.Ticket;
+import org.traccar.reports.model.DeviceReportSection;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
@@ -114,11 +115,17 @@ public class TicketsReportProvider {
         reportUtils.checkPeriodLimit(from, to);
         
         ArrayList<TicketReportItem> result = new ArrayList<>();
+        ArrayList<DeviceReportSection> devicesTickets = new ArrayList<>();
         ArrayList<String> sheetNames = new ArrayList<>();
         
         List<Ticket> tickets = new ArrayList<>();
         for (Device device : DeviceUtil.getAccessibleDevices(storage, userId, deviceIds, groupIds)) {
-            sheetNames.add(WorkbookUtil.createSafeSheetName(device.getName()));
+            result.clear();
+            
+            DeviceReportSection deviceTickets = new DeviceReportSection();
+            deviceTickets.setDeviceName(device.getName());
+            sheetNames.add(WorkbookUtil.createSafeSheetName(deviceTickets.getDeviceName()));
+            
             List<Salida> salidas = storage.getObjects(Salida.class,
                     new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                         {
@@ -159,13 +166,15 @@ public class TicketsReportProvider {
                 tri.setDeviceName(device.getName());
                 result.add(tri);
             }
+            deviceTickets.setObjects(result);
+            devicesTickets.add(deviceTickets);
         }
         
         File file = Paths.get(config.getString(Keys.TEMPLATES_ROOT), "export", "tickets.xlsx").toFile();
-        System.out.println(file);
+        
         try (InputStream inputStream = new FileInputStream(file)) {
             var context = reportUtils.initializeContext(userId);
-            context.putVar("ticekts", result);
+            context.putVar("tickets", devicesTickets);
             context.putVar("sheetNames", sheetNames);
             context.putVar("from", from);
             context.putVar("to", to);

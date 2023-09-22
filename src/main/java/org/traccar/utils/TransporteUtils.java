@@ -121,6 +121,8 @@ public class TransporteUtils {
             if (itinerarioSelected == null) {
                 return;
             }
+            
+            System.out.println(itinerarioSelected);
 
             //encontrar puntos de control
             final Itinerario finalItinerarioSelected = itinerarioSelected;
@@ -134,7 +136,7 @@ public class TransporteUtils {
                             add(new Condition.Equals("id", p.getPropertyId()));
                         }
                     })));
-                    System.out.println(t);
+                    
                     if (t != null && p.getOwnerId() == finalItinerarioSelected.getId()) {                       
                         tramos.add(t);
                     }
@@ -163,10 +165,10 @@ public class TransporteUtils {
 
             //crear tickets
             Date ticketStart = (itinerarioSelected.hasAttribute("horaFinal") ? (Date) itinerarioSelected.getAttributes().get("horaFinal") : today);
-            
+            ticketStart.setMonth((new Date()).getMonth());
+            System.out.println(ticketStart);
             boolean isFirstTicket = geofenceId == tramos.get(0).getGeofenceId();
-            if (!isFirstTicket) {
-                
+            if (!isFirstTicket) {                
                 for (Tramo tramo : tramos) {
                     ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, (tramo.getMinTime() * -1));
                     if (tramo.getGeofenceId() == geofenceId) {
@@ -180,7 +182,6 @@ public class TransporteUtils {
             }
             Ticket ticket = null;
             for (Tramo tramo : tramos) {
-
                 ticket = new Ticket();
                 ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, tramo.getMinTime());
                 ticket.setExpectedTime(ticketStart);
@@ -393,16 +394,16 @@ public class TransporteUtils {
                     add(new Condition.Equals("passed", false));
                 }
             })));
-
+            if(ticket == null) return;
             boolean isFirstTicket = ticket.getId() == tickets.get(0).getId();
-            if (ticket == null && !isFirstTicket) {
-                salida.setFinished(true);
-                cacheManager.getStorage().updateObject(salida, new Request(
-                        new Columns.Exclude("id"),
-                        new Condition.Equals("id", salida.getId())));
-
-                return;
-            }
+//            if (ticket == null && !isFirstTicket) {
+//                salida.setFinished(true);
+//                cacheManager.getStorage().updateObject(salida, new Request(
+//                        new Columns.Exclude("id"),
+//                        new Condition.Equals("id", salida.getId())));
+//
+//                return;
+//            }
 
             boolean isLastTicket = ticket.getId() == tickets.get(tickets.size() - 1).getId();
 
@@ -548,6 +549,10 @@ public class TransporteUtils {
             if (obj.getHorasId() > 0) {
                 for (HoraSalida h : storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", obj.getHorasId()))).getName())))) {
                     h.getHour().setDate(new Date().getDate());
+                    h.getHour().setYear(new Date().getYear());
+                    h.getHour().setMonth(new Date().getMonth());
+                    
+                    System.out.println(h);
                     long difference = Math.abs(date.getTime() - h.getHour().getTime());
 
 //                    if (difference <= rangeInMinutes * 60000 && difference < closestDifference) {

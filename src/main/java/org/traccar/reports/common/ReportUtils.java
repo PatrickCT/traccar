@@ -157,6 +157,7 @@ public class ReportUtils {
         Transformer transformer = TransformerFactory.createTransformer(templateStream, targetStream);
         List<Area> xlsAreas = new XlsCommentAreaBuilder(transformer).build();
         for (Area xlsArea : xlsAreas) {
+            System.out.println(xlsArea);
             xlsArea.applyAt(new CellRef(xlsArea.getStartCellRef().getCellName()), context);
             xlsArea.setFormulaProcessor(new StandardFormulaProcessor());
             xlsArea.processFormulas();
