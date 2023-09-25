@@ -5,6 +5,7 @@
 package org.traccar.schedule;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +24,7 @@ import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
+import org.traccar.utils.GenericUtils;
 
 /**
  *
@@ -60,7 +62,7 @@ public class TaskFinishExits implements ScheduleTask {
                             add(new Condition.Equals("finished", false));
                         }
                     })));
-            Date today = new Date();
+            Date today = GenericUtils.addTimeToDate(new Date(), Calendar.MINUTE, -30);
             for (Salida salida : salidas) {
                 if (today.after(salida.getEndingDate())) { 
                     salida.setFinished(true);
