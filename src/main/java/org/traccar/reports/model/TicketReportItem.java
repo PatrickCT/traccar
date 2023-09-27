@@ -21,6 +21,8 @@ public class TicketReportItem {
     private int punishment;
     private long device;
     private String deviceName;
+    private String group;
+    private String subroute;
 
     public long getId() {
         return id;
@@ -100,5 +102,21 @@ public class TicketReportItem {
 
     public void setDeviceName(String deviceName) {
         this.deviceName = deviceName;
-    }        
+    }
+
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
+    }
+
+    public String getSubroute() {
+        return subroute;
+    }
+
+    public void setSubroute(String subroute) {
+        this.subroute = subroute;
+    }       
 }

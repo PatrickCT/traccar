@@ -107,4 +107,8 @@ public class Event extends Message {
         this.maintenanceId = maintenanceId;
     }
 
+    @Override
+    public String toString() {
+        return "Event{" + "eventTime=" + eventTime + ", positionId=" + positionId + ", geofenceId=" + geofenceId + ", maintenanceId=" + maintenanceId + '}';
+    }    
 }

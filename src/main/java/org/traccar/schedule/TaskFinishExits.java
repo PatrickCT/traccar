@@ -64,7 +64,9 @@ public class TaskFinishExits implements ScheduleTask {
                     })));
             Date today = GenericUtils.addTimeToDate(new Date(), Calendar.MINUTE, -30);
             for (Salida salida : salidas) {
-                if (today.after(salida.getEndingDate())) { 
+                LOGGER.info("Revisando salida "+salida+ " a las "+today);
+                if (today.after(salida.getEndingDate())) {
+                    LOGGER.info("Debe de terminar");
                     salida.setFinished(true);
                     storage.updateObject(salida, new Request(
                             new Columns.Exclude("id"),

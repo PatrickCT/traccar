@@ -57,7 +57,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
 
     @Override
     protected Map<Event, Position> analyzePosition(Position position) {
-        if (!PositionUtil.isLatest(cacheManager, position)) {            
+        if (!PositionUtil.isLatest(cacheManager, position)) {
             return null;
         }
 
@@ -85,18 +85,30 @@ public class GeofenceEventHandler extends BaseEventHandler {
                     event.setGeofenceId(geofenceId);
                     events.put(event, position);
 
-                    CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
-                        try {
-                            if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
-                                TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-                            } else {
-                                TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-                            }
-                        } catch (Exception e) {
-                            // Handle exceptions if needed
+                    try {
+                        if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+                            TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager);
+                        } else {
+                            TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, false);
                         }
-                        return null;
-                    });
+                    } catch (Exception e) {
+                        // Handle exceptions if needed
+                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, null, "Error transporte");
+                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, e);
+                    }
+
+//                    CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+//                        try {
+//                            if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+//                                TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager);
+//                            } else {
+//                                TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, false);
+//                            }
+//                        } catch (Exception e) {
+//                            // Handle exceptions if needed
+//                        }
+//                        return null;
+//                    });
                 }
             }
         }
@@ -129,20 +141,35 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 Event event = new Event(Event.TYPE_GEOFENCE_ENTER, position);
                 event.setGeofenceId(geofenceId);
                 events.put(event, position);
-
-                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
-                    try {
-                        if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
-                            // TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-                        } else {
-                            TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        // Handle exceptions if needed
+                Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter evt " + event+" device "+position.getDeviceId());
+                try {
+                    if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, no salida, " + event);
+                        // TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
+                    } else {
+                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, update salida, " + event + " device " + position.getDeviceId());
+                        TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, true);
                     }
-                    return null;
-                });
+                } catch (Exception e) {
+                    Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, null, "Error transporte");
+                    Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, e);
+                }
+
+//                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+//                    try {
+//                        if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+//                            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, no salida, " + event);
+//                            // TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
+//                        } else {
+//                            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, update salida, " + event + " device " + position.getDeviceId());
+//                            TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, true);
+//                        }
+//                    } catch (Exception e) {
+//                        e.printStackTrace();
+//                        // Handle exceptions if needed
+//                    }
+//                    return null;
+//                });
             }
         }
         return events;

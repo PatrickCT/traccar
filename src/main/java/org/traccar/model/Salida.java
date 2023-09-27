@@ -19,6 +19,8 @@ public class Salida extends BaseModel {
     private long deviceId;
     private long scheduleId;
     private Date endingDate;
+    private long groupId;
+    private long subrouteId;
 
     public boolean getFinished() {
         return finished;
@@ -58,10 +60,26 @@ public class Salida extends BaseModel {
 
     public void setEndingDate(Date endingDate) {
         this.endingDate = endingDate;
-    }        
+    }
+
+    public long getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(long groupId) {
+        this.groupId = groupId;
+    }    
+
+    public long getSubrouteId() {
+        return subrouteId;
+    }
+
+    public void setSubrouteId(long subrouteId) {
+        this.subrouteId = subrouteId;
+    }
 
     @Override
     public String toString() {
-        return "Salida{" + "finished=" + finished + ", date=" + date + ", deviceId=" + deviceId + ", scheduleId=" + scheduleId + ", endingDate=" + endingDate + '}';
-    }       
+        return "Salida{" + "finished=" + finished + ", date=" + date + ", deviceId=" + deviceId + ", scheduleId=" + scheduleId + ", endingDate=" + endingDate + ", groupId=" + groupId + ", subrouteId=" + subrouteId + '}';
+    }          
 }
