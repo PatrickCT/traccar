@@ -84,11 +84,13 @@ public class GeofenceEventHandler extends BaseEventHandler {
                     Event event = new Event(Event.TYPE_GEOFENCE_EXIT, position);
                     event.setGeofenceId(geofenceId);
                     events.put(event, position);
-
+                    Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence exit evt " + event + " device " + position.getDeviceId());
                     try {
                         if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+                            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence exit, no salida, " + event);
                             TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager);
                         } else {
+                            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence exit, update salida, " + event + " device " + position.getDeviceId());
                             TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, false);
                         }
                     } catch (Exception e) {
@@ -141,7 +143,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 Event event = new Event(Event.TYPE_GEOFENCE_ENTER, position);
                 event.setGeofenceId(geofenceId);
                 events.put(event, position);
-                Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter evt " + event+" device "+position.getDeviceId());
+                Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter evt " + event + " device " + position.getDeviceId());
                 try {
                     if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
                         Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, no salida, " + event);

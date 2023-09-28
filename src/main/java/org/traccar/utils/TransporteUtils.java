@@ -55,8 +55,10 @@ public class TransporteUtils {
                     add(new Condition.Equals("deviceId", deviceId));
                 }
             })));
-            
-
+            if (salida != null) {
+                return;
+            }
+            System.out.println("Salida" + salida);
             //obtener dispositivo
             Device device = cacheManager.getStorage().getObject(Device.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -68,7 +70,7 @@ public class TransporteUtils {
                 return;
             }
             //obetener grupo
-
+            System.out.println("Device" + device);
             Group group = cacheManager.getStorage().getObject(Group.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("id", device.getGroupId()));
@@ -78,7 +80,7 @@ public class TransporteUtils {
             if (group == null) {
                 return;
             }
-
+            System.out.println("Group" + group);
             //obtener subrutas
             List<Subroute> subroutes = cacheManager.getStorage().getObjects(Subroute.class, new Request(new Columns.All(), new Condition.Equals("groupId", group.getId())));
             List<Long> subroutesId = subroutes.stream().map((s) -> s.getId()).collect(Collectors.toList());
@@ -296,7 +298,7 @@ public class TransporteUtils {
                     add(new Condition.Equals("finished", false));
                     add(new Condition.Equals("deviceId", deviceId));
                 }
-            })));                       
+            })));
             return salida != null;
         } catch (StorageException ex) {
             ex.printStackTrace();
@@ -348,6 +350,7 @@ public class TransporteUtils {
 
     public static void updateSalida(long deviceId, long geofenceId, Date realTime, CacheManager cacheManager, boolean first) {
         try {
+            System.out.println("Update salida");
             LOGGER.info("Actualizando tramo, device " + deviceId + ", geofence " + geofenceId + ", " + realTime);
             Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -355,7 +358,7 @@ public class TransporteUtils {
                     add(new Condition.Equals("deviceId", deviceId));
                 }
             })));
-
+            System.out.println("Salida" + (salida != null ? salida : "null"));
             LOGGER.info("Salida " + salida);
             if (salida == null) {
                 LOGGER.info("No salida");
@@ -366,13 +369,14 @@ public class TransporteUtils {
                     add(new Condition.Equals("salidaId", salida.getId()));
                 }
             })));
-
+            System.out.println("Tickets "+tickets);
             Ticket ticket = cacheManager.getStorage().getObject(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("salidaId", salida.getId()));
                     add(new Condition.Equals("geofenceId", geofenceId));
                 }
             })));
+            System.out.println("Ticket "+ticket);
             if (ticket == null) {
                 LOGGER.info("No ticket");
                 return;
@@ -412,6 +416,7 @@ public class TransporteUtils {
             cacheManager.getStorage().updateObject(ticket, new Request(
                     new Columns.Exclude("id"),
                     new Condition.Equals("id", ticket.getId())));
+            System.out.println("Updated ticket "+ticket);
 
         } catch (StorageException ex) {
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
@@ -461,7 +466,7 @@ public class TransporteUtils {
                             add(new Condition.Equals("type", "geofenceEnter"));
                             add(new Condition.Equals("deviceid", salida.getDeviceId()));
                             add(new Condition.Equals("geofenceid", ticket.getGeofenceId()));
-                            add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(salida.getDate(), Calendar.MINUTE, -15), "to", new Date()));
+//                            add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(salida.getDate(), Calendar.MINUTE, -15), "to", new Date()));
                         }
                     })));
                     Event event = events.get(events.size() - 1);
