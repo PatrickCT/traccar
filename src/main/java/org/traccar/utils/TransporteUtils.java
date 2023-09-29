@@ -141,6 +141,7 @@ public class TransporteUtils {
 
             //crear nueva salida
             Date today = new Date();
+            today = time;
             Date endDate = today;
             Salida newSalida = new Salida();
             newSalida.setDate(today);
@@ -160,7 +161,9 @@ public class TransporteUtils {
             ticketStart.setMonth((new Date()).getMonth());
             System.out.println(ticketStart);
             boolean isFirstTicket = geofenceId == tramos.get(0).getGeofenceId();
+            System.out.println("Device " + device + "caso especial");
             if (!isFirstTicket) {
+                System.out.println("Buscando hora inicial");
                 Date posibleStart = findFirstEventTime(newSalida.getId(), itinerarioSelected.getId(), cacheManager);
                 if (posibleStart != null) {
                     ticketStart = posibleStart;
@@ -190,10 +193,12 @@ public class TransporteUtils {
                 ticket.setId(cacheManager.getStorage().addObject(ticket, new Request(new Columns.Exclude("id"))));
 
             }
-            updateSalida(deviceId, geofenceId, time, cacheManager, true);
+
             if (!isFirstTicket) {
                 updateOldTramos(newSalida.getId(), itinerarioSelected.getId(), cacheManager);
             }
+
+            updateSalida(deviceId, geofenceId, time, cacheManager, true);
             return;
         } catch (StorageException ex) {
             ex.printStackTrace();
@@ -369,14 +374,14 @@ public class TransporteUtils {
                     add(new Condition.Equals("salidaId", salida.getId()));
                 }
             })));
-            System.out.println("Tickets "+tickets);
+            System.out.println("Tickets " + tickets);
             Ticket ticket = cacheManager.getStorage().getObject(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("salidaId", salida.getId()));
                     add(new Condition.Equals("geofenceId", geofenceId));
                 }
             })));
-            System.out.println("Ticket "+ticket);
+            System.out.println("Ticket " + ticket);
             if (ticket == null) {
                 LOGGER.info("No ticket");
                 return;
@@ -394,12 +399,17 @@ public class TransporteUtils {
                     minutesDifference *= -1;
                 }
                 Tramo tramo = cacheManager.getStorage().getObject(Tramo.class, new Request(new Columns.All(), new Condition.Equals("id", ticket.getTramo())));
-                if (tramo != null) {
+                if (tramo != null && minutesDifference > 0) {
                     ticket.setPunishment((int) (minutesDifference * ticket.getPunishment()));
                 } else {
                     ticket.setPunishment(0);
                 }
-
+                
+                if(minutesDifference >= 20){
+                    cacheManager.getStorage().removeObject(Salida.class, new Request(new Columns.All(), new Condition.Equals("id", salida.getId())));
+                    return;
+                }
+                
                 if (realTime.getTime() < ticket.getExpectedTime().getTime()) {
                     minutesDifference *= -1;
                 }
@@ -413,10 +423,17 @@ public class TransporteUtils {
                 ticket.setPassed(true);
             }
 
+            if (isLastTicket) {
+                salida.setFinished(true);
+                cacheManager.getStorage().updateObject(salida, new Request(
+                        new Columns.Exclude("id"),
+                        new Condition.Equals("id", salida.getId())));
+            }
+            
             cacheManager.getStorage().updateObject(ticket, new Request(
                     new Columns.Exclude("id"),
                     new Condition.Equals("id", ticket.getId())));
-            System.out.println("Updated ticket "+ticket);
+            System.out.println("Updated ticket " + ticket);
 
         } catch (StorageException ex) {
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
@@ -463,10 +480,11 @@ public class TransporteUtils {
                 if (ticket.getEnterTime() == null) {
                     List<Event> events = cacheManager.getStorage().getObjects(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                         {
-                            add(new Condition.Equals("type", "geofenceEnter"));
+                            add(new Condition.Equals("type", (tickets.indexOf(ticket) == 0 ? "geofenceExit" : "geofenceEnter")));
                             add(new Condition.Equals("deviceid", salida.getDeviceId()));
                             add(new Condition.Equals("geofenceid", ticket.getGeofenceId()));
-//                            add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(salida.getDate(), Calendar.MINUTE, -15), "to", new Date()));
+//                            add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(salida.getDate(), Calendar.MINUTE, -15), "to", GenericUtils.addTimeToDate(salida.getEndingDate(), Calendar.MINUTE, 10)));
+//                            add(new Condition.Compare("eventtime", "<=", "time", GenericUtils.addTimeToDate(salida.getEndingDate(), Calendar.MINUTE, 10)));
                         }
                     })));
                     Event event = events.get(events.size() - 1);
@@ -489,6 +507,9 @@ public class TransporteUtils {
                         minutesDifference *= -1;
                     }
                     ticket.setDifference(minutesDifference);
+                    cacheManager.getStorage().updateObject(ticket, new Request(
+                            new Columns.Exclude("id"),
+                            new Condition.Equals("id", ticket.getId())));
                 }
                 if (ticket.getExitTime() == null) {
                     Event event = cacheManager.getStorage().getObject(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
@@ -496,7 +517,7 @@ public class TransporteUtils {
                             add(new Condition.Equals("type", "geofenceExit"));
                             add(new Condition.Equals("deviceid", salida.getDeviceId()));
                             add(new Condition.Equals("geofenceid", ticket.getGeofenceId()));
-                            add(new Condition.Between("eventtime", "from", salida.getDate(), "to", new Date()));
+//                            add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(salida.getDate(), Calendar.MINUTE, -15), "to", GenericUtils.addTimeToDate(salida.getEndingDate(), Calendar.MINUTE, 10)));
                         }
                     })));
 
@@ -506,14 +527,15 @@ public class TransporteUtils {
 
                     ticket.setExitTime(event.getEventTime());
                 }
-
+                first = false;
                 cacheManager.getStorage().updateObject(ticket, new Request(
                         new Columns.Exclude("id"),
                         new Condition.Equals("id", ticket.getId())));
-                first = false;
+
             }
 
         } catch (StorageException ex) {
+            ex.printStackTrace();
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
@@ -794,6 +816,7 @@ public class TransporteUtils {
                 }
             })));
             System.out.println(itinerario);
+            final Itinerario b_i = itinerario;
             if (itinerario == null) {
                 return null;
             }
@@ -801,20 +824,39 @@ public class TransporteUtils {
                 return null;
             }
 
-            List<Ticket> tickets = cacheManager.getStorage().getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                {
-                    add(new Condition.Equals("salidaId", salida.getId()));
+            List<Permission> permisos = cacheManager.getStorage().getPermissions(Itinerario.class, Tramo.class);
+
+            List<Tramo> tramos = new ArrayList<>();
+            permisos.forEach((p) -> {
+                try {
+                    Tramo t = cacheManager.getStorage().getObject(Tramo.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        {
+                            add(new Condition.Equals("id", p.getPropertyId()));
+                        }
+                    })));
+
+                    if (t != null && p.getOwnerId() == b_i.getId()) {
+                        tramos.add(t);
+                    }
+                } catch (StorageException ex) {
+                    Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            })));
-            System.out.println(tickets);
-            if (!tickets.isEmpty()) {
-                Ticket ticket = tickets.get(0);
+            });
+
+            if (tramos.isEmpty()) {
+                return null;
+            }
+
+            System.out.println(tramos);
+            if (!tramos.isEmpty()) {
+                Tramo tramo = tramos.get(0);
                 List<Event> events = cacheManager.getStorage().getObjects(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                     {
-                        add(new Condition.Equals("type", "geofenceEnter"));
+                        add(new Condition.Equals("type", "geofenceExit"));
                         add(new Condition.Equals("deviceid", salida.getDeviceId()));
-                        add(new Condition.Equals("geofenceid", ticket.getGeofenceId()));
-                        add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(salida.getDate(), Calendar.MINUTE, -15), "to", new Date()));
+                        add(new Condition.Equals("geofenceid", tramo.getGeofenceId()));
+//                        add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(salida.getDate(), Calendar.MINUTE, -15), "to", new Date()));
+
                     }
                 })));
                 Event event = events.get(events.size() - 1);
@@ -823,11 +865,14 @@ public class TransporteUtils {
                 if (event == null) {
                     return null;
                 }
+                System.out.println("Esta debe de ser la hora " + event.getEventTime());
                 return event.getEventTime();
             }
 
         } catch (Exception e) {
+            e.printStackTrace();
         }
+        System.out.println("Algo salio mal y no se encontro la hora inicial");
         return null;
     }
 }
