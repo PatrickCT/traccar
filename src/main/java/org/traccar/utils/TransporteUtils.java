@@ -405,10 +405,10 @@ public class TransporteUtils {
                     ticket.setPunishment(0);
                 }
                 
-                if(minutesDifference >= 20){
-                    cacheManager.getStorage().removeObject(Salida.class, new Request(new Columns.All(), new Condition.Equals("id", salida.getId())));
-                    return;
-                }
+//                if(minutesDifference >= 20){
+//                    cacheManager.getStorage().removeObject(Salida.class, new Request(new Columns.All(), new Condition.Equals("id", salida.getId())));
+//                    return;
+//                }
                 
                 if (realTime.getTime() < ticket.getExpectedTime().getTime()) {
                     minutesDifference *= -1;
