@@ -318,7 +318,7 @@ public class ConnectionManager implements BroadcastInterface {
                     listener.onUpdatePosition(position);
                 }
             }
-        }
+        }             
     }
 
     @Override

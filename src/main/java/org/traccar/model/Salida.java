@@ -21,6 +21,7 @@ public class Salida extends BaseModel {
     private Date endingDate;
     private long groupId;
     private long subrouteId;
+    private boolean valid;
 
     public boolean getFinished() {
         return finished;
@@ -78,8 +79,16 @@ public class Salida extends BaseModel {
         this.subrouteId = subrouteId;
     }
 
+    public boolean getValid() {
+        return valid;
+    }
+
+    public void setValid(boolean valid) {
+        this.valid = valid;
+    }
+        
     @Override
     public String toString() {
-        return "Salida{" + "finished=" + finished + ", date=" + date + ", deviceId=" + deviceId + ", scheduleId=" + scheduleId + ", endingDate=" + endingDate + ", groupId=" + groupId + ", subrouteId=" + subrouteId + '}';
+        return "Salida{" + "id=" + getId() + "finished=" + finished + ", date=" + date + ", deviceId=" + deviceId + ", scheduleId=" + scheduleId + ", endingDate=" + endingDate + ", groupId=" + groupId + ", subrouteId=" + subrouteId + '}';
     }          
 }

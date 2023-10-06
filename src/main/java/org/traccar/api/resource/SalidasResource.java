@@ -132,8 +132,7 @@ public class SalidasResource extends BaseObjectResource<Salida> {
     
     @POST  
     @Path("crear")
-    public Response crear(Salida entity) throws StorageException, ParseException {
-        System.out.println(entity);
+    public Response crear(Salida entity) throws StorageException, ParseException {        
         if(TransporteUtils.hasSalida(entity.getDeviceId(), storage)){
            return Response.status(Response.Status.BAD_REQUEST).build();
         }

@@ -54,8 +54,7 @@ public class DevResource extends BaseResource{
 
             Date today = new Date();
             today.setHours(0);
-            System.out.println(today);
-            System.out.println(GenericUtils.addTimeToDate(today, Calendar.DAY_OF_MONTH, 1));
+                        
             List<Device> dispositivos = storage.getObjects(Device.class, new Request(new Columns.All()));
 
             //Collection<Event> eventos = Context.getDataManager().getEventsGeo(id, from, from);

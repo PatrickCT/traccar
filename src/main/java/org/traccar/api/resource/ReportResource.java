@@ -52,7 +52,9 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import org.traccar.reports.TicketsReportProvider;
+import org.traccar.reports.VueltasReportProvider;
 import org.traccar.reports.model.TicketReportItem;
+import org.traccar.reports.model.VueltaReportItem;
 
 @Path("reports")
 @Produces(MediaType.APPLICATION_JSON)
@@ -81,9 +83,12 @@ public class ReportResource extends SimpleObjectResource<Report> {
 
     @Inject
     private ReportMailer reportMailer;
-    
+
     @Inject
     private TicketsReportProvider ticketsReportProvider;
+
+    @Inject
+    private VueltasReportProvider vueltasReportProvider;
 
     public ReportResource() {
         super(Report.class);
@@ -324,7 +329,6 @@ public class ReportResource extends SimpleObjectResource<Report> {
         return getStopsExcel(deviceIds, groupIds, from, to, type.equals("mail"));
     }
 
-    
     @Path("tickets")
     @GET
     public Collection<TicketReportItem> getTickets(
@@ -337,7 +341,7 @@ public class ReportResource extends SimpleObjectResource<Report> {
         return ticketsReportProvider.getObjects(getUserId(), deviceIds, groupIds, from, to);
     }
 //
-    
+
     @Path("tickets")
     @GET
     @Produces(EXCEL)
@@ -352,13 +356,55 @@ public class ReportResource extends SimpleObjectResource<Report> {
             LogAction.logReport(getUserId(), "tickets", from, to, deviceIds, groupIds);
             ticketsReportProvider.getExcel(stream, getUserId(), deviceIds, groupIds, from, to);
         });
-    
+
     }
-    
+
     @Path("tickets/{type:xlsx|mail}")
     @GET
     @Produces(EXCEL)
     public Response getTicketsExcel(
+            @QueryParam("deviceId") List<Long> deviceIds,
+            @QueryParam("groupId") List<Long> groupIds,
+            @QueryParam("from") Date from,
+            @QueryParam("to") Date to,
+            @PathParam("type") String type) throws StorageException {
+        return getTicketsExcel(deviceIds, groupIds, from, to, type.equals("mail"));
+    }
+
+    @Path("vueltas")
+    @GET
+    public Collection<VueltaReportItem> getVueltas(
+            @QueryParam("deviceId") List<Long> deviceIds,
+            @QueryParam("groupId") List<Long> groupIds,
+            @QueryParam("from") Date from,
+            @QueryParam("to") Date to) throws StorageException {
+        permissionsService.checkRestriction(getUserId(), UserRestrictions::getDisableReports);
+        LogAction.logReport(getUserId(), "vueltas", from, to, deviceIds, groupIds);
+        return vueltasReportProvider.getObjects(getUserId(), deviceIds, groupIds, from, to);
+    }
+//
+
+    @Path("vueltas")
+    @GET
+    @Produces(EXCEL)
+    public Response getVueltasExcel(
+            @QueryParam("deviceId") List<Long> deviceIds,
+            @QueryParam("groupId") List<Long> groupIds,
+            @QueryParam("from") Date from,
+            @QueryParam("to") Date to,
+            @QueryParam("mail") boolean mail) throws StorageException {
+        permissionsService.checkRestriction(getUserId(), UserRestrictions::getDisableReports);
+        return executeReport(getUserId(), mail, stream -> {
+            LogAction.logReport(getUserId(), "tickets", from, to, deviceIds, groupIds);
+            //vueltasReportProvider.getExcel(stream, getUserId(), deviceIds, groupIds, from, to);
+        });
+
+    }
+
+    @Path("vueltas/{type:xlsx|mail}")
+    @GET
+    @Produces(EXCEL)
+    public Response getVueltasExcel(
             @QueryParam("deviceId") List<Long> deviceIds,
             @QueryParam("groupId") List<Long> groupIds,
             @QueryParam("from") Date from,

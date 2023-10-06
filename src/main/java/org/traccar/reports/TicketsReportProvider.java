@@ -76,6 +76,7 @@ public class TicketsReportProvider {
                         {
                             add(new Condition.Equals("groupId", groupId));
                             add(new Condition.Between("date", "from", from, "to", to));
+                            add(new Condition.Equals("valid", true));
                         }
                     })));
 
@@ -132,6 +133,7 @@ public class TicketsReportProvider {
                         {
                             add(new Condition.Equals("deviceId", deviceId));
                             add(new Condition.Between("date", "from", from, "to", to));
+                            add(new Condition.Equals("valid", true));
                         }
                     })));
 
@@ -206,6 +208,7 @@ public class TicketsReportProvider {
                         {
                             add(new Condition.Equals("groupId", groupId));
                             add(new Condition.Between("date", "from", from, "to", to));
+                            add(new Condition.Equals("valid", true));
                         }
                     })));
 
@@ -263,6 +266,7 @@ public class TicketsReportProvider {
                         {
                             add(new Condition.Equals("deviceId", deviceId));
                             add(new Condition.Between("date", "from", from, "to", to));
+                            add(new Condition.Equals("valid", true));
                         }
                     })));
 

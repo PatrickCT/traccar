@@ -54,8 +54,7 @@ public class WSResource extends BaseResource {
 
             Date today = new Date();
             today.setHours(0);
-            System.out.println(today);
-            System.out.println(GenericUtils.addTimeToDate(today, Calendar.DAY_OF_MONTH, 1));
+                        
             List<Event> eventos = storage.getObjects(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("geofenceId", id));
