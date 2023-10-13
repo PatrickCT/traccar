@@ -15,6 +15,7 @@ public class VueltaReportItem {
     private int id;
     private int itinerarioId;
     private List<VueltaDataItem> data;
+    private int deviceId;
 
     public int getId() {
         return id;
@@ -79,7 +80,7 @@ public class VueltaReportItem {
 
         public void setAsignado(boolean asignado) {
             this.asignado = asignado;
-        }
+        }               
 
         @Override
         public String toString() {

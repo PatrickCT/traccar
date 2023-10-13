@@ -189,7 +189,7 @@ public class TicketsReportProvider {
 //
     public void getExcel(OutputStream outputStream,
             long userId, Collection<Long> deviceIds, Collection<Long> groupIds,
-            Date from, Date to) throws StorageException, IOException {
+            Date from, Date to, boolean unify) throws StorageException, IOException {
         reportUtils.checkPeriodLimit(from, to);
 
         ArrayList<TicketReportItem> result = new ArrayList<>();
@@ -259,7 +259,7 @@ public class TicketsReportProvider {
             }
         }
 
-        for (long deviceId : deviceIds) {            
+        for (long deviceId : deviceIds) {
             List<Ticket> tickets = new ArrayList<>();
             List<Salida> salidas = storage.getObjects(Salida.class,
                     new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
@@ -315,26 +315,34 @@ public class TicketsReportProvider {
                 result.add(tri);
             }
         }
-
+        List<Long> salidas = new ArrayList<>();
         for (TicketReportItem tri : result) {
-            if (!devicesReportados.containsKey(tri.getDevice())) {         
-                Device device = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", tri.getDevice())));
-                DeviceReportSection deviceTickets = new DeviceReportSection();
-                deviceTickets.setDeviceName(device.getName());
-                sheetNames.add(WorkbookUtil.createSafeSheetName(device.getName()));
-                deviceTickets.setObjects(result.stream().filter((r) -> r.getDevice() == tri.getDevice()).collect(Collectors.toList()));
-                devicesTickets.add(deviceTickets);
+            if(salidas.contains(tri.getSalida())){
+                continue;
+            }else {
+                salidas.add(tri.getSalida());
             }
-//            } else {
-//                drs = devicesReportados.get(tri.getDevice());
-//            }
+            Device device = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", tri.getDevice())));
+            if (unify) {
+                if (!sheetNames.contains(WorkbookUtil.createSafeSheetName("Todos"))) {
+                    sheetNames.add(WorkbookUtil.createSafeSheetName("Todos"));
+                }
 
-//            ((List<TicketReportItem>)drs.getObjects()).addAll(new ArrayList<>(){{
-//                add(tri);
-//            }});
+            } else {
+                sheetNames.add(WorkbookUtil.createSafeSheetName(device.getName()));
+            }
+            DeviceReportSection deviceTickets = new DeviceReportSection();
+            deviceTickets.setDeviceName(device.getName());
+
+            deviceTickets.setObjects(result.stream().filter((r) -> r.getDevice() == tri.getDevice()).collect(Collectors.toList()));
+            devicesTickets.add(deviceTickets);
+
         }
 
-        File file = Paths.get(config.getString(Keys.TEMPLATES_ROOT), "export", "tickets.xlsx").toFile();
+        File file = Paths.get(config.getString(Keys.TEMPLATES_ROOT), "export", unify ? "tickets_unified.xlsx" : "tickets.xlsx").toFile();
+
+        System.out.println("File");
+        System.out.println(file);
 
         try (InputStream inputStream = new FileInputStream(file)) {
             var context = reportUtils.initializeContext(userId);
@@ -342,7 +350,7 @@ public class TicketsReportProvider {
             context.putVar("sheetNames", sheetNames);
             context.putVar("from", from);
             context.putVar("to", to);
-            reportUtils.processTemplateWithSheets(inputStream, outputStream, context);
+            reportUtils.processTemplateWithSheets(inputStream, outputStream, context, unify);
         }
     }
 }

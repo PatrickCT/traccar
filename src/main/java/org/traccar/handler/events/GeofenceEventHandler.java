@@ -57,7 +57,9 @@ public class GeofenceEventHandler extends BaseEventHandler {
 
     @Override
     protected Map<Event, Position> analyzePosition(Position position) {
+        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence event \n\r" + position + "\n\rdevice " + position.getDeviceId());
         if (!PositionUtil.isLatest(cacheManager, position)) {
+            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Is not latest");
             return null;
         }
 
@@ -85,32 +87,19 @@ public class GeofenceEventHandler extends BaseEventHandler {
                     event.setGeofenceId(geofenceId);
                     events.put(event, position);
                     Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence exit evt " + event + " device " + position.getDeviceId());
-                    try {
-                        if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
-                            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence exit, no salida, " + event);
-                            TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager);
-                        } else {
-                            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence exit, update salida, " + event + " device " + position.getDeviceId());
-                            TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, false);
-                        }
-                    } catch (Exception e) {
-                        // Handle exceptions if needed
-                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, null, "Error transporte");
-                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, e);
-                    }
 
-//                    CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
-//                        try {
-//                            if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
-//                                TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager);
-//                            } else {
-//                                TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, false);
-//                            }
-//                        } catch (Exception e) {
-//                            // Handle exceptions if needed
-//                        }
-//                        return null;
-//                    });
+                    CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+                        try {
+                            if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+                                TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager);
+                            } else {
+                                TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, false);
+                            }
+                        } catch (Exception e) {
+                            // Handle exceptions if needed
+                        }
+                        return null;
+                    });
                 }
             }
         }
@@ -144,34 +133,22 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 event.setGeofenceId(geofenceId);
                 events.put(event, position);
                 Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter evt " + event + " device " + position.getDeviceId());
-                try {
-                    if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
-                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, no salida, " + event);
-                        // TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-                    } else {
-                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, update salida, " + event + " device " + position.getDeviceId());
-                        TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, true);
-                    }
-                } catch (Exception e) {
-                    Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, null, "Error transporte");
-                    Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, e);
-                }
 
-//                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
-//                    try {
-//                        if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
-//                            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, no salida, " + event);
-//                            // TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
-//                        } else {
-//                            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, update salida, " + event + " device " + position.getDeviceId());
-//                            TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, true);
-//                        }
-//                    } catch (Exception e) {
-//                        e.printStackTrace();
-//                        // Handle exceptions if needed
-//                    }
-//                    return null;
-//                });
+                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+                            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, no salida, " + event);
+                            // TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
+                        } else {
+                            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, update salida, " + event + " device " + position.getDeviceId());
+                            TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, true);
+                        }
+                    } catch (Exception e) {
+                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, null, "Error transporte");
+                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, e);
+                    }
+                    return null;
+                });
             }
         }
         return events;

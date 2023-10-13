@@ -4,17 +4,30 @@
  */
 package org.traccar.reports;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
+import org.apache.poi.ss.util.WorkbookUtil;
 import org.json.JSONObject;
 import org.traccar.api.resource.HorasSalidasResource;
 import org.traccar.api.resource.ItinerarioResource;
 import org.traccar.config.Config;
+import org.traccar.config.Keys;
+import org.traccar.model.Device;
+import org.traccar.model.Geofence;
 import org.traccar.model.Group;
 import org.traccar.model.HoraSalida;
 import org.traccar.model.Itinerario;
@@ -23,7 +36,10 @@ import org.traccar.model.Salida;
 import org.traccar.model.Subroute;
 import org.traccar.model.Ticket;
 import org.traccar.reports.common.ReportUtils;
+import org.traccar.reports.model.DeviceReportSection;
+import org.traccar.reports.model.TicketReportItem;
 import org.traccar.reports.model.VueltaReportItem;
+import org.traccar.reports.model.VueltaReportSection;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.Storage;
 import org.traccar.storage.StorageException;
@@ -123,5 +139,102 @@ public class VueltasReportProvider {
             }
         }
         return result;
+    }
+
+    public void getExcel(OutputStream outputStream,
+            long userId, Collection<Long> deviceIds, Collection<Long> groupIds,
+            Date from, Date to, boolean unify) throws StorageException, IOException {
+        reportUtils.checkPeriodLimit(from, to);
+
+        ArrayList<VueltaReportItem> result = new ArrayList<>();
+        ArrayList<VueltaReportSection> devicesTickets = new ArrayList<>();
+        ArrayList<String> sheetNames = new ArrayList<>();
+        Map<Long, String> geofenceNames = new HashMap<Long, String>();
+        Map<Long, String> groupNames = new HashMap<Long, String>();
+        Map<Long, String> subroutesNames = new HashMap<Long, String>();
+        Map<Long, Salida> salidasReportadas = new HashMap<Long, Salida>();
+        Map<Long, VueltaReportSection> devicesReportados = new HashMap<Long, VueltaReportSection>();
+
+        for (long groupid : groupIds) {
+
+            List<Subroute> subrutas = new ArrayList<>();
+            try {
+                subrutas.addAll(storage.getObjects(Subroute.class, new Request(new Columns.All(), new Condition.Equals("groupId", groupid))));
+            } catch (StorageException ex) {
+                Logger.getLogger(VueltasReportProvider.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            List<Itinerario> itinerarios = new ArrayList<>();
+            for (Subroute subruta : subrutas) {
+                try {
+                    itinerarios.addAll(storage.getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("subrouteId", subruta.getId()))));
+                } catch (StorageException ex) {
+                    Logger.getLogger(VueltasReportProvider.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+
+            for (Itinerario itinerario : itinerarios) {
+                VueltaReportItem vri = new VueltaReportItem();
+                vri.setItinerarioId((int) itinerario.getId());
+
+                List<HoraSalida> horas = new ArrayList<>();
+                if (itinerario.getHorasId() > 0) {
+
+                    HoraSalida hora = storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerario.getHorasId())));
+                    horas.addAll(storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", hora.getName()))));
+
+                    List<VueltaReportItem.VueltaDataItem> objs = new ArrayList<>();
+
+                    for (HoraSalida h : horas) {
+                        var obj = vri.new VueltaDataItem();
+                        obj.setHora(h.getHour());
+
+                        Ticket ticket = storage.getObject(Ticket.class,
+                                new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                                    {
+                                        add(new Condition.Equals("geofenceId", itinerario.getGeofenceId()));
+                                        add(new Condition.Equals("expectedTime", h.getHour()));
+                                    }
+                                })));
+
+                        obj.setSalida(0);
+                        obj.setDispositivo(0);
+                        obj.setAsignado(false);
+
+                        if (ticket != null) {
+                            Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                                {
+                                    add(new Condition.Equals("id", ticket.getSalidaId()));
+                                }
+                            })));
+                            obj.setSalida(ticket.getSalidaId());
+                            obj.setDispositivo(salida.getDeviceId());
+                            obj.setAsignado(true);
+                        }
+                        objs.add(obj);
+                    }
+
+                    vri.setData(objs);
+                }
+                result.add(vri);
+            }
+        }
+
+        File file = Paths.get(config.getString(Keys.TEMPLATES_ROOT), "export", unify ? "salidas.xlsx" : "salidas.xlsx").toFile();
+
+        System.out.println("File");
+        System.out.println(file);
+        sheetNames.add(WorkbookUtil.createSafeSheetName("Todos"));
+        sheetNames.add(WorkbookUtil.createSafeSheetName("Todos2"));
+        sheetNames.add(WorkbookUtil.createSafeSheetName("Todos3"));
+        try (InputStream inputStream = new FileInputStream(file)) {
+            var context = reportUtils.initializeContext(userId);
+            context.putVar("tickets", result);
+            context.putVar("sheetNames", sheetNames);
+            context.putVar("from", from);
+            context.putVar("to", to);
+            reportUtils.processTemplateWithSheets(inputStream, outputStream, context, true);
+        }
+
     }
 }

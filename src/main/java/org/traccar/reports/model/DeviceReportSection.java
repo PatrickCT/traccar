@@ -21,6 +21,8 @@ import java.util.Collection;
 import java.util.List;
 
 public class DeviceReportSection {
+    
+    private long salida;
 
     private String deviceName;
 
@@ -52,6 +54,15 @@ public class DeviceReportSection {
         this.objects = new ArrayList<>(objects);
     }
 
+    public long getSalida() {
+        return salida;
+    }
+
+    public void setSalida(long salida) {
+        this.salida = salida;
+    }
+
+    
     @Override
     public String toString() {
         return "DeviceReportSection{" + "deviceName=" + deviceName + ", groupName=" + groupName + ", objects=" + objects + '}';

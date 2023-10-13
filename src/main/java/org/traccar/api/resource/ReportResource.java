@@ -350,11 +350,12 @@ public class ReportResource extends SimpleObjectResource<Report> {
             @QueryParam("groupId") List<Long> groupIds,
             @QueryParam("from") Date from,
             @QueryParam("to") Date to,
+            @QueryParam("unify") boolean unify,
             @QueryParam("mail") boolean mail) throws StorageException {
         permissionsService.checkRestriction(getUserId(), UserRestrictions::getDisableReports);
         return executeReport(getUserId(), mail, stream -> {
             LogAction.logReport(getUserId(), "tickets", from, to, deviceIds, groupIds);
-            ticketsReportProvider.getExcel(stream, getUserId(), deviceIds, groupIds, from, to);
+            ticketsReportProvider.getExcel(stream, getUserId(), deviceIds, groupIds, from, to, unify);
         });
 
     }
@@ -367,8 +368,9 @@ public class ReportResource extends SimpleObjectResource<Report> {
             @QueryParam("groupId") List<Long> groupIds,
             @QueryParam("from") Date from,
             @QueryParam("to") Date to,
+            @QueryParam("unify") boolean unify,
             @PathParam("type") String type) throws StorageException {
-        return getTicketsExcel(deviceIds, groupIds, from, to, type.equals("mail"));
+        return getTicketsExcel(deviceIds, groupIds, from, to, unify, type.equals("mail"));
     }
 
     @Path("vueltas")
@@ -392,11 +394,12 @@ public class ReportResource extends SimpleObjectResource<Report> {
             @QueryParam("groupId") List<Long> groupIds,
             @QueryParam("from") Date from,
             @QueryParam("to") Date to,
+            @QueryParam("unify") boolean unify,
             @QueryParam("mail") boolean mail) throws StorageException {
         permissionsService.checkRestriction(getUserId(), UserRestrictions::getDisableReports);
         return executeReport(getUserId(), mail, stream -> {
-            LogAction.logReport(getUserId(), "tickets", from, to, deviceIds, groupIds);
-            //vueltasReportProvider.getExcel(stream, getUserId(), deviceIds, groupIds, from, to);
+            LogAction.logReport(getUserId(), "vueltas", from, to, deviceIds, groupIds);
+            vueltasReportProvider.getExcel(stream, getUserId(), deviceIds, groupIds, from, to, unify);
         });
 
     }
@@ -409,7 +412,8 @@ public class ReportResource extends SimpleObjectResource<Report> {
             @QueryParam("groupId") List<Long> groupIds,
             @QueryParam("from") Date from,
             @QueryParam("to") Date to,
+            @QueryParam("unify") boolean unify,
             @PathParam("type") String type) throws StorageException {
-        return getTicketsExcel(deviceIds, groupIds, from, to, type.equals("mail"));
+        return getVueltasExcel(deviceIds, groupIds, from, to,unify, type.equals("mail"));
     }
 }

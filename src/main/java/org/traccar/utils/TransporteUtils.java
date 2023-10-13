@@ -324,29 +324,29 @@ public class TransporteUtils {
                 }
             })));
 
-            if (salida != null) {
-
-                if (GenericUtils.isSameDate(salida.getDate(), new Date())) {
-
-                    if (salida.getEndingDate().getTime() <= new Date().getTime()) {
-
-                        salida.setFinished(true);
-                        storage.updateObject(salida, new Request(
-                                new Columns.Exclude("id"),
-                                new Condition.Equals("id", salida.getId())));
-                        return false;
-                    } else {
-                        return true;
-                    }
-                } else {
-
-                    salida.setFinished(true);
-                    storage.updateObject(salida, new Request(
-                            new Columns.Exclude("id"),
-                            new Condition.Equals("id", salida.getId())));
-                    return false;
-                }
-            }
+//            if (salida != null) {
+//
+//                if (GenericUtils.isSameDate(salida.getDate(), new Date())) {
+//
+//                    if (salida.getEndingDate().getTime() <= new Date().getTime()) {
+//
+//                        salida.setFinished(true);
+//                        storage.updateObject(salida, new Request(
+//                                new Columns.Exclude("id"),
+//                                new Condition.Equals("id", salida.getId())));
+//                        return false;
+//                    } else {
+//                        return true;
+//                    }
+//                } else {
+//
+//                    salida.setFinished(true);
+//                    storage.updateObject(salida, new Request(
+//                            new Columns.Exclude("id"),
+//                            new Condition.Equals("id", salida.getId())));
+//                    return false;
+//                }
+//            }
             return salida != null;
         } catch (StorageException ex) {
             ex.printStackTrace();

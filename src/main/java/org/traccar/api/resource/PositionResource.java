@@ -70,6 +70,9 @@ public class PositionResource extends BaseResource {
             for (long positionId : positionIds) {
                 Position position = storage.getObject(Position.class, new Request(
                         new Columns.All(), new Condition.Equals("id", positionId)));
+                if (position == null) {
+                    continue;
+                }
                 permissionsService.checkPermission(Device.class, getUserId(), position.getDeviceId());
                 positions.add(position);
             }

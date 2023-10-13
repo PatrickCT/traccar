@@ -150,7 +150,7 @@ public class ReportUtils {
         context.putVar("bracketsRegex", "[\\{\\}\"]");
         return context;
     }
-
+    
     public void processTemplateWithSheets(
             InputStream templateStream, OutputStream targetStream, org.jxls.common.Context context) throws IOException {
 
@@ -161,7 +161,24 @@ public class ReportUtils {
             xlsArea.setFormulaProcessor(new StandardFormulaProcessor());
             xlsArea.processFormulas();
         }
-        transformer.deleteSheet(xlsAreas.get(0).getStartCellRef().getSheetName());
+        transformer.deleteSheet(xlsAreas.get(0).getStartCellRef().getSheetName());        
+        transformer.write();
+    }
+
+    public void processTemplateWithSheets(
+            InputStream templateStream, OutputStream targetStream, org.jxls.common.Context context, boolean unified) throws IOException {
+
+        Transformer transformer = TransformerFactory.createTransformer(templateStream, targetStream);
+        List<Area> xlsAreas = new XlsCommentAreaBuilder(transformer).build();
+        for (Area xlsArea : xlsAreas) {            
+            xlsArea.applyAt(new CellRef(xlsArea.getStartCellRef().getCellName()), context);
+            xlsArea.setFormulaProcessor(new StandardFormulaProcessor());
+            xlsArea.processFormulas();
+        }
+        if (!unified) {
+            transformer.deleteSheet(xlsAreas.get(0).getStartCellRef().getSheetName());
+        }
+        
         transformer.write();
     }
 
