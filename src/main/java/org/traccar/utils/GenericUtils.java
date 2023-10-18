@@ -405,4 +405,18 @@ public class GenericUtils {
         return res;
 
     }
+    
+    public static List<Date> getDatesBetween(Date startDate, Date endDate) {
+        List<Date> dates = new ArrayList<>();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(startDate);
+
+        while (calendar.getTime().before(endDate)) {
+            Date result = calendar.getTime();
+            dates.add(result);
+            calendar.add(Calendar.DATE, 1);
+        }
+
+        return dates;
+    }
 }

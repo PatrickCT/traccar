@@ -90,7 +90,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
 
                     CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
                         try {
-                            if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+                            if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager, geofenceId)) {
                                 TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager);
                             } else {
                                 TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, false);
@@ -136,7 +136,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
 
                 CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
                     try {
-                        if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager)) {
+                        if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager, geofenceId)) {
                             Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter, no salida, " + event);
                             // TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, position.getFixTime(), cacheManager);
                         } else {

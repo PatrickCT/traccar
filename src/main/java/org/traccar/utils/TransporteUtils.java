@@ -298,7 +298,7 @@ public class TransporteUtils {
         }
     }
 
-    public static boolean hasSalida(long deviceId, CacheManager cacheManager) {
+    public static boolean hasSalida(long deviceId, CacheManager cacheManager, long geofenceId) {
         try {
             Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -306,13 +306,42 @@ public class TransporteUtils {
                     add(new Condition.Equals("deviceId", deviceId));
                 }
             })));
-            return salida != null;
+            
+            if(salida == null){
+                return false;
+            }
+            
+            List<Itinerario> itinerarios = cacheManager.getStorage().getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofenceId", geofenceId)));
+            if(!itinerarios.isEmpty()){
+                salida.setFinished(true);
+                cacheManager.getStorage().updateObject(salida, new Request(
+                        new Columns.Exclude("id"),
+                        new Condition.Equals("id", salida.getId())));
+                return false;
+            }
+            return itinerarios.isEmpty();           
+
         } catch (StorageException ex) {
             ex.printStackTrace();
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.INFO, "Algo salio mal");
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex.getMessage());
         }
         return false;
+    }
+
+    private static boolean isSalidaFinished(List<Ticket> tickets) {
+        int totalTickets = tickets.size();
+        int numTicketsWithEnterTime = 0;
+
+        for (Ticket ticket : tickets) {
+            if (ticket.getEnterTime() != null) {
+                numTicketsWithEnterTime++;
+            }
+        }
+
+        // Check if 70% of the tickets have enterTime or if the last ticket has enterTime
+        return (numTicketsWithEnterTime >= 0.7 * totalTickets)
+                && (totalTickets > 0 && tickets.get(totalTickets - 1).getEnterTime() != null);
     }
 
     public static boolean hasSalida(long deviceId, Storage storage) {
@@ -397,34 +426,32 @@ public class TransporteUtils {
                 long minutesDifference = differenceInMillis / (1000 * 60);
                 LOGGER.info("Revisar tiempo");
                 LOGGER.info("minutesDifference " + minutesDifference);
-                if (minutesDifference >= 20 || minutesDifference < -20) {
+                if (minutesDifference >= 29 || minutesDifference < -29) {
                     LOGGER.info("Diferencia mayor a 20 min, eliminando salida " + salida);
                     salida.setValid(false);
                     salida.setFinished(true);
                 }
-                
+
                 Tramo tramo = cacheManager.getStorage().getObject(Tramo.class, new Request(new Columns.All(), new Condition.Equals("id", ticket.getTramo())));
                 if (tramo != null && minutesDifference > 0) {
-                    if(minutesDifference < 0){
+                    if (minutesDifference < 0) {
                         ticket.setPunishment(0);
-                    }else {
+                    } else {
                         ticket.setPunishment((int) (minutesDifference * ticket.getPunishment()));
                     }
-                    
+
                 } else {
                     ticket.setPunishment(0);
                 }
 
                 LOGGER.info("Revisar tiempo 2");
                 LOGGER.info("minutesDifference " + minutesDifference);
-                if (minutesDifference >= 20 || minutesDifference < -20) {
+                if (minutesDifference >= 29 || minutesDifference < -29) {
                     LOGGER.info("Diferencia mayor a 20 min, eliminando salida " + salida);
                     //cacheManager.getStorage().removeObject(Salida.class, new Request(new Columns.All(), new Condition.Equals("id", salida.getId())));
                     salida.setValid(false);
                     salida.setFinished(true);
                 }
-
-                
 
                 ticket.setDifference(minutesDifference);
             } else {
@@ -436,12 +463,12 @@ public class TransporteUtils {
             }
 
             if (isLastTicket) {
-                salida.setFinished(true);                
+                salida.setFinished(true);
             }
-            
+
             cacheManager.getStorage().updateObject(salida, new Request(
-                        new Columns.Exclude("id"),
-                        new Condition.Equals("id", salida.getId())));
+                    new Columns.Exclude("id"),
+                    new Condition.Equals("id", salida.getId())));
 
             cacheManager.getStorage().updateObject(ticket, new Request(
                     new Columns.Exclude("id"),

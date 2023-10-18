@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -46,6 +47,7 @@ import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
+import org.traccar.utils.GenericUtils;
 
 /**
  *
@@ -89,54 +91,68 @@ public class VueltasReportProvider {
                 }
             }
             System.out.println("Itinerarios del grupo " + groupid + ": " + itinerarios);
-            for (Itinerario itinerario : itinerarios) {
-                VueltaReportItem vri = new VueltaReportItem();
-                vri.setItinerarioId((int) itinerario.getId());
-                List<HoraSalida> horas = new ArrayList<>();
-                if (itinerario.getHorasId() > 0) {
-                    System.out.println("Itinerario con tabla de horas " + itinerario.getHorasId());
-                    HoraSalida hora = storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerario.getHorasId())));
-                    horas.addAll(storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", hora.getName()))));
+            for (Date date : GenericUtils.getDatesBetween(from, to)) {
+                System.out.println(date);
+                for (Itinerario itinerario : itinerarios) {
+                    VueltaReportItem vri = new VueltaReportItem();
+                    vri.setItinerarioId((int) itinerario.getId());
+                    List<HoraSalida> horas = new ArrayList<>();
+                    if (itinerario.getHorasId() > 0) {
+                        System.out.println("Itinerario con tabla de horas " + itinerario.getHorasId());
+                        HoraSalida hora = storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerario.getHorasId())));
+                        horas.addAll(storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", hora.getName()))));
 
-                    System.out.println("Tabla de horas \n\r " + horas);
+                        System.out.println("Tabla de horas \n\r " + horas);
 
-                    List<VueltaReportItem.VueltaDataItem> objs = new ArrayList<>();
+                        List<VueltaReportItem.VueltaDataItem> objs = new ArrayList<>();
 
-                    for (HoraSalida h : horas) {
-                        var obj = vri.new VueltaDataItem();
-                        obj.setHora(h.getHour());
-                        System.out.println("Buscando un ticket a la hora " + h + " en la geocerca " + itinerario.getGeofenceId() + " ");
-                        Ticket ticket = storage.getObject(Ticket.class,
-                                new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        for (HoraSalida h : horas) {
+                            Calendar calendar_date = Calendar.getInstance();
+                            calendar_date.setTime(date);
+                            Calendar calendar_hour_salida = Calendar.getInstance();
+                            calendar_hour_salida.setTime(h.getHour());
+
+                            calendar_hour_salida.set(Calendar.YEAR, calendar_date.get(Calendar.YEAR));
+                            calendar_hour_salida.set(Calendar.MONTH, calendar_date.get(Calendar.MONTH));
+                            calendar_hour_salida.set(Calendar.DAY_OF_MONTH, calendar_date.get(Calendar.DAY_OF_MONTH));
+
+                            var obj = vri.new VueltaDataItem();
+                            obj.setHora(GenericUtils.addTimeToDate(h.getHour(), Calendar.HOUR_OF_DAY, 1));
+
+                            System.out.println("Buscando un ticket a la hora " + h + calendar_hour_salida.getTime() + " en la geocerca " + itinerario.getGeofenceId() + " ");
+                            Ticket ticket = storage.getObject(Ticket.class,
+                                    new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                                        {
+                                            add(new Condition.Equals("geofenceId", itinerario.getGeofenceId()));
+                                            add(new Condition.Equals("expectedTime", calendar_hour_salida.getTime()));
+                                        }
+                                    })));
+
+                            System.out.println("Ticket encontrado " + ticket);
+
+                            obj.setSalida(0);
+                            obj.setDispositivo(0);
+                            obj.setAsignado(false);
+
+                            if (ticket != null) {
+                                Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                                     {
-                                        add(new Condition.Equals("geofenceId", itinerario.getGeofenceId()));
-                                        add(new Condition.Equals("expectedTime", h.getHour()));
+                                        add(new Condition.Equals("id", ticket.getSalidaId()));
                                     }
                                 })));
-
-                        System.out.println("Ticket encontrado " + ticket);
-
-                        obj.setSalida(0);
-                        obj.setDispositivo(0);
-                        obj.setAsignado(false);
-
-                        if (ticket != null) {
-                            Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                                {
-                                    add(new Condition.Equals("id", ticket.getSalidaId()));
-                                }
-                            })));
-                            obj.setSalida(ticket.getSalidaId());
-                            obj.setDispositivo(salida.getDeviceId());
-                            obj.setAsignado(true);
+                                obj.setSalida(ticket.getSalidaId());
+                                obj.setDispositivo(salida.getDeviceId());
+                                obj.setAsignado(true);
+                            }
+                            objs.add(obj);
                         }
-                        objs.add(obj);
-                    }
 
-                    vri.setData(objs);
+                        vri.setData(objs);
+                    }
+                    result.add(vri);
                 }
-                result.add(vri);
             }
+
         }
         return result;
     }
@@ -156,14 +172,14 @@ public class VueltasReportProvider {
         Map<Long, VueltaReportSection> devicesReportados = new HashMap<Long, VueltaReportSection>();
 
         for (long groupid : groupIds) {
-
+            System.out.println("Grupo " + groupid);
             List<Subroute> subrutas = new ArrayList<>();
             try {
                 subrutas.addAll(storage.getObjects(Subroute.class, new Request(new Columns.All(), new Condition.Equals("groupId", groupid))));
             } catch (StorageException ex) {
                 Logger.getLogger(VueltasReportProvider.class.getName()).log(Level.SEVERE, null, ex);
             }
-
+            System.out.println("Subrutas del grupo " + groupid + ": " + subrutas);
             List<Itinerario> itinerarios = new ArrayList<>();
             for (Subroute subruta : subrutas) {
                 try {
@@ -172,51 +188,67 @@ public class VueltasReportProvider {
                     Logger.getLogger(VueltasReportProvider.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
+            System.out.println("Itinerarios del grupo " + groupid + ": " + itinerarios);
+            for (Date date : GenericUtils.getDatesBetween(from, to)) {
+                System.out.println(date);
+                for (Itinerario itinerario : itinerarios) {
+                    VueltaReportItem vri = new VueltaReportItem();
+                    vri.setItinerarioId((int) itinerario.getId());
+                    List<HoraSalida> horas = new ArrayList<>();
+                    if (itinerario.getHorasId() > 0) {
+                        System.out.println("Itinerario con tabla de horas " + itinerario.getHorasId());
+                        HoraSalida hora = storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerario.getHorasId())));
+                        horas.addAll(storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", hora.getName()))));
 
-            for (Itinerario itinerario : itinerarios) {
-                VueltaReportItem vri = new VueltaReportItem();
-                vri.setItinerarioId((int) itinerario.getId());
+                        System.out.println("Tabla de horas \n\r " + horas);
 
-                List<HoraSalida> horas = new ArrayList<>();
-                if (itinerario.getHorasId() > 0) {
+                        List<VueltaReportItem.VueltaDataItem> objs = new ArrayList<>();
 
-                    HoraSalida hora = storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerario.getHorasId())));
-                    horas.addAll(storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", hora.getName()))));
+                        for (HoraSalida h : horas) {
+                            Calendar calendar_date = Calendar.getInstance();
+                            calendar_date.setTime(date);
+                            Calendar calendar_hour_salida = Calendar.getInstance();
+                            calendar_hour_salida.setTime(h.getHour());
 
-                    List<VueltaReportItem.VueltaDataItem> objs = new ArrayList<>();
+                            calendar_hour_salida.set(Calendar.YEAR, calendar_date.get(Calendar.YEAR));
+                            calendar_hour_salida.set(Calendar.MONTH, calendar_date.get(Calendar.MONTH));
+                            calendar_hour_salida.set(Calendar.DAY_OF_MONTH, calendar_date.get(Calendar.DAY_OF_MONTH));
 
-                    for (HoraSalida h : horas) {
-                        var obj = vri.new VueltaDataItem();
-                        obj.setHora(h.getHour());
+                            var obj = vri.new VueltaDataItem();
+                            obj.setHora(GenericUtils.addTimeToDate(h.getHour(), Calendar.HOUR_OF_DAY, 1));
 
-                        Ticket ticket = storage.getObject(Ticket.class,
-                                new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                            System.out.println("Buscando un ticket a la hora " + h + calendar_hour_salida.getTime() + " en la geocerca " + itinerario.getGeofenceId() + " ");
+                            Ticket ticket = storage.getObject(Ticket.class,
+                                    new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                                        {
+                                            add(new Condition.Equals("geofenceId", itinerario.getGeofenceId()));
+                                            add(new Condition.Equals("expectedTime", calendar_hour_salida.getTime()));
+                                        }
+                                    })));
+
+                            System.out.println("Ticket encontrado " + ticket);
+
+                            obj.setSalida(0);
+                            obj.setDispositivo(0);
+                            obj.setAsignado(false);
+
+                            if (ticket != null) {
+                                Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                                     {
-                                        add(new Condition.Equals("geofenceId", itinerario.getGeofenceId()));
-                                        add(new Condition.Equals("expectedTime", h.getHour()));
+                                        add(new Condition.Equals("id", ticket.getSalidaId()));
                                     }
                                 })));
-
-                        obj.setSalida(0);
-                        obj.setDispositivo(0);
-                        obj.setAsignado(false);
-
-                        if (ticket != null) {
-                            Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                                {
-                                    add(new Condition.Equals("id", ticket.getSalidaId()));
-                                }
-                            })));
-                            obj.setSalida(ticket.getSalidaId());
-                            obj.setDispositivo(salida.getDeviceId());
-                            obj.setAsignado(true);
+                                obj.setSalida(ticket.getSalidaId());
+                                obj.setDispositivo(salida.getDeviceId());
+                                obj.setAsignado(true);
+                            }
+                            objs.add(obj);
                         }
-                        objs.add(obj);
-                    }
 
-                    vri.setData(objs);
+                        vri.setData(objs);
+                    }
+                    result.add(vri);
                 }
-                result.add(vri);
             }
         }
 

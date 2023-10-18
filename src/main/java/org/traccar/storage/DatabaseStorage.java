@@ -72,6 +72,7 @@ public class DatabaseStorage extends Storage {
             QueryBuilder builder = QueryBuilder.create(config, dataSource, objectMapper, query.toString());
             for (Map.Entry<String, Object> variable : getConditionVariables(request.getCondition()).entrySet()) {
                 builder.setValue(variable.getKey(), variable.getValue());
+//                System.out.println("Var: " + variable.getKey() + ", Val: " + variable.getValue());
             }
             return builder.executeQuery(clazz);
         } catch (SQLException e) {
@@ -305,7 +306,7 @@ public class DatabaseStorage extends Storage {
 
             }
         }
-        
+
         return result.toString();
     }
 
