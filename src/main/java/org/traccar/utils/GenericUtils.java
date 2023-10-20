@@ -17,6 +17,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -418,5 +419,23 @@ public class GenericUtils {
         }
 
         return dates;
+    }
+    
+    public static String findServerName(String ip){
+        Map<String, String> servers = new HashMap<>();
+        servers.put("173.255.203.21", "Alba");
+        servers.put("198.58.114.237", "AutoKapital");
+        servers.put("45.56.69.178", "Cancun");
+        servers.put("45.33.23.6", "Cemex");
+        servers.put("69.164.203.19", "Merida");
+        servers.put("45.56.79.216", "Order");
+        servers.put("23.239.29.228", "Evolucion");
+        servers.put("45.56.126.173", "Rastreo");
+        servers.put("45.79.45.108", "Pruebas");
+        servers.put("23.239.25.71", "Transporte");
+        servers.put("45.56.66.144", "Comit");
+        servers.put("45.33.116.80", "Combis");
+        
+        return servers.getOrDefault(ip, ip);
     }
 }

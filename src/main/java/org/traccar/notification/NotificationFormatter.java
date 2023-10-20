@@ -30,6 +30,12 @@ import org.traccar.session.cache.CacheManager;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.traccar.utils.GenericUtils;
+
 @Singleton
 public class NotificationFormatter {
 
@@ -50,6 +56,8 @@ public class NotificationFormatter {
 
         VelocityContext velocityContext = textTemplateFormatter.prepareContext(server, user);
 
+        velocityContext.put("origen", getLocalIP());
+        velocityContext.put("user", user.getName());
         velocityContext.put("device", device);
         velocityContext.put("event", event);
         if (position != null) {
@@ -72,4 +80,14 @@ public class NotificationFormatter {
         return textTemplateFormatter.formatMessage(velocityContext, event.getType(), templatePath);
     }
 
+    private static String getLocalIP() {
+        try {
+            InetAddress localhost = InetAddress.getLocalHost();
+            String hostAddress = localhost.getHostAddress();            
+            return GenericUtils.findServerName(hostAddress);
+        } catch (UnknownHostException e) {
+            System.err.println("Unable to get the host IP address: " + e.getMessage());
+        }
+        return "";
+    }
 }

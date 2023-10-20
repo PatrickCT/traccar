@@ -16,6 +16,7 @@
  */
 package org.traccar.api.resource;
 
+import java.text.ParseException;
 import org.traccar.api.SimpleObjectResource;
 import org.traccar.helper.LogAction;
 import org.traccar.model.Event;
@@ -379,7 +380,7 @@ public class ReportResource extends SimpleObjectResource<Report> {
             @QueryParam("deviceId") List<Long> deviceIds,
             @QueryParam("groupId") List<Long> groupIds,
             @QueryParam("from") Date from,
-            @QueryParam("to") Date to) throws StorageException {
+            @QueryParam("to") Date to) throws StorageException, ParseException {
         permissionsService.checkRestriction(getUserId(), UserRestrictions::getDisableReports);
         LogAction.logReport(getUserId(), "vueltas", from, to, deviceIds, groupIds);
         return vueltasReportProvider.getObjects(getUserId(), deviceIds, groupIds, from, to);

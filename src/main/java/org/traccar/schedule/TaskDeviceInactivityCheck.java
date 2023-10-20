@@ -82,7 +82,7 @@ public class TaskDeviceInactivityCheck implements ScheduleTask {
         long deviceInactivityStart = device.getLong(ATTRIBUTE_DEVICE_INACTIVITY_START);
         
         if (deviceInactivityStart <= 0) {
-            deviceInactivityStart = 30 * 60 * 1000;
+            deviceInactivityStart = 30 * 60 * 1000;//limite para detonar el evento, original 30
         }
         
         if (deviceInactivityStart > 0) {
@@ -98,7 +98,7 @@ public class TaskDeviceInactivityCheck implements ScheduleTask {
                 long deviceInactivityPeriod = device.getLong(ATTRIBUTE_DEVICE_INACTIVITY_PERIOD);
 
                 if (deviceInactivityPeriod <= 0) {
-                    deviceInactivityPeriod = 7 * 60 * 1000;
+                    deviceInactivityPeriod = 5 * 60 * 1000;//cada cuanto se checa, original 5
                 }
                 
                 if (deviceInactivityPeriod > 0) {

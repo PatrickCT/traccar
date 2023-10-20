@@ -420,4 +420,7 @@ public class ReportUtils {
         return result;
     }
 
+    public PermissionsService getPermissionsService() {
+        return permissionsService;
+    }    
 }

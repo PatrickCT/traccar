@@ -10,37 +10,27 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Paths;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.poi.ss.util.WorkbookUtil;
-import org.json.JSONObject;
-import org.traccar.api.resource.HorasSalidasResource;
-import org.traccar.api.resource.ItinerarioResource;
 import org.traccar.config.Config;
 import org.traccar.config.Keys;
-import org.traccar.model.Device;
-import org.traccar.model.Geofence;
-import org.traccar.model.Group;
+import org.traccar.helper.model.UserUtil;
 import org.traccar.model.HoraSalida;
 import org.traccar.model.Itinerario;
-import org.traccar.model.Permission;
 import org.traccar.model.Salida;
 import org.traccar.model.Subroute;
 import org.traccar.model.Ticket;
 import org.traccar.reports.common.ReportUtils;
-import org.traccar.reports.model.DeviceReportSection;
-import org.traccar.reports.model.TicketReportItem;
 import org.traccar.reports.model.VueltaReportItem;
-import org.traccar.reports.model.VueltaReportSection;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.Storage;
 import org.traccar.storage.StorageException;
@@ -70,8 +60,12 @@ public class VueltasReportProvider {
     private CacheManager cacheManager;
 
     public Collection<VueltaReportItem> getObjects(long userId, Collection<Long> deviceIds, Collection<Long> groupIds,
-            Date from, Date to) throws StorageException {
+            Date from, Date to) throws StorageException, ParseException {
+        var server = reportUtils.getPermissionsService().getServer();
+        var user = reportUtils.getPermissionsService().getUser(userId);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         ArrayList<VueltaReportItem> result = new ArrayList<>();
+        sdf.setTimeZone(UserUtil.getTimezone(server, user));
 
         for (long groupid : groupIds) {
             System.out.println("Grupo " + groupid);
@@ -116,35 +110,57 @@ public class VueltasReportProvider {
                             calendar_hour_salida.set(Calendar.MONTH, calendar_date.get(Calendar.MONTH));
                             calendar_hour_salida.set(Calendar.DAY_OF_MONTH, calendar_date.get(Calendar.DAY_OF_MONTH));
 
-                            var obj = vri.new VueltaDataItem();
-                            obj.setHora(GenericUtils.addTimeToDate(h.getHour(), Calendar.HOUR_OF_DAY, 1));
-
                             System.out.println("Buscando un ticket a la hora " + h + calendar_hour_salida.getTime() + " en la geocerca " + itinerario.getGeofenceId() + " ");
-                            Ticket ticket = storage.getObject(Ticket.class,
+                            List<Ticket> tickets = storage.getObjects(Ticket.class,
                                     new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                                         {
                                             add(new Condition.Equals("geofenceId", itinerario.getGeofenceId()));
-                                            add(new Condition.Equals("expectedTime", calendar_hour_salida.getTime()));
+                                            add(new Condition.Equals("expectedTime", sdf.format(calendar_hour_salida.getTime())));
                                         }
                                     })));
 
-                            System.out.println("Ticket encontrado " + ticket);
-
-                            obj.setSalida(0);
-                            obj.setDispositivo(0);
-                            obj.setAsignado(false);
-
-                            if (ticket != null) {
-                                Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                                    {
-                                        add(new Condition.Equals("id", ticket.getSalidaId()));
+                            if (tickets.isEmpty()) {
+                                var obj = vri.new VueltaDataItem();
+                                obj.setHora(calendar_hour_salida.getTime());
+                                obj.setSalida(0);
+                                obj.setDispositivo(0);
+                                obj.setAsignado(false);
+                                objs.add(obj);
+                            } else {
+                                boolean added = false;
+                                for (Ticket ticket : tickets) {
+                                    System.out.println(sdf.format(ticket.getExpectedTime()));
+                                    if (!GenericUtils.isSameDate(calendar_date.getTime(), GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.HOUR_OF_DAY, -6))) {
+                                        System.out.println("Not same date");
+                                        continue;
                                     }
-                                })));
-                                obj.setSalida(ticket.getSalidaId());
-                                obj.setDispositivo(salida.getDeviceId());
-                                obj.setAsignado(true);
+                                    var obj = vri.new VueltaDataItem();
+                                    obj.setHora(calendar_hour_salida.getTime());
+                                    obj.setSalida(0);
+                                    obj.setDispositivo(0);
+                                    obj.setAsignado(false);
+                                    System.out.println("Ticket encontrado " + ticket);
+
+                                    Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                                        {
+                                            add(new Condition.Equals("id", ticket.getSalidaId()));
+                                        }
+                                    })));
+                                    obj.setSalida(ticket.getSalidaId());
+                                    obj.setDispositivo(salida.getDeviceId());
+                                    obj.setAsignado(true);
+                                    objs.add(obj);
+                                    added = true;
+                                }
+                                if (!added) {
+                                    var obj = vri.new VueltaDataItem();
+                                    obj.setHora(calendar_hour_salida.getTime());
+                                    obj.setSalida(0);
+                                    obj.setDispositivo(0);
+                                    obj.setAsignado(false);
+                                    objs.add(obj);
+                                }
                             }
-                            objs.add(obj);
                         }
 
                         vri.setData(objs);
@@ -163,13 +179,7 @@ public class VueltasReportProvider {
         reportUtils.checkPeriodLimit(from, to);
 
         ArrayList<VueltaReportItem> result = new ArrayList<>();
-        ArrayList<VueltaReportSection> devicesTickets = new ArrayList<>();
         ArrayList<String> sheetNames = new ArrayList<>();
-        Map<Long, String> geofenceNames = new HashMap<Long, String>();
-        Map<Long, String> groupNames = new HashMap<Long, String>();
-        Map<Long, String> subroutesNames = new HashMap<Long, String>();
-        Map<Long, Salida> salidasReportadas = new HashMap<Long, Salida>();
-        Map<Long, VueltaReportSection> devicesReportados = new HashMap<Long, VueltaReportSection>();
 
         for (long groupid : groupIds) {
             System.out.println("Grupo " + groupid);
@@ -214,11 +224,8 @@ public class VueltasReportProvider {
                             calendar_hour_salida.set(Calendar.MONTH, calendar_date.get(Calendar.MONTH));
                             calendar_hour_salida.set(Calendar.DAY_OF_MONTH, calendar_date.get(Calendar.DAY_OF_MONTH));
 
-                            var obj = vri.new VueltaDataItem();
-                            obj.setHora(GenericUtils.addTimeToDate(h.getHour(), Calendar.HOUR_OF_DAY, 1));
-
                             System.out.println("Buscando un ticket a la hora " + h + calendar_hour_salida.getTime() + " en la geocerca " + itinerario.getGeofenceId() + " ");
-                            Ticket ticket = storage.getObject(Ticket.class,
+                            List<Ticket> tickets = storage.getObjects(Ticket.class,
                                     new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                                         {
                                             add(new Condition.Equals("geofenceId", itinerario.getGeofenceId()));
@@ -226,23 +233,47 @@ public class VueltasReportProvider {
                                         }
                                     })));
 
-                            System.out.println("Ticket encontrado " + ticket);
-
-                            obj.setSalida(0);
-                            obj.setDispositivo(0);
-                            obj.setAsignado(false);
-
-                            if (ticket != null) {
-                                Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                                    {
-                                        add(new Condition.Equals("id", ticket.getSalidaId()));
+                            if (tickets.isEmpty()) {
+                                var obj = vri.new VueltaDataItem();
+                                obj.setHora(calendar_hour_salida.getTime());
+                                obj.setSalida(0);
+                                obj.setDispositivo(0);
+                                obj.setAsignado(false);
+                                objs.add(obj);
+                            } else {
+                                boolean added = false;
+                                for (Ticket ticket : tickets) {
+                                    if (!GenericUtils.isSameDate(calendar_date.getTime(), GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.HOUR_OF_DAY, -6))) {
+                                        System.out.println("Not same date");
+                                        continue;
                                     }
-                                })));
-                                obj.setSalida(ticket.getSalidaId());
-                                obj.setDispositivo(salida.getDeviceId());
-                                obj.setAsignado(true);
+                                    var obj = vri.new VueltaDataItem();
+                                    obj.setHora(calendar_hour_salida.getTime());
+                                    obj.setSalida(0);
+                                    obj.setDispositivo(0);
+                                    obj.setAsignado(false);
+                                    System.out.println("Ticket encontrado " + ticket);
+
+                                    Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                                        {
+                                            add(new Condition.Equals("id", ticket.getSalidaId()));
+                                        }
+                                    })));
+                                    obj.setSalida(ticket.getSalidaId());
+                                    obj.setDispositivo(salida.getDeviceId());
+                                    obj.setAsignado(true);
+                                    objs.add(obj);
+                                    added = true;
+                                }
+                                if (!added) {
+                                    var obj = vri.new VueltaDataItem();
+                                    obj.setHora(calendar_hour_salida.getTime());
+                                    obj.setSalida(0);
+                                    obj.setDispositivo(0);
+                                    obj.setAsignado(false);
+                                    objs.add(obj);
+                                }
                             }
-                            objs.add(obj);
                         }
 
                         vri.setData(objs);
@@ -250,6 +281,7 @@ public class VueltasReportProvider {
                     result.add(vri);
                 }
             }
+
         }
 
         File file = Paths.get(config.getString(Keys.TEMPLATES_ROOT), "export", unify ? "salidas.xlsx" : "salidas.xlsx").toFile();
@@ -257,8 +289,6 @@ public class VueltasReportProvider {
         System.out.println("File");
         System.out.println(file);
         sheetNames.add(WorkbookUtil.createSafeSheetName("Todos"));
-        sheetNames.add(WorkbookUtil.createSafeSheetName("Todos2"));
-        sheetNames.add(WorkbookUtil.createSafeSheetName("Todos3"));
         try (InputStream inputStream = new FileInputStream(file)) {
             var context = reportUtils.initializeContext(userId);
             context.putVar("tickets", result);
