@@ -7,6 +7,7 @@ package org.traccar.api.resource;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -15,8 +16,10 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -30,6 +33,8 @@ import org.traccar.helper.LogAction;
 import org.traccar.model.Group;
 import org.traccar.model.HoraSalida;
 import org.traccar.model.Permission;
+import org.traccar.model.Subroute;
+import org.traccar.model.Tramo;
 import org.traccar.model.User;
 import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
@@ -99,10 +104,12 @@ public class HorasSalidasResource extends BaseObjectResource<HoraSalida> {
 
         return removeDuplicates(result.stream().collect(Collectors.toList()));
     }
-    
+
     @POST
     public Response add(HoraSalida entity) throws StorageException {
-        if(entity.getName() == null)return Response.ok(entity).build();
+        if (entity.getName() == null) {
+            return Response.ok(entity).build();
+        }
         permissionsService.checkEdit(getUserId(), entity, true);
 
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
@@ -117,11 +124,41 @@ public class HorasSalidasResource extends BaseObjectResource<HoraSalida> {
 
         return Response.ok(entity).build();
     }
-    
+
+    @Path("{id}")
+    @PUT
+    public Response update(HoraSalida entity) throws StorageException {
+        permissionsService.checkEdit(getUserId(), entity, false);
+
+        storage.updateObject(entity, new Request(
+                new Columns.Exclude("id"),
+                new Condition.Equals("id", entity.getId())));
+
+        cacheManager.updateOrInvalidate(true, entity);
+
+        LogAction.edit(getUserId(), entity);
+
+        return Response.ok(entity).build();
+    }
+
+    @Path("delete/{name}")
+    @DELETE
+    public Response remover(@PathParam("name") String name) throws StorageException {
+        List<HoraSalida> horas = storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", name)));
+        for (HoraSalida hora : horas) {
+            permissionsService.checkEdit(getUserId(), hora, false);
+            storage.removeObject(baseClass, new Request(new Condition.Equals("id", hora.getId())));
+            cacheManager.invalidate(baseClass, hora.getId());
+            LogAction.remove(getUserId(), baseClass, hora.getId());
+        }
+
+        return Response.noContent().build();
+    }
+
     @POST
     @Path("empty")
     public Response empty(HoraSalida entity) throws StorageException {
-        return Response.ok().build();    
+        return Response.ok().build();
     }
 
     @GET

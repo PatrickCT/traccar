@@ -14,8 +14,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -249,12 +251,14 @@ public class TicketsReportProvider {
                 tri.setExitTime(ticket.getExitTime());
                 tri.setExpectedTime(ticket.getExpectedTime());
                 tri.setId(ticket.getId());
-                tri.setPunishment(ticket.getPunishment());
+                tri.setPunishment(ticket.getEnterTime() != null ? ticket.getPunishment() : 0);
                 tri.setSalida(ticket.getSalidaId());
                 tri.setGeofence(geofenceNames.get(ticket.getGeofenceId()));
                 tri.setDevice(salidasReportadas.get(ticket.getSalidaId()).getDeviceId());
                 tri.setGroup(groupNames.get(salidasReportadas.get(ticket.getSalidaId()).getGroupId()));
                 tri.setSubroute(subroutesNames.get(salidasReportadas.get(ticket.getSalidaId()).getSubrouteId()));
+                Device device = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", tri.getDevice())));
+                tri.setDeviceName(device.getName());
                 result.add(tri);
             }
         }
@@ -305,13 +309,15 @@ public class TicketsReportProvider {
                 tri.setEnterTime(ticket.getEnterTime());
                 tri.setExitTime(ticket.getExitTime());
                 tri.setExpectedTime(ticket.getExpectedTime());
-                tri.setId(ticket.getId());
-                tri.setPunishment(ticket.getPunishment());
+                tri.setId(ticket.getId());                
+                tri.setPunishment(ticket.getEnterTime() != null ? ticket.getPunishment() : 0);
                 tri.setSalida(ticket.getSalidaId());
                 tri.setGeofence(geofenceNames.get(ticket.getGeofenceId()));
                 tri.setDevice(salidasReportadas.get(ticket.getSalidaId()).getDeviceId());
                 tri.setGroup(groupNames.get(salidasReportadas.get(ticket.getSalidaId()).getGroupId()));
                 tri.setSubroute(subroutesNames.get(salidasReportadas.get(ticket.getSalidaId()).getSubrouteId()));
+                Device device = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", tri.getDevice())));
+                tri.setDeviceName(device.getName());
                 result.add(tri);
             }
         }
@@ -334,23 +340,33 @@ public class TicketsReportProvider {
             DeviceReportSection deviceTickets = new DeviceReportSection();
             deviceTickets.setDeviceName(device.getName());
 
-            deviceTickets.setObjects(result.stream().filter((r) -> r.getDevice() == tri.getDevice()).collect(Collectors.toList()));
+            deviceTickets.setObjects(result.stream().filter((r) -> r.getDevice() == tri.getDevice() && r.getSalida() == tri.getSalida()).collect(Collectors.toList()));
             devicesTickets.add(deviceTickets);
 
         }
 
         File file = Paths.get(config.getString(Keys.TEMPLATES_ROOT), "export", unify ? "tickets_unified.xlsx" : "tickets.xlsx").toFile();
-
-        System.out.println("File");
-        System.out.println(file);
-
+        
         try (InputStream inputStream = new FileInputStream(file)) {
             var context = reportUtils.initializeContext(userId);
-            context.putVar("tickets", devicesTickets);
+            context.putVar("tickets", removeDuplicates(devicesTickets));
             context.putVar("sheetNames", sheetNames);
             context.putVar("from", from);
             context.putVar("to", to);
             reportUtils.processTemplateWithSheets(inputStream, outputStream, context, unify);
         }
+    }
+    
+    public static <T> List<T> removeDuplicates(List<T> list) {
+        Set<T> seen = new HashSet<>();
+        List<T> filteredList = new ArrayList<>();
+
+        for (T item : list) {
+            if (seen.add(item)) {
+                filteredList.add(item);
+            }
+        }
+
+        return filteredList;
     }
 }

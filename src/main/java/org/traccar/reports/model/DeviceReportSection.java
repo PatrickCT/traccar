@@ -62,11 +62,9 @@ public class DeviceReportSection {
         this.salida = salida;
     }
 
-    
     @Override
     public String toString() {
-        return "DeviceReportSection{" + "deviceName=" + deviceName + ", groupName=" + groupName + ", objects=" + objects + '}';
+        return "DeviceReportSection{" + "salida=" + salida + ", deviceName=" + deviceName + ", groupName=" + groupName + ", objects=" + objects + '}';
     }
-
     
 }

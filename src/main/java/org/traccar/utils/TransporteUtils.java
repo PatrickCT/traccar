@@ -437,7 +437,7 @@ public class TransporteUtils {
                     if (minutesDifference < 0) {
                         ticket.setPunishment(0);
                     } else {
-                        ticket.setPunishment((int) (minutesDifference * ticket.getPunishment()));
+                        ticket.setPunishment((int) (minutesDifference * tramo.getPunishment()));
                     }
 
                 } else {

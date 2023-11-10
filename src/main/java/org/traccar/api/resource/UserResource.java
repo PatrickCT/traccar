@@ -40,10 +40,14 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
 import javax.ws.rs.PUT;
 import javax.ws.rs.PathParam;
+import org.traccar.model.Device;
 import org.traccar.model.ExtraMail;
 import org.traccar.model.ExtraPhone;
+import org.traccar.session.cache.CacheManager;
 
 @Path("users")
 @Produces(MediaType.APPLICATION_JSON)
@@ -51,7 +55,7 @@ import org.traccar.model.ExtraPhone;
 public class UserResource extends BaseObjectResource<User> {
 
     @Inject
-    private Config config;
+    private Config config;      
 
     public UserResource() {
         super(User.class);
@@ -69,7 +73,17 @@ public class UserResource extends BaseObjectResource<User> {
                     new Columns.All(),
                     new Condition.Permission(User.class, getUserId(), ManagedUser.class).excludeGroups()));
         } else {
-            return storage.getObjects(baseClass, new Request(new Columns.All()));
+            List<User> usuarios = storage.getObjects(baseClass, new Request(new Columns.All()));
+
+            for (User u : usuarios) {
+                var conditions = new LinkedList<Condition>();
+
+                conditions.add(new Condition.Permission(User.class, u.getId(), Device.class));
+                u.getAttributes().put("total_devices", storage.getObjects(baseClass, new Request(new Columns.All(), Condition.merge(conditions))).size());                
+            }
+
+            return usuarios;
+
         }
     }
 
