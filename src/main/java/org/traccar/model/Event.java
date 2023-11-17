@@ -109,6 +109,8 @@ public class Event extends Message {
 
     @Override
     public String toString() {
-        return "Event{" + "eventTime=" + eventTime + ", positionId=" + positionId + ", geofenceId=" + geofenceId + ", maintenanceId=" + maintenanceId + '}';
-    }    
+        return "Event{" + "eventTime=" + eventTime + ", positionId=" + positionId + ", geofenceId=" + geofenceId + ", maintenanceId=" + maintenanceId + "type=" + getType() +'}';
+    }
+
+        
 }
