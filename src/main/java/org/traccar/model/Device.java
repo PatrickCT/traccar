@@ -16,12 +16,14 @@
 package org.traccar.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.traccar.storage.QueryIgnore;
 import org.traccar.storage.StorageName;
 
 import java.util.Date;
 
 @StorageName("tc_devices")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Device extends GroupedModel implements Disableable {
 
     private String name;

@@ -55,7 +55,7 @@ import org.traccar.session.cache.CacheManager;
 public class UserResource extends BaseObjectResource<User> {
 
     @Inject
-    private Config config;      
+    private Config config;
 
     public UserResource() {
         super(User.class);
@@ -78,8 +78,8 @@ public class UserResource extends BaseObjectResource<User> {
             for (User u : usuarios) {
                 var conditions = new LinkedList<Condition>();
 
-                conditions.add(new Condition.Permission(User.class, u.getId(), Device.class));
-                u.getAttributes().put("total_devices", storage.getObjects(baseClass, new Request(new Columns.All(), Condition.merge(conditions))).size());                
+                conditions.add(new Condition.Permission(User.class, u.getId(), Device.class).excludeGroups());
+                u.getAttributes().put("total_devices", storage.getObjects(Device.class, new Request(new Columns.All(), Condition.merge(conditions))).size());
             }
 
             return usuarios;
