@@ -28,6 +28,9 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpSession;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import org.traccar.session.cache.CacheManager;
 
 @Singleton
 public class AsyncSocketServlet extends JettyWebSocketServlet {
@@ -36,6 +39,9 @@ public class AsyncSocketServlet extends JettyWebSocketServlet {
     private final ObjectMapper objectMapper;
     private final ConnectionManager connectionManager;
     private final Storage storage;
+    
+    @Inject
+    private CacheManager cacheManager;
 
     @Inject
     public AsyncSocketServlet(
@@ -53,7 +59,14 @@ public class AsyncSocketServlet extends JettyWebSocketServlet {
             if (req.getSession() != null) {
                 Long userId = (Long) ((HttpSession) req.getSession()).getAttribute(SessionResource.USER_ID_KEY);
                 if (userId != null) {
-                    return new AsyncSocket(objectMapper, connectionManager, storage, userId);
+                    AsyncSocket soc = new AsyncSocket(objectMapper, connectionManager, storage, userId);
+                    if(!cacheManager.getSocketsLogged().containsKey(userId)){
+                        System.out.println("create soc list");
+                        cacheManager.getSocketsLogged().put(userId, new ArrayList<AsyncSocket>());
+                    }
+                    System.out.println("add soc");
+                    cacheManager.getSocketsLogged().get(userId).add(soc);
+                    return soc;
                 }
             }
             return null;

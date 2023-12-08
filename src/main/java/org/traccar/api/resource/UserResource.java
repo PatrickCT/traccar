@@ -44,6 +44,8 @@ import java.util.LinkedList;
 import java.util.List;
 import javax.ws.rs.PUT;
 import javax.ws.rs.PathParam;
+import org.json.JSONObject;
+import org.traccar.api.AsyncSocket;
 import org.traccar.model.Device;
 import org.traccar.model.ExtraMail;
 import org.traccar.model.ExtraPhone;
@@ -56,6 +58,9 @@ public class UserResource extends BaseObjectResource<User> {
 
     @Inject
     private Config config;
+    
+    @Inject
+    private CacheManager cacheManager;
 
     public UserResource() {
         super(User.class);
@@ -206,5 +211,63 @@ public class UserResource extends BaseObjectResource<User> {
     public Collection<User> getMainUsers(@QueryParam("userId") long userId) throws SQLException, StorageException {
         permissionsService.checkAdmin(getUserId());
         return storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("main", true)));
+    }
+    
+    @Path("{id}/test")
+    @PermitAll
+    @GET
+    public Response testById(@PathParam("id") long id) {
+        System.out.println("dev > test");
+        JSONObject obj = new JSONObject();
+        obj.put("test", "xdxdxd");
+        System.out.println(obj.toString());
+        for(AsyncSocket soc : cacheManager.getSocketsLogged().get(id)){
+            soc.onUpdateCustom(obj);
+        }
+        return Response.ok("").build();        
+    }
+    
+    @Path("{id}/debt")
+    @PermitAll
+    @GET
+    public Response markInDebt(@PathParam("id") long id) throws StorageException{        
+        JSONObject obj = new JSONObject();
+        obj.put("command", "refreshUser");
+                        
+        User user = storage.getObject(User.class, new Request(new Columns.All(), new Condition.Equals("id", id)));
+        if(user != null){
+            user.setDebt(true);
+            storage.updateObject(user, new Request(
+                new Columns.Exclude("id"),
+                new Condition.Equals("id", user.getId())));
+        }
+        
+        for(AsyncSocket soc : cacheManager.getSocketsLogged().get(id)){
+            soc.onUpdateCustom(obj);
+        }
+        
+        return Response.ok("").build();
+    }
+    
+    @Path("{id}/undebt")
+    @PermitAll
+    @GET
+    public Response removeFromDebt(@PathParam("id") long id) throws StorageException{        
+        JSONObject obj = new JSONObject();
+        obj.put("command", "refreshUser");
+                        
+        User user = storage.getObject(User.class, new Request(new Columns.All(), new Condition.Equals("id", id)));
+        if(user != null){
+            user.setDebt(false);
+            storage.updateObject(user, new Request(
+                new Columns.Exclude("id"),
+                new Condition.Equals("id", user.getId())));
+        }
+        
+        for(AsyncSocket soc : cacheManager.getSocketsLogged().get(id)){
+            soc.onUpdateCustom(obj);
+        }
+        
+        return Response.ok("").build();
     }
 }

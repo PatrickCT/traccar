@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.json.JSONObject;
 
 public class AsyncSocket extends WebSocketAdapter implements ConnectionManager.UpdateListener {
 
@@ -109,5 +110,21 @@ public class AsyncSocket extends WebSocketAdapter implements ConnectionManager.U
                 LOGGER.warn("Socket JSON formatting error", e);
             }
         }
+    }
+    
+    private void sendCustomData(Map<String, String> data) {
+        if (isConnected()) {
+            try {
+                getRemote().sendString(objectMapper.writeValueAsString(data), null);
+            } catch (JsonProcessingException e) {
+                LOGGER.warn("Socket JSON formatting error", e);
+            }
+        }
+    }
+    
+    public void onUpdateCustom(JSONObject obj) {
+        Map<String, String> data = new HashMap<>();
+        data.put("custom", obj.toString());
+        sendCustomData(data);
     }
 }

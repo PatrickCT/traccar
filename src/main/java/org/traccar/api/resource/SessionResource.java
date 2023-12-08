@@ -145,7 +145,7 @@ public class SessionResource extends BaseResource {
     public User add(
             @FormParam("email") String email, @FormParam("password") String password) throws StorageException {
         User user = loginService.login(email, password);
-        if (user != null) {
+        if (user != null) {            
             request.getSession().setAttribute(USER_ID_KEY, user.getId());
             LogAction.login(user.getId(), WebHelper.retrieveRemoteAddress(request));
             return user;

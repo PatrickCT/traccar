@@ -22,6 +22,7 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.ObjectUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.traccar.api.AsyncSocket;
 import org.traccar.api.BaseResource;
 import org.traccar.model.Device;
 import org.traccar.model.Event;
@@ -80,8 +81,8 @@ public class DevResource extends BaseResource{
             return Response.ok(data.toString()).build();
         } catch (StorageException ex) {
             Logger.getLogger(WSResource.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        }        
         return Response.ok().build();
-    }
+    }    
 
 }

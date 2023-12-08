@@ -56,6 +56,7 @@ import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
+import org.traccar.api.AsyncSocket;
 
 @Singleton
 public class CacheManager implements BroadcastInterface {
@@ -78,6 +79,8 @@ public class CacheManager implements BroadcastInterface {
 
     private Server server;
     private final Map<Long, List<User>> notificationUsers = new HashMap<>();
+    
+    private final Map<Long, List<AsyncSocket>> socketsLogged = new HashMap<>();
 
     @Inject
     public CacheManager(Config config, Storage storage, BroadcastService broadcastService) throws StorageException {
@@ -427,4 +430,7 @@ public class CacheManager implements BroadcastInterface {
         return storage;
     }
 
+    public Map<Long, List<AsyncSocket>> getSocketsLogged() {
+        return socketsLogged;
+    }    
 }

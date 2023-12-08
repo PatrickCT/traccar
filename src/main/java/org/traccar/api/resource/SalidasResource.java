@@ -125,7 +125,7 @@ public class SalidasResource extends BaseObjectResource<Salida> {
                     new Columns.Exclude("id"),
                     new Condition.Equals("id", ticket.getId())));
         }
-
+        
         return Response.ok(response.toMap()).build();
     }
 
