@@ -15,7 +15,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.eclipse.jetty.util.resource.Resource;
 import org.json.JSONObject;
 import org.traccar.api.AsyncSocket;
 import org.traccar.api.BaseResource;
