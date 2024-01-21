@@ -18,6 +18,7 @@ public class Itinerario extends ExtendedModel {
     private long subrouteId;
     private long horasId;
     private long geofenceId;
+    private long horasIdRel;
 
     public String getName() {
         return name;
@@ -58,6 +59,14 @@ public class Itinerario extends ExtendedModel {
     public void setGeofenceId(long geofenceId) {
         this.geofenceId = geofenceId;
     }
+
+    public long getHorasIdRel() {
+        return horasIdRel;
+    }
+
+    public void setHorasIdRel(long horasIdRel) {
+        this.horasIdRel = horasIdRel;
+    }        
 
     @Override
     public String toString() {

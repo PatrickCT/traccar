@@ -22,6 +22,7 @@ public class Salida extends BaseModel {
     private long groupId;
     private long subrouteId;
     private boolean valid;
+    private long geofenceId;
 
     public boolean getFinished() {
         return finished;
@@ -86,9 +87,17 @@ public class Salida extends BaseModel {
     public void setValid(boolean valid) {
         this.valid = valid;
     }
-        
+
+    public long getGeofenceId() {
+        return geofenceId;
+    }
+
+    public void setGeofenceId(long geofenceId) {
+        this.geofenceId = geofenceId;
+    }
+            
     @Override
     public String toString() {
-        return "Salida{" + "id=" + getId() + "finished=" + finished + ", date=" + date + ", deviceId=" + deviceId + ", scheduleId=" + scheduleId + ", endingDate=" + endingDate + ", groupId=" + groupId + ", subrouteId=" + subrouteId + '}';
+        return "Salida{" + "id=" + getId() + ", finished=" + finished + ", date=" + date + ", deviceId=" + deviceId + ", scheduleId=" + scheduleId + ", endingDate=" + endingDate + ", groupId=" + groupId + ", subrouteId=" + subrouteId + '}';
     }          
 }

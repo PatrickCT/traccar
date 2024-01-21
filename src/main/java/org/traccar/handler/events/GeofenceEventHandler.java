@@ -16,7 +16,6 @@
 package org.traccar.handler.events;
 
 import io.netty.channel.ChannelHandler;
-import java.io.IOException;
 import org.traccar.helper.model.PositionUtil;
 import org.traccar.model.Calendar;
 import org.traccar.model.Event;
@@ -35,13 +34,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.traccar.helper.LogAction;
 import org.traccar.model.Device;
-import org.traccar.session.ConnectionManager;
-import org.traccar.storage.Storage;
 import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
-import org.traccar.utils.GenericUtils;
 import org.traccar.utils.TransporteUtils;
 
 @Singleton
@@ -90,6 +86,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
 
                     CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
                         try {
+                            TransporteUtils.cleanSalidas(geofenceId, position.getDeviceId(), cacheManager);
                             if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager, geofenceId)) {
                                 TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager);
                             } else {

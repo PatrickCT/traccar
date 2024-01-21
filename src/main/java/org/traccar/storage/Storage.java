@@ -50,4 +50,5 @@ public abstract class Storage {
         return objects.isEmpty() ? null : objects.get(0);
     }
 
+    public abstract <T> List<T> getObjectsByQuery(Class<T> clazz, String queryString) throws StorageException;
 }

@@ -418,4 +418,14 @@ public class DatabaseStorage extends Storage {
         return result.toString();
     }
 
+    @Override
+    public <T> List<T> getObjectsByQuery(Class<T> clazz, String queryString) throws StorageException {
+        StringBuilder query = new StringBuilder(queryString);
+        try {
+            QueryBuilder builder = QueryBuilder.create(config, dataSource, objectMapper, query.toString());            
+            return builder.executeQuery(clazz);
+        } catch (SQLException e) {
+            throw new StorageException(e);
+        }
+    }
 }

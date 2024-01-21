@@ -196,4 +196,9 @@ public class MemoryStorage extends Storage {
                 .remove(new Pair<>(permission.getOwnerId(), permission.getPropertyId()));
     }
 
+    @Override
+    public <T> List<T> getObjectsByQuery(Class<T> clazz, String queryString) throws StorageException {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
 }
