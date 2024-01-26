@@ -79,12 +79,9 @@ public class UserResource extends BaseObjectResource<User> {
                     new Condition.Permission(User.class, getUserId(), ManagedUser.class).excludeGroups()));
         } else {
             List<User> usuarios = storage.getObjects(baseClass, new Request(new Columns.All()));
-
-            for (User u : usuarios) {
-                var conditions = new LinkedList<Condition>();
-
-                conditions.add(new Condition.Permission(User.class, u.getId(), Device.class).excludeGroups());
-                u.getAttributes().put("total_devices", storage.getObjects(Device.class, new Request(new Columns.All(), Condition.merge(conditions))).size());
+            
+            for (User u : usuarios) {                                
+                u.getAttributes().put("total_devices", cacheManager.getDevicesPerUser(u.getId()));
             }
 
             return usuarios;

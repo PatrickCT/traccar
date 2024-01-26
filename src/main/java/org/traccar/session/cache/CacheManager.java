@@ -57,6 +57,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import org.traccar.api.AsyncSocket;
+import org.traccar.model.Permission;
 
 @Singleton
 public class CacheManager implements BroadcastInterface {
@@ -76,10 +77,11 @@ public class CacheManager implements BroadcastInterface {
     private final Map<Long, Integer> deviceReferences = new HashMap<>();
     private final Map<Long, Map<Class<? extends BaseModel>, Set<Long>>> deviceLinks = new HashMap<>();
     private final Map<Long, Position> devicePositions = new HashMap<>();
+    private final Map<Long, Integer> devicesPerUser = new HashMap<>();
 
     private Server server;
     private final Map<Long, List<User>> notificationUsers = new HashMap<>();
-    
+
     private final Map<Long, List<AsyncSocket>> socketsLogged = new HashMap<>();
 
     @Inject
@@ -202,7 +204,7 @@ public class CacheManager implements BroadcastInterface {
     public void updatePosition(Position position) {
         try {
             lock.writeLock().lock();
-            
+
             if (deviceLinks.containsKey(position.getDeviceId())) {
                 devicePositions.put(position.getDeviceId(), position);
             }
@@ -291,14 +293,62 @@ public class CacheManager implements BroadcastInterface {
 
     private void invalidateUsers() throws StorageException {
         notificationUsers.clear();
+        List<Permission> user_devices = storage.getPermissions(User.class, Device.class);
+        List<Permission> user_group = storage.getPermissions(User.class, Group.class);
+        Map<Long, List<Long>> groups_devices = new HashMap<>();
         Map<Long, User> users = new HashMap<>();
+
         storage.getObjects(User.class, new Request(new Columns.All()))
                 .forEach(user -> users.put(user.getId(), user));
+
         storage.getPermissions(User.class, Notification.class).forEach(permission -> {
             long notificationId = permission.getPropertyId();
             var user = users.get(permission.getOwnerId());
             notificationUsers.computeIfAbsent(notificationId, k -> new LinkedList<>()).add(user);
         });
+
+        for (long userId : users.keySet()) {
+            List<Long> devices = user_devices.stream()
+                    .filter(item -> item.getOwnerId() == userId)
+                    .map(item -> item.getPropertyId())
+                    .map(Long::valueOf)
+                    .collect(Collectors.toList());
+
+            List<Long> groups = user_group.stream()
+                    .filter(item -> item.getOwnerId() == userId)
+                    .map(item -> item.getPropertyId())
+                    .map(Long::valueOf)
+                    .collect(Collectors.toList());
+
+            if (deviceCache.keySet().size() > 0) {
+                System.out.println("Loading from device cache "+deviceCache.keySet().size());
+                for (CacheValue v : deviceCache.values()) {
+                    Device d = ((Device) v.getValue());
+                    System.out.println(d);
+                    if (groups.stream().filter((item) -> item == d.getGroupId()).count() > 0) {
+                        if (devices.stream().filter((item) -> item == d.getId()).count() <= 0) {
+                            devices.add(d.getId());
+                        }
+                    }
+                }
+            } else {
+                System.out.println("Device cache empty, loading from db");
+                for (long g : groups) {
+                    if (!groups_devices.containsKey(g)) {
+                        List<Device> ds = storage.getObjects(Device.class, new Request(new Columns.All(), new Condition.Equals("groupId", g)));
+                        groups_devices.put(g, ds.stream().map(item -> item.getId())
+                                .map(Long::valueOf)
+                                .collect(Collectors.toList()));
+                    }
+                    devices.addAll(groups_devices.get(g));
+                }
+
+            }
+
+            System.out.println(String.format("Usuario: %d, Dsipositivos: %s, Grupos: %s", userId, devices.stream().map((d) -> String.valueOf(d)).collect(Collectors.joining(",")), groups.stream().map((d) -> String.valueOf(d)).collect(Collectors.joining(","))));
+
+            devicesPerUser.putIfAbsent(userId, devices.stream().distinct().collect(Collectors.toList()).size());
+        }
     }
 
     private void addObject(long deviceId, BaseModel object) {
@@ -432,5 +482,9 @@ public class CacheManager implements BroadcastInterface {
 
     public Map<Long, List<AsyncSocket>> getSocketsLogged() {
         return socketsLogged;
-    }    
+    }
+
+    public int getDevicesPerUser(long userId) {
+        return devicesPerUser.containsKey(userId) ? devicesPerUser.get(userId) : 0;
+    }
 }
