@@ -344,13 +344,14 @@ public class User extends ExtendedModel implements UserRestrictions, Disableable
     public void setBilling(boolean billing) {
         this.billing = billing;
     }    
-    
+        
     private boolean debt;
-
+    
     public boolean getDebt() {
         return debt;
     }
 
+    @QueryIgnore
     public void setDebt(boolean debt) {
         this.debt = debt;
     }

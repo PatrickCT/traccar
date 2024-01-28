@@ -7,8 +7,8 @@ import http.client as httplib
 import time
 import random
 
-id = '123456789012345'
-server = 'localhost:5055'
+id = 'bug-report-notif'
+server = '45.56.126.173:5055'
 period = 1
 step = 0.001
 device_speed = 40
@@ -55,6 +55,7 @@ def send(conn, lat, lon, altitude, course, speed, battery, alarm, ignition, accu
         params = params + (('driverUniqueId', driverUniqueId),)
     conn.request('GET', '?' + urllib.parse.urlencode(params))
     conn.getresponse().read()
+    print(urllib.parse.urlencode(params))
 
 
 def course(lat1, lon1, lat2, lon2):
