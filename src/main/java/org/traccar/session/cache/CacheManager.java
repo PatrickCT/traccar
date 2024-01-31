@@ -83,6 +83,8 @@ public class CacheManager implements BroadcastInterface {
     private final Map<Long, List<User>> notificationUsers = new HashMap<>();
 
     private final Map<Long, List<AsyncSocket>> socketsLogged = new HashMap<>();
+    
+    private boolean calculating;
 
     @Inject
     public CacheManager(Config config, Storage storage, BroadcastService broadcastService) throws StorageException {
@@ -92,6 +94,7 @@ public class CacheManager implements BroadcastInterface {
         invalidateServer();
         invalidateUsers();
         broadcastService.registerListener(this);
+        recalculateDevices();
     }
 
     public Config getConfig() {
@@ -293,9 +296,6 @@ public class CacheManager implements BroadcastInterface {
 
     private void invalidateUsers() throws StorageException {
         notificationUsers.clear();
-        List<Permission> user_devices = storage.getPermissions(User.class, Device.class);
-        List<Permission> user_group = storage.getPermissions(User.class, Group.class);
-        Map<Long, List<Long>> groups_devices = new HashMap<>();
         Map<Long, User> users = new HashMap<>();
 
         storage.getObjects(User.class, new Request(new Columns.All()))
@@ -306,6 +306,22 @@ public class CacheManager implements BroadcastInterface {
             var user = users.get(permission.getOwnerId());
             notificationUsers.computeIfAbsent(notificationId, k -> new LinkedList<>()).add(user);
         });
+    }
+
+    private void recalculateDevices() throws StorageException {
+        System.out.println("invalidating users");
+        if(isCalculating()) {
+            System.out.println("Already calculating");
+            return;
+        }
+        setCalculating(true);
+        List<Permission> user_devices = storage.getPermissions(User.class, Device.class);
+        List<Permission> user_group = storage.getPermissions(User.class, Group.class);
+        Map<Long, List<Long>> groups_devices = new HashMap<>();
+        Map<Long, User> users = new HashMap<>();
+
+        storage.getObjects(User.class, new Request(new Columns.All()))
+                .forEach(user -> users.put(user.getId(), user));
 
         for (long userId : users.keySet()) {
             List<Long> devices = user_devices.stream()
@@ -320,35 +336,19 @@ public class CacheManager implements BroadcastInterface {
                     .map(Long::valueOf)
                     .collect(Collectors.toList());
 
-            if (deviceCache.keySet().size() > 0) {
-                System.out.println("Loading from device cache "+deviceCache.keySet().size());
-                for (CacheValue v : deviceCache.values()) {
-                    Device d = ((Device) v.getValue());
-                    System.out.println(d);
-                    if (groups.stream().filter((item) -> item == d.getGroupId()).count() > 0) {
-                        if (devices.stream().filter((item) -> item == d.getId()).count() <= 0) {
-                            devices.add(d.getId());
-                        }
-                    }
+            for (long g : groups) {
+                if (!groups_devices.containsKey(g)) {
+                    List<Device> ds = storage.getObjects(Device.class, new Request(new Columns.All(), new Condition.Equals("groupId", g)));
+                    groups_devices.put(g, ds.stream().map(item -> item.getId())
+                            .map(Long::valueOf)
+                            .collect(Collectors.toList()));
                 }
-            } else {
-                System.out.println("Device cache empty, loading from db");
-                for (long g : groups) {
-                    if (!groups_devices.containsKey(g)) {
-                        List<Device> ds = storage.getObjects(Device.class, new Request(new Columns.All(), new Condition.Equals("groupId", g)));
-                        groups_devices.put(g, ds.stream().map(item -> item.getId())
-                                .map(Long::valueOf)
-                                .collect(Collectors.toList()));
-                    }
-                    devices.addAll(groups_devices.get(g));
-                }
-
+                devices.addAll(groups_devices.get(g));
             }
-
-            System.out.println(String.format("Usuario: %d, Dsipositivos: %s, Grupos: %s", userId, devices.stream().map((d) -> String.valueOf(d)).collect(Collectors.joining(",")), groups.stream().map((d) -> String.valueOf(d)).collect(Collectors.joining(","))));
 
             devicesPerUser.putIfAbsent(userId, devices.stream().distinct().collect(Collectors.toList()).size());
         }
+        setCalculating(false);
     }
 
     private void addObject(long deviceId, BaseModel object) {
@@ -487,4 +487,12 @@ public class CacheManager implements BroadcastInterface {
     public int getDevicesPerUser(long userId) {
         return devicesPerUser.containsKey(userId) ? devicesPerUser.get(userId) : 0;
     }
+
+    public boolean isCalculating() {
+        return calculating;
+    }
+
+    public void setCalculating(boolean calculating) {
+        this.calculating = calculating;
+    }        
 }
