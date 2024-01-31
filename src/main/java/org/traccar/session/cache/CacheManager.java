@@ -55,6 +55,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.traccar.api.AsyncSocket;
 import org.traccar.model.Permission;
@@ -87,7 +88,7 @@ public class CacheManager implements BroadcastInterface {
     private boolean calculating;
 
     @Inject
-    public CacheManager(Config config, Storage storage, BroadcastService broadcastService) throws StorageException {
+    public CacheManager(Config config, Storage storage, BroadcastService broadcastService) throws StorageException, InterruptedException {
         this.config = config;
         this.storage = storage;
         this.broadcastService = broadcastService;
@@ -308,13 +309,9 @@ public class CacheManager implements BroadcastInterface {
         });
     }
 
-    private void recalculateDevices() throws StorageException {
+    private void recalculateDevices() throws StorageException, InterruptedException {
         System.out.println("invalidating users");
-        if(isCalculating()) {
-            System.out.println("Already calculating");
-            return;
-        }
-        setCalculating(true);
+                
         List<Permission> user_devices = storage.getPermissions(User.class, Device.class);
         List<Permission> user_group = storage.getPermissions(User.class, Group.class);
         Map<Long, List<Long>> groups_devices = new HashMap<>();
@@ -347,10 +344,19 @@ public class CacheManager implements BroadcastInterface {
             }
 
             devicesPerUser.putIfAbsent(userId, devices.stream().distinct().collect(Collectors.toList()).size());
-        }
-        setCalculating(false);
+        }        
     }
 
+    public void invalidateCalculationDevices(){
+        try {            
+            recalculateDevices();
+        } catch (StorageException ex) {
+            java.util.logging.Logger.getLogger(CacheManager.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InterruptedException ex) {
+            java.util.logging.Logger.getLogger(CacheManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
     private void addObject(long deviceId, BaseModel object) {
         deviceCache.computeIfAbsent(new CacheKey(object), k -> new CacheValue(object)).retain(deviceId);
     }
