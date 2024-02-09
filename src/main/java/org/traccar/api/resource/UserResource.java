@@ -16,7 +16,6 @@
 package org.traccar.api.resource;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import org.traccar.api.BaseObjectResource;
 import org.traccar.config.Config;
 import org.traccar.helper.LogAction;
@@ -40,13 +39,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import javax.ws.rs.PUT;
 import javax.ws.rs.PathParam;
 import org.json.JSONObject;
 import org.traccar.api.AsyncSocket;
-import org.traccar.model.Device;
 import org.traccar.model.ExtraMail;
 import org.traccar.model.ExtraPhone;
 import org.traccar.session.cache.CacheManager;
@@ -260,7 +257,7 @@ public class UserResource extends BaseObjectResource<User> {
                 new Columns.Exclude("id"),
                 new Condition.Equals("id", user.getId())));
         }
-        
+        System.out.println(cacheManager.getSocketsLogged().get(id));
         for(AsyncSocket soc : cacheManager.getSocketsLogged().get(id)){
             soc.onUpdateCustom(obj);
         }

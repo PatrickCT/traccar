@@ -61,4 +61,8 @@ public class Maintenance extends ExtendedModel {
         this.period = period;
     }
 
+    @Override
+    public String toString() {
+        return "Maintenance{" + "name=" + name + ", type=" + type + ", start=" + start + ", period=" + period + '}';
+    }    
 }

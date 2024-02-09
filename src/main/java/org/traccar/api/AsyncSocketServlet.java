@@ -39,7 +39,7 @@ public class AsyncSocketServlet extends JettyWebSocketServlet {
     private final ObjectMapper objectMapper;
     private final ConnectionManager connectionManager;
     private final Storage storage;
-    
+
     @Inject
     private CacheManager cacheManager;
 
@@ -59,13 +59,13 @@ public class AsyncSocketServlet extends JettyWebSocketServlet {
             if (req.getSession() != null) {
                 Long userId = (Long) ((HttpSession) req.getSession()).getAttribute(SessionResource.USER_ID_KEY);
                 if (userId != null) {
-                    AsyncSocket soc = new AsyncSocket(objectMapper, connectionManager, storage, userId);
-                    if(!cacheManager.getSocketsLogged().containsKey(userId)){
+                    AsyncSocket soc = new AsyncSocket(objectMapper, connectionManager, storage, userId, cacheManager);
+                    if (!cacheManager.getSocketsLogged().containsKey(userId)) {
                         System.out.println("create soc list");
-                        cacheManager.getSocketsLogged().put(userId, new ArrayList<AsyncSocket>());
+                        cacheManager.getSocketsLogged().put(userId, new ArrayList<>());
                     }
                     System.out.println("add soc");
-                    cacheManager.getSocketsLogged().get(userId).add(soc);
+                    cacheManager.getSocketsLogged().get(userId).add(soc);                    
                     return soc;
                 }
             }

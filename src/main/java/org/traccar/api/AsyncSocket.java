@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import org.json.JSONObject;
+import org.traccar.session.cache.CacheManager;
 
 public class AsyncSocket extends WebSocketAdapter implements ConnectionManager.UpdateListener {
 
@@ -45,14 +46,16 @@ public class AsyncSocket extends WebSocketAdapter implements ConnectionManager.U
 
     private final ObjectMapper objectMapper;
     private final ConnectionManager connectionManager;
+    private final CacheManager cacheManager;
     private final Storage storage;
     private final long userId;
 
-    public AsyncSocket(ObjectMapper objectMapper, ConnectionManager connectionManager, Storage storage, long userId) {
+    public AsyncSocket(ObjectMapper objectMapper, ConnectionManager connectionManager, Storage storage, long userId, CacheManager cacheManager) {
         this.objectMapper = objectMapper;
         this.connectionManager = connectionManager;
         this.storage = storage;
         this.userId = userId;
+        this.cacheManager = cacheManager;
     }
 
     @Override
@@ -72,7 +75,7 @@ public class AsyncSocket extends WebSocketAdapter implements ConnectionManager.U
     @Override
     public void onWebSocketClose(int statusCode, String reason) {
         super.onWebSocketClose(statusCode, reason);
-
+        this.cacheManager.getSocketsLogged().get(userId).remove(this);
         connectionManager.removeListener(userId, this);
     }
 
@@ -111,7 +114,7 @@ public class AsyncSocket extends WebSocketAdapter implements ConnectionManager.U
             }
         }
     }
-    
+
     private void sendCustomData(Map<String, String> data) {
         if (isConnected()) {
             try {
@@ -121,7 +124,7 @@ public class AsyncSocket extends WebSocketAdapter implements ConnectionManager.U
             }
         }
     }
-    
+
     public void onUpdateCustom(JSONObject obj) {
         Map<String, String> data = new HashMap<>();
         data.put("custom", obj.toString());
