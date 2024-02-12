@@ -21,8 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpPut;
@@ -305,6 +303,10 @@ public class GenericUtils {
 
     public static Date dateToUTC(Date date) {
         return new Date(date.getTime() - Calendar.getInstance().getTimeZone().getOffset(date.getTime()));
+    }
+    
+    public static Date utcToDate(Date utcDate) {
+        return new Date(utcDate.getTime() + Calendar.getInstance().getTimeZone().getOffset(utcDate.getTime()));
     }
 
     public static String genericPOST(String url, String json, Map<String, Object> headers) throws IOException {
