@@ -9,8 +9,10 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -28,11 +30,13 @@ import org.json.JSONObject;
 import org.traccar.api.BaseObjectResource;
 import org.traccar.config.Config;
 import org.traccar.model.Device;
+import org.traccar.model.Geofence;
 import org.traccar.model.HojaSalida;
 import org.traccar.model.HoraSalida;
 import org.traccar.model.Itinerario;
 import org.traccar.model.Salida;
 import org.traccar.model.Ticket;
+import org.traccar.model.Tramo;
 import org.traccar.model.User;
 import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
@@ -40,6 +44,7 @@ import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
+import org.traccar.utils.GenericUtils;
 
 /**
  *
@@ -119,104 +124,133 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
             @QueryParam("from") Date from,
             @QueryParam("to") Date to) throws StorageException {
 
-        JSONObject obj = new JSONObject();
-        HojaSalida sheet = storage.getObject(HojaSalida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-            {
-                add(new Condition.Equals("valid", true));
-                add(new Condition.Between("day", "from", from, "to", to));
-            }
-        })
-        ));
-        if (sheet == null) {
-            Salida salida = storage.getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+        JSONArray objs = new JSONArray();
+        for (Date day : GenericUtils.getDatesBetween(from, to)) {
+            JSONObject obj = new JSONObject();
+            //1 encontrar el itinerario
+            HojaSalida sheet = storage.getObject(HojaSalida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("valid", true));
-                    add(new Condition.Equals("deviceId", deviceId));
-                    add(new Condition.Between("date", "from", from, "to", to));
+                    add(new Condition.Equals("Date(day)", day));
                 }
             })
             ));
+            if (sheet == null) {
+                Salida salida = storage.getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                    {
+                        add(new Condition.Equals("valid", true));
+                        add(new Condition.Equals("deviceId", deviceId));
+                        add(new Condition.Equals("Date(tc_salidas.date)", day));
+                        //add(new Condition.Between("date", "from", from, "to", to));
+                    }
+                })
+                ));
 
-            if (salida == null) {
-                obj.append("deviceId", 0);
-                obj.append("device", "");
-                return Response.ok(obj.toMap()).build();
-            }
-
-            sheet = new HojaSalida();
-            sheet.setDeviceId(deviceId);
-            sheet.setObservations("");
-            sheet.setScheduleId(salida.getScheduleId());
-            sheet.setDay(from);
-            sheet.setValid(true);
-            sheet.setId(storage.addObject(sheet, new Request(new Columns.Exclude("id"))));
-        }
-
-        obj.append("deviceId", deviceId);
-        obj.append("device", ((Device) ObjectUtils.defaultIfNull(cacheManager.getObject(Device.class, deviceId), storage.getObject(HojaSalida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-            {
-                add(new Condition.Equals("id", deviceId));
-            }
-        })
-        )))).getName());
-        obj.put("observations", sheet.getObservations());
-        final HojaSalida s = sheet;
-        Itinerario schedule = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-            {
-                add(new Condition.Equals("id", s.getScheduleId()));
-            }
-        })
-        ));
-        List<HoraSalida> horas_ida = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule.getHorasId()))).getName())));
-        Itinerario schedule_rel = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-            {
-                add(new Condition.Equals("horasIdRel", schedule.getHorasId()));
-            }
-        })
-        ));
-        List<HoraSalida> horas_vuelta = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule_rel.getHorasId()))).getName())));
-
-        List<Salida> salidas_ida = storage.getObjects(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-            {
-                add(new Condition.Equals("valid", true));
-                add(new Condition.Equals("deviceId", deviceId));
-                add(new Condition.Between("date", "from", from, "to", to));
-                add(new Condition.Equals("scheduleId", schedule.getId()));
-            }
-        })
-        ));
-
-        List<Salida> salidas_vuelta = storage.getObjects(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-            {
-                add(new Condition.Equals("valid", true));
-                add(new Condition.Equals("deviceId", deviceId));
-                add(new Condition.Between("date", "from", from, "to", to));
-                add(new Condition.Equals("scheduleId", schedule.getId()));
-            }
-        })
-        ));
-
-        obj.put("hours", new JSONArray());
-        for (int i = 0; i < horas_ida.size(); i++) {
-            final int index = i;  // Create a final variable
-            ((JSONArray) obj.get("hours")).put(new JSONObject() {
-                {
-                    put("forward", new JSONObject() {
-                        {
-                            append("expected", horas_ida.get(index) != null ? horas_ida.get(index).getHour() : null);
-                            append("difference", (salidas_ida.get(index) != null && salidas_ida.get(index) != null) ? Duration.between(horas_ida.get(index).getHour().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime(), salidas_ida.get(index).getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()) : null);
-                        }
-                    });
-                    put("backward", new JSONObject() {
-                        {
-                            append("expected", horas_vuelta.get(index) != null ? horas_vuelta.get(index).getHour() : null);
-                            append("difference", (salidas_vuelta.get(index) != null && salidas_vuelta.get(index) != null) ? Duration.between(horas_vuelta.get(index).getHour().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime(), salidas_vuelta.get(index).getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime()) : null);
-                        }
-                    });
+                if (salida == null) {
+                    obj.append("deviceId", 0);
+                    obj.append("device", "");
+                    return Response.ok(obj.toMap()).build();
                 }
-            });
+
+                sheet = new HojaSalida();
+                sheet.setDeviceId(deviceId);
+                sheet.setObservations("");
+                sheet.setScheduleId(salida.getScheduleId());
+                sheet.setDay(from);
+                sheet.setValid(true);
+                sheet.setId(storage.addObject(sheet, new Request(new Columns.Exclude("id"))));
+            }
+
+            //itinerario = sheet.getScheduleId();
+            //2 encontrar las horas de ese itinerario
+            final HojaSalida s = sheet;
+            Itinerario schedule = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                {
+                    add(new Condition.Equals("id", s.getScheduleId()));
+                }
+            })
+            ));
+            List<HoraSalida> horas_ida = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule.getHorasId()))).getName())));
+            Itinerario schedule_rel = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                {
+                    add(new Condition.Equals("horasIdRel", schedule.getHorasId()));
+                }
+            })
+            ));
+            List<HoraSalida> horas_vuelta = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule_rel.getHorasId()))).getName())));
+
+            //3 encontrar las geocercas de ese itinerario(tramos)
+            List<Tramo> tramos_ida = cacheManager.getStorage().getObjects(Tramo.class, new Request(new Columns.All(), new Condition.Permission(Itinerario.class, schedule.getId(), Tramo.class)));
+            List<Tramo> tramos_vuelta = cacheManager.getStorage().getObjects(Tramo.class, new Request(new Columns.All(), new Condition.Permission(Itinerario.class, schedule_rel.getId(), Tramo.class)));
+            //4 por cada geocerca encontrar los tickets
+
+            //datos del objeto
+            Device device = cacheManager.getObject(Device.class, deviceId);
+            if (device == null) {
+                device = storage.getObject(Device.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                    {
+                        add(new Condition.Equals("id", deviceId));
+                    }
+                })
+                ));
+            }
+            obj.put("device", device.getName());
+            obj.put("route", schedule.getName());
+            obj.put("going", new JSONArray());
+            obj.put("return", new JSONArray());
+            Map<Long, String> geofencesNames = new HashMap<>();
+            for (HoraSalida ida : horas_ida) {
+                JSONObject going = new JSONObject();
+                going.put("hour", ida.getHour());
+                going.put("tickets", new JSONArray());
+                Salida salida = storage.getObject(Salida.class,
+                        new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                            {
+                                add(new Condition.Equals("scheduleId", s.getScheduleId()));
+                                add(new Condition.Equals("deviceId", s.getDeviceId()));
+                                add(new Condition.Equals("date", ida.getHour()));
+                                add(new Condition.Equals("valid", true));
+                            }
+                        })));
+
+                if (salida != null) {
+                    (going.getJSONArray("tickets")).putAll(storage.getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        {
+                            add(new Condition.Equals("salidaId", salida.getId()));
+                        }
+                    }))));
+                }
+
+                obj.getJSONArray("going").put(going);
+            }
+            
+            for (HoraSalida vuelta : horas_vuelta) {
+                JSONObject going = new JSONObject();
+                going.put("hour", vuelta.getHour());
+                going.put("tickets", new JSONArray());
+                Salida salida = storage.getObject(Salida.class,
+                        new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                            {
+                                add(new Condition.Equals("scheduleId", s.getScheduleId()));
+                                add(new Condition.Equals("deviceId", s.getDeviceId()));
+                                add(new Condition.Equals("date", vuelta.getHour()));
+                                add(new Condition.Equals("valid", true));
+                            }
+                        })));
+
+                if (salida != null) {
+                    (going.getJSONArray("tickets")).putAll(storage.getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        {
+                            add(new Condition.Equals("salidaId", salida.getId()));
+                        }
+                    }))));
+                }
+
+                obj.getJSONArray("return").put(going);
+            }
+            objs.put(obj);
         }
 
-        return Response.ok(obj.toMap()).build();
+        return Response.ok(objs.toString()).build();
     }
 }

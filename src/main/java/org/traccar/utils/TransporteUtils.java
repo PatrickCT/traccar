@@ -21,6 +21,7 @@ import org.traccar.api.resource.DeviceResource;
 import org.traccar.model.Device;
 import org.traccar.model.Driver;
 import org.traccar.model.Event;
+import org.traccar.model.Excuse;
 import org.traccar.model.Geofence;
 import org.traccar.model.Group;
 import org.traccar.model.HoraSalida;
@@ -118,7 +119,7 @@ public class TransporteUtils {
                     List<HoraSalida> horas = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getHorasId()))).getName())));
 
                     itinerarioSelected.getAttributes().put("horaFinal", horas.get(0).getHour());
-                    System.out.println("iti sel: "+itinerarioSelected);
+                    System.out.println("iti sel: " + itinerarioSelected);
                 } else {
                     System.out.println("n salida del dia");
                     boolean back = false;
@@ -144,7 +145,7 @@ public class TransporteUtils {
                     }
                     List<HoraSalida> horas = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getHorasId()))).getName())));
 
-                    itinerarioSelected.getAttributes().put("horaFinal", horas.get((int)(salidas_today.size()/2)).getHour());
+                    itinerarioSelected.getAttributes().put("horaFinal", horas.get((int) (salidas_today.size() / 2)).getHour());
                     System.out.println(itinerarioSelected);
                 }
                 //si no
@@ -188,6 +189,11 @@ public class TransporteUtils {
             //crear nueva salida
             Date today = new Date();
             today = time;
+            if (group.hasAttribute("vp") && (boolean) group.getAttributes().get("vp") == true){
+                Date hourDate = GenericUtils.utcToDate((Date)itinerarioSelected.getAttributes().get("horaFinal"));
+                today.setHours(hourDate.getHours());
+                today.setMinutes(hourDate.getMinutes());                
+            }
             today.setSeconds(0);
             Date endDate = today;
             Salida newSalida = new Salida();
@@ -379,15 +385,15 @@ public class TransporteUtils {
             boolean isFirstTicket = ticket.getId() == tickets.get(0).getId();
 
             boolean isLastTicket = ticket.getId() == tickets.get(tickets.size() - 1).getId();
-            
+
             int time = 29;
             Group device_group = cacheManager.getStorage().getObject(Group.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("id", salida.getGroupId()));
                 }
             })));
-            
-            if(device_group != null && device_group.getAttributes().containsKey("vp") && (boolean) device_group.getAttributes().get("vp") == true){
+
+            if (device_group != null && device_group.getAttributes().containsKey("vp") && (boolean) device_group.getAttributes().get("vp") == true) {
                 time = 120;
             }
 
@@ -402,13 +408,31 @@ public class TransporteUtils {
                     salida.setValid(false);
                     salida.setFinished(true);
                 }
-
+                GenericUtils.isDateBetween(GenericUtils.dateToUTC(realTime), realTime, realTime);
                 Tramo tramo = cacheManager.getStorage().getObject(Tramo.class, new Request(new Columns.All(), new Condition.Equals("id", ticket.getTramo())));
+                int punishmentCost = tramo.getPunishment();
                 if (tramo != null && minutesDifference > 0) {
                     if (minutesDifference < 0) {
                         ticket.setPunishment(0);
                     } else {
-                        ticket.setPunishment((int) (minutesDifference * tramo.getPunishment()));
+                        if (time == 120) {
+                            List<Excuse> excusas = cacheManager.getStorage().getObjects(Excuse.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                                {
+                                    add(new Condition.Equals("availability", "curdate()"));
+                                }
+                            })));
+                            if(!excusas.isEmpty()){
+                                for(Excuse excusa : excusas){
+                                    if(GenericUtils.isDateBetween(GenericUtils.dateToUTC(realTime), excusa.getFrom(), excusa.getTo())){
+                                        punishmentCost = 0;
+                                        ticket.setExcuse(excusa.getDesc());
+                                        ticket.setGlobalExcuse(true);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        ticket.setPunishment((int) (minutesDifference * punishmentCost));
                     }
 
                 } else {
@@ -435,7 +459,7 @@ public class TransporteUtils {
 
             if (isLastTicket) {
                 salida.setFinished(true);
-                if(ticket.getExitTime() == null){
+                if (ticket.getExitTime() == null) {
                     ticket.setExitTime(realTime);
                 }
             }
@@ -896,8 +920,8 @@ public class TransporteUtils {
     }
 
     /**
-     * Revisar si existe unsa salida pendiente, del mismo dispositivo en la misma geocerca.
-     * Cancelar la salida, es un falso
+     * Revisar si existe unsa salida pendiente, del mismo dispositivo en la
+     * misma geocerca. Cancelar la salida, es un falso
      *
      * @param geofenceId id de la geocerca donde se inicia la salida.
      * @param deviceId The second integer.

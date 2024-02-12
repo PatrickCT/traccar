@@ -23,6 +23,8 @@ public class Ticket extends BaseModel {
     private int punishment;
     private boolean passed;
     private long tramo;
+    private String excuse;
+    private boolean globalExcuse;
 
     public long getSalidaId() {
         return salidaId;
@@ -95,10 +97,25 @@ public class Ticket extends BaseModel {
     public void setTramo(long tramo) {
         this.tramo = tramo;
     }
-        
+
+    public String getExcuse() {
+        return excuse;
+    }
+
+    public void setExcuse(String excuse) {
+        this.excuse = excuse;
+    }
+
+    public boolean getGlobalExcuse() {
+        return globalExcuse;
+    }
+
+    public void setGlobalExcuse(boolean globalExcuse) {
+        this.globalExcuse = globalExcuse;
+    }
+
     @Override
     public String toString() {
-        return "Ticket{" + "salidaId=" + salidaId + ", geofenceId=" + geofenceId + ", expectedTime=" + expectedTime + ", enterTime=" + enterTime + ", exitTime=" + exitTime + ", difference=" + difference + ", punishment=" + punishment + ", passed=" + passed + '}';
-    }
-       
+        return "Ticket{" + "salidaId=" + salidaId + ", geofenceId=" + geofenceId + ", expectedTime=" + expectedTime + ", enterTime=" + enterTime + ", exitTime=" + exitTime + ", difference=" + difference + ", punishment=" + punishment + ", passed=" + passed + ", tramo=" + tramo + ", excuse=" + excuse + ", globalExcuse=" + globalExcuse + '}';
+    }                    
 }
