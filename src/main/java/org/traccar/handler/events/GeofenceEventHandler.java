@@ -114,7 +114,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 if (g != null && g.hasAttribute("groupChange")) {
                     Device d = cacheManager.getObject(Device.class, position.getDeviceId());
                     d.setGroupId(Long.parseLong(String.valueOf(g.getAttributes().get("groupChange"))));
-
+                    System.out.println(d);
                     try {
                         cacheManager.getStorage().updateObject(d, new Request(
                                 new Columns.Exclude("id"),
@@ -122,6 +122,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
                         cacheManager.invalidate(Device.class, d.getId());
                         LogAction.edit(0, d);
                     } catch (StorageException ex) {
+                        ex.printStackTrace();
                         Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }

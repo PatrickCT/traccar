@@ -59,5 +59,9 @@ public class HojaSalida extends BaseModel {
     public void setValid(boolean valid) {
         this.valid = valid;
     }
-    
+
+    @Override
+    public String toString() {
+        return "HojaSalida{" + "deviceId=" + deviceId + ", scheduleId=" + scheduleId + ", day=" + day + ", observations=" + observations + ", valid=" + valid + '}';
+    }    
 }

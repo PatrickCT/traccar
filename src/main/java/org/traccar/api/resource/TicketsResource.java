@@ -4,6 +4,7 @@
  */
 package org.traccar.api.resource;
 
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -128,28 +129,16 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
         for (Date day : GenericUtils.getDatesBetween(from, to)) {
             JSONObject obj = new JSONObject();
             //1 encontrar el itinerario
-            HojaSalida sheet = storage.getObject(HojaSalida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                {
-                    add(new Condition.Equals("valid", true));
-                    add(new Condition.Equals("Date(day)", day));
-                }
-            })
-            ));
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            System.out.println(String.format("select * from tc_hojas where valid = true and date(day ) = '%s' and deviceid = %s", sdf.format(day), String.valueOf(deviceId)));
+            HojaSalida sheet = storage.getObjectsByQuery(HojaSalida.class, String.format("select * from tc_hojas where valid = true and date(day) = '%s' and deviceid = %s", sdf.format(day), String.valueOf(deviceId))).stream().findFirst().orElse(null);
             if (sheet == null) {
-                Salida salida = storage.getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                    {
-                        add(new Condition.Equals("valid", true));
-                        add(new Condition.Equals("deviceId", deviceId));
-                        add(new Condition.Equals("Date(tc_salidas.date)", day));
-                        //add(new Condition.Between("date", "from", from, "to", to));
-                    }
-                })
-                ));
+                System.out.println(String.format("select * from tc_salidas where valid = true and date(date) = '%s' and deviceid = %s", sdf.format(day), String.valueOf(deviceId)));
+                Salida salida = storage.getObjectsByQuery(Salida.class, String.format("select * from tc_salidas where valid = true and date(date) = '%s' and deviceid = %s", sdf.format(day), String.valueOf(deviceId))).stream().findFirst().orElse(null);
 
                 if (salida == null) {
-                    obj.append("deviceId", 0);
-                    obj.append("device", "");
-                    return Response.ok(obj.toMap()).build();
+                    obj.put("day", day);
+                    continue;
                 }
 
                 sheet = new HojaSalida();
@@ -163,6 +152,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
 
             //itinerario = sheet.getScheduleId();
             //2 encontrar las horas de ese itinerario
+            System.out.println(sheet);
             final HojaSalida s = sheet;
             Itinerario schedule = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -170,6 +160,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                 }
             })
             ));
+            System.out.println(schedule);
             List<HoraSalida> horas_ida = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule.getHorasId()))).getName())));
             Itinerario schedule_rel = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -178,12 +169,14 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
             })
             ));
             List<HoraSalida> horas_vuelta = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule_rel.getHorasId()))).getName())));
-
+            System.out.println(horas_ida);
+            System.out.println(horas_vuelta);
             //3 encontrar las geocercas de ese itinerario(tramos)
             List<Tramo> tramos_ida = cacheManager.getStorage().getObjects(Tramo.class, new Request(new Columns.All(), new Condition.Permission(Itinerario.class, schedule.getId(), Tramo.class)));
             List<Tramo> tramos_vuelta = cacheManager.getStorage().getObjects(Tramo.class, new Request(new Columns.All(), new Condition.Permission(Itinerario.class, schedule_rel.getId(), Tramo.class)));
             //4 por cada geocerca encontrar los tickets
-
+            System.out.println(tramos_ida);
+            System.out.println(tramos_vuelta);
             //datos del objeto
             Device device = cacheManager.getObject(Device.class, deviceId);
             if (device == null) {
@@ -194,10 +187,12 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                 })
                 ));
             }
+            System.out.println(device);
             obj.put("device", device.getName());
             obj.put("route", schedule.getName());
             obj.put("going", new JSONArray());
             obj.put("return", new JSONArray());
+            obj.put("day", day);
             Map<Long, String> geofencesNames = new HashMap<>();
             for (HoraSalida ida : horas_ida) {
                 JSONObject going = new JSONObject();
@@ -218,12 +213,25 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                         {
                             add(new Condition.Equals("salidaId", salida.getId()));
                         }
-                    }))));
+                    }))).stream().map((ticket) -> new JSONObject() {
+                        {
+                            put("id", ticket.getId());
+                            put("salidaId", ticket.getSalidaId());
+                            put("geofenceId", ticket.getGeofenceId());
+                            put("expectedTime", ticket.getExpectedTime());
+                            put("enterTime", ticket.getEnterTime());
+                            put("difference", ticket.getDifference());
+                            put("punishment", ticket.getPunishment());
+                            put("tramo", ticket.getTramo());
+                            put("excuse", ticket.getExcuse());
+                            put("globalExcuse", ticket.getGlobalExcuse());                            
+                        }
+                    }).collect(Collectors.toList()));
                 }
 
                 obj.getJSONArray("going").put(going);
             }
-            
+
             for (HoraSalida vuelta : horas_vuelta) {
                 JSONObject going = new JSONObject();
                 going.put("hour", vuelta.getHour());
@@ -243,7 +251,20 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                         {
                             add(new Condition.Equals("salidaId", salida.getId()));
                         }
-                    }))));
+                    }))).stream().map((ticket) -> new JSONObject() {
+                        {
+                            put("id", ticket.getId());
+                            put("salidaId", ticket.getSalidaId());
+                            put("geofenceId", ticket.getGeofenceId());
+                            put("expectedTime", ticket.getExpectedTime());
+                            put("enterTime", ticket.getEnterTime());
+                            put("difference", ticket.getDifference());
+                            put("punishment", ticket.getPunishment());
+                            put("tramo", ticket.getTramo());
+                            put("excuse", ticket.getExcuse());
+                            put("globalExcuse", ticket.getGlobalExcuse());                            
+                        }
+                    }).collect(Collectors.toList()));
                 }
 
                 obj.getJSONArray("return").put(going);

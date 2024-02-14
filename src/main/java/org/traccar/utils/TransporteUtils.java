@@ -188,11 +188,12 @@ public class TransporteUtils {
 
             //crear nueva salida
             Date today = new Date();
-            today = time;
-            if (group.hasAttribute("vp") && (boolean) group.getAttributes().get("vp") == true){
-                Date hourDate = GenericUtils.utcToDate((Date)itinerarioSelected.getAttributes().get("horaFinal"));
+            if (group.hasAttribute("vp") && (boolean) group.getAttributes().get("vp") == true) {
+                Date hourDate = (Date) itinerarioSelected.getAttributes().get("horaFinal");
                 today.setHours(hourDate.getHours());
-                today.setMinutes(hourDate.getMinutes());                
+                today.setMinutes(hourDate.getMinutes());
+            } else {
+                today = time;
             }
             today.setSeconds(0);
             Date endDate = today;
@@ -319,29 +320,6 @@ public class TransporteUtils {
                 }
             })));
 
-//            if (salida != null) {
-//
-//                if (GenericUtils.isSameDate(salida.getDate(), new Date())) {
-//
-//                    if (salida.getEndingDate().getTime() <= new Date().getTime()) {
-//
-//                        salida.setFinished(true);
-//                        storage.updateObject(salida, new Request(
-//                                new Columns.Exclude("id"),
-//                                new Condition.Equals("id", salida.getId())));
-//                        return false;
-//                    } else {
-//                        return true;
-//                    }
-//                } else {
-//
-//                    salida.setFinished(true);
-//                    storage.updateObject(salida, new Request(
-//                            new Columns.Exclude("id"),
-//                            new Condition.Equals("id", salida.getId())));
-//                    return false;
-//                }
-//            }
             return salida != null;
         } catch (StorageException ex) {
             ex.printStackTrace();
@@ -400,6 +378,7 @@ public class TransporteUtils {
             if (first) {
                 ticket.setEnterTime(realTime);
                 long differenceInMillis = realTime.getTime() - ticket.getExpectedTime().getTime();
+                long secondsDifference = differenceInMillis / 1000;
                 long minutesDifference = differenceInMillis / (1000 * 60);
                 LOGGER.info("Revisar tiempo");
                 LOGGER.info("minutesDifference " + minutesDifference);
@@ -408,37 +387,94 @@ public class TransporteUtils {
                     salida.setValid(false);
                     salida.setFinished(true);
                 }
-                GenericUtils.isDateBetween(GenericUtils.dateToUTC(realTime), realTime, realTime);
                 Tramo tramo = cacheManager.getStorage().getObject(Tramo.class, new Request(new Columns.All(), new Condition.Equals("id", ticket.getTramo())));
                 int punishmentCost = tramo.getPunishment();
-                if (tramo != null && minutesDifference > 0) {
-                    if (minutesDifference < 0) {
-                        ticket.setPunishment(0);
-                    } else {
-                        if (time == 120) {
-                            List<Excuse> excusas = cacheManager.getStorage().getObjects(Excuse.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                                {
-                                    add(new Condition.Equals("availability", "curdate()"));
-                                }
-                            })));
-                            if(!excusas.isEmpty()){
-                                for(Excuse excusa : excusas){
-                                    if(GenericUtils.isDateBetween(GenericUtils.dateToUTC(realTime), excusa.getFrom(), excusa.getTo())){
-                                        punishmentCost = 0;
-                                        ticket.setExcuse(excusa.getDesc());
-                                        ticket.setGlobalExcuse(true);
-                                        break;
-                                    }
+
+                if (tramo != null) {
+                    //checar si es vp
+                    if (time == 120) {
+                        List<Excuse> excusas = cacheManager.getStorage().getObjectsByQuery(Excuse.class, String.format("select * from tc_excuses where date(tc_excuses.availability) = curdate()"));
+                        System.out.println(excusas);
+                        if (!excusas.isEmpty()) {
+                            for (Excuse excusa : excusas) {
+                                if (GenericUtils.isDateBetween(realTime, excusa.getApplyFrom(), excusa.getApplyTo())) {
+                                    punishmentCost = 0;
+                                    ticket.setExcuse(excusa.getDescription());
+                                    ticket.setGlobalExcuse(true);
+                                    break;
                                 }
                             }
-                        }
-                        ticket.setPunishment((int) (minutesDifference * punishmentCost));
-                    }
+                        } else {
+                            //si no hay excusas revisar adelantados, atrasados
 
+                            int multa_atrasado = Integer.parseInt(String.valueOf(device_group.getAttributes().getOrDefault("atrasado", punishmentCost)));
+                            int multa_adelantado = Integer.parseInt(String.valueOf(device_group.getAttributes().getOrDefault("adelentado", punishmentCost)));
+                            int tiempo_atrasado = Integer.parseInt(String.valueOf(device_group.getAttributes().getOrDefault("tiempo_atrasado", 0)));
+                            int tiempo_adelantado = Integer.parseInt(String.valueOf(device_group.getAttributes().getOrDefault("tiempo_adelantado", 0)));
+                            int segundos_tolerancia = Integer.parseInt(String.valueOf(device_group.getAttributes().getOrDefault("tolerancia_atrasado", 0)));
+
+                            //adelanto
+                            if (secondsDifference >= tiempo_adelantado * 60) {
+                                punishmentCost = multa_adelantado;
+                            }
+
+                            // atrasado
+                            if (secondsDifference >= ((tiempo_atrasado * 60) + segundos_tolerancia)) {  // 3 minutes and 16 seconds in milliseconds
+                                punishmentCost = multa_atrasado;
+                            }
+                        }
+                    } else {
+                        if (minutesDifference < 0) {
+                            ticket.setPunishment(0);
+                        } else {
+                            ticket.setPunishment((int) (minutesDifference * punishmentCost));
+                        }
+                    }
                 } else {
                     ticket.setPunishment(0);
                 }
 
+//                if (tramo != null && minutesDifference > 0) {
+//                    if (minutesDifference < 0) {
+//                        ticket.setPunishment(0);
+//                    } else {
+//                        if (time == 120) {
+//                            List<Excuse> excusas = cacheManager.getStorage().getObjectsByQuery(Excuse.class, String.format("select * from tc_excuses where date(tc_excuses.availability) = curdate()"));
+//                            System.out.println(excusas);
+//                            if (!excusas.isEmpty()) {
+//                                for (Excuse excusa : excusas) {
+//                                    if (GenericUtils.isDateBetween(realTime, excusa.getApplyFrom(), excusa.getApplyTo())) {
+//                                        punishmentCost = 0;
+//                                        ticket.setExcuse(excusa.getDescription());
+//                                        ticket.setGlobalExcuse(true);
+//                                        break;
+//                                    }
+//                                }
+//                            } else {
+//                                //si no hay excusas revisar adelantados, atrasados
+//                                int multa_atrasado = device_group.getAttributes().getOrDefault("atrasado", punishmentCost);
+//                                int multa_adelantado = device_group.getAttributes().getOrDefault("adelentado", punishmentCost);
+//                                int tiempo_atrasado = device_group.getAttributes().getOrDefault("tiempo_atrasado", 0);
+//                                int tiempo_adelantado = device_group.getAttributes().getOrDefault("tiempo_adelantado", 0);
+//                                int segundos_tolerancia = device_group.getAttributes().getOrDefault("tolerancia_atrasado", 0);
+//
+//                                //adelanto
+//                                if (secondsDifference >= tiempo_adelantado * 60) {
+//                                    punishmentCost = multa_adelantado;
+//                                }
+//
+//                                // atrasado
+//                                if (secondsDifference >= ((tiempo_atrasado * 60) + segundos_tolerancia)) {  // 3 minutes and 16 seconds in milliseconds
+//                                    punishmentCost = multa_atrasado;
+//                                }
+//                            }
+//                        }
+//                        ticket.setPunishment((int) (minutesDifference * punishmentCost));
+//                    }
+//
+//                } else {
+//                    ticket.setPunishment(0);
+//                }
                 LOGGER.info("Revisar tiempo 2");
                 LOGGER.info("minutesDifference " + minutesDifference);
                 if (minutesDifference >= time || minutesDifference < -time) {

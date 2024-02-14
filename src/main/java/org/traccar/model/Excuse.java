@@ -12,28 +12,44 @@ import org.traccar.storage.StorageName;
  * @author USER
  */
 @StorageName("tc_excuses")
-public class Excuse {
+public class Excuse extends BaseModel{
 
-    private String desc;
-    Date from;
-    Date to;
-    private Date availabilityDate;
+    private String description;
+    Date applyFrom;
+    Date applyTo;
+    private Date availability;
     private int route;
 
-    public String getDesc() {
-        return desc;
+    public String getDescription() {
+        return description;
     }
 
-    public void setDesc(String desc) {
-        this.desc = desc;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
-    public Date getAvailabilityDate() {
-        return availabilityDate;
+    public Date getApplyFrom() {
+        return applyFrom;
     }
 
-    public void setAvailabilityDate(Date availabilityDate) {
-        this.availabilityDate = availabilityDate;
+    public void setApplyFrom(Date applyFrom) {
+        this.applyFrom = applyFrom;
+    }
+
+    public Date getApplyTo() {
+        return applyTo;
+    }
+
+    public void setApplyTo(Date applyTo) {
+        this.applyTo = applyTo;
+    }
+
+    public Date getAvailability() {
+        return availability;
+    }
+
+    public void setAvailability(Date availability) {
+        this.availability = availability;
     }
 
     public int getRoute() {
@@ -44,24 +60,8 @@ public class Excuse {
         this.route = route;
     }
 
-    public Date getFrom() {
-        return from;
-    }
-
-    public void setFrom(Date from) {
-        this.from = from;
-    }
-
-    public Date getTo() {
-        return to;
-    }
-
-    public void setTo(Date to) {
-        this.to = to;
-    }
-
     @Override
     public String toString() {
-        return "Excuse{" + "desc=" + desc + ", from=" + from + ", to=" + to + ", availabilityDate=" + availabilityDate + ", route=" + route + '}';
-    }
+        return "Excuse{" + "description=" + description + ", applyFrom=" + applyFrom + ", applyTo=" + applyTo + ", availability=" + availability + ", route=" + route + '}';
+    }   
 }
