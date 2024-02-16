@@ -209,6 +209,10 @@ public class GenericUtils {
         LocalTime startRange = LocalTime.of(start[0], start[1]);
         LocalTime endRange = LocalTime.of(end[0], end[1]);
         LocalTime timeToCheck = LocalTime.of(current[0], current[1]);
+        
+//        System.out.println(startRange);
+//        System.out.println(endRange);
+//        System.out.println(timeToCheck);
 
         if (endRange.isBefore(startRange)) {
             // If the end time is before the start time, check if the time to check is after the start time
@@ -302,6 +306,7 @@ public class GenericUtils {
     }
 
     public static Date dateToUTC(Date date) {
+        System.out.println(new Date() + " to UTC");
         return new Date(date.getTime() - Calendar.getInstance().getTimeZone().getOffset(date.getTime()));
     }
     

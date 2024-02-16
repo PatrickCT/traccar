@@ -60,11 +60,9 @@ public class AsyncSocketServlet extends JettyWebSocketServlet {
                 Long userId = (Long) ((HttpSession) req.getSession()).getAttribute(SessionResource.USER_ID_KEY);
                 if (userId != null) {
                     AsyncSocket soc = new AsyncSocket(objectMapper, connectionManager, storage, userId, cacheManager);
-                    if (!cacheManager.getSocketsLogged().containsKey(userId)) {
-                        System.out.println("create soc list");
+                    if (!cacheManager.getSocketsLogged().containsKey(userId)) {                        
                         cacheManager.getSocketsLogged().put(userId, new ArrayList<>());
-                    }
-                    System.out.println("add soc");
+                    }                    
                     cacheManager.getSocketsLogged().get(userId).add(soc);                    
                     return soc;
                 }

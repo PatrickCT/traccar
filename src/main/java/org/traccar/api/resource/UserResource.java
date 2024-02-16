@@ -211,7 +211,7 @@ public class UserResource extends BaseObjectResource<User> {
     @PermitAll
     @GET
     public Response testById(@PathParam("id") long id) {
-        System.out.println("dev > test");
+//        System.out.println("dev > test");
         JSONObject obj = new JSONObject();
         obj.put("test", "xdxdxd");
         System.out.println(obj.toString());

@@ -310,7 +310,7 @@ public class CacheManager implements BroadcastInterface {
     }
 
     private void recalculateDevices() throws StorageException, InterruptedException {
-        System.out.println("invalidating users");
+//        System.out.println("invalidating users");
                 
         List<Permission> user_devices = storage.getPermissions(User.class, Device.class);
         List<Permission> user_group = storage.getPermissions(User.class, Group.class);

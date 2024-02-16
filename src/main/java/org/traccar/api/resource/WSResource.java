@@ -158,8 +158,8 @@ public class WSResource extends BaseResource {
 
                 }
             })));
-            System.out.println("test");
-            System.out.println(result);
+//            System.out.println("test");
+//            System.out.println(result);
             return Response.ok(result.toString()).build();
         } catch (StorageException ex) {
             Logger.getLogger(WSResource.class.getName()).log(Level.SEVERE, null, ex);

@@ -152,7 +152,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
 
             //itinerario = sheet.getScheduleId();
             //2 encontrar las horas de ese itinerario
-            System.out.println(sheet);
+//            System.out.println(sheet);
             final HojaSalida s = sheet;
             Itinerario schedule = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -160,7 +160,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                 }
             })
             ));
-            System.out.println(schedule);
+//            System.out.println(schedule);
             List<HoraSalida> horas_ida = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule.getHorasId()))).getName())));
             Itinerario schedule_rel = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -169,14 +169,14 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
             })
             ));
             List<HoraSalida> horas_vuelta = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule_rel.getHorasId()))).getName())));
-            System.out.println(horas_ida);
-            System.out.println(horas_vuelta);
+//            System.out.println(horas_ida);
+//            System.out.println(horas_vuelta);
             //3 encontrar las geocercas de ese itinerario(tramos)
             List<Tramo> tramos_ida = cacheManager.getStorage().getObjects(Tramo.class, new Request(new Columns.All(), new Condition.Permission(Itinerario.class, schedule.getId(), Tramo.class)));
             List<Tramo> tramos_vuelta = cacheManager.getStorage().getObjects(Tramo.class, new Request(new Columns.All(), new Condition.Permission(Itinerario.class, schedule_rel.getId(), Tramo.class)));
             //4 por cada geocerca encontrar los tickets
-            System.out.println(tramos_ida);
-            System.out.println(tramos_vuelta);
+//            System.out.println(tramos_ida);
+//            System.out.println(tramos_vuelta);
             //datos del objeto
             Device device = cacheManager.getObject(Device.class, deviceId);
             if (device == null) {
@@ -187,7 +187,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                 })
                 ));
             }
-            System.out.println(device);
+//            System.out.println(device);
             obj.put("device", device.getName());
             obj.put("route", schedule.getName());
             obj.put("going", new JSONArray());

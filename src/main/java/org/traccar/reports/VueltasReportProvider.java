@@ -68,14 +68,14 @@ public class VueltasReportProvider {
         sdf.setTimeZone(UserUtil.getTimezone(server, user));
 
         for (long groupid : groupIds) {
-            System.out.println("Grupo " + groupid);
+//            System.out.println("Grupo " + groupid);
             List<Subroute> subrutas = new ArrayList<>();
             try {
                 subrutas.addAll(storage.getObjects(Subroute.class, new Request(new Columns.All(), new Condition.Equals("groupId", groupid))));
             } catch (StorageException ex) {
                 Logger.getLogger(VueltasReportProvider.class.getName()).log(Level.SEVERE, null, ex);
             }
-            System.out.println("Subrutas del grupo " + groupid + ": " + subrutas);
+//            System.out.println("Subrutas del grupo " + groupid + ": " + subrutas);
             List<Itinerario> itinerarios = new ArrayList<>();
             for (Subroute subruta : subrutas) {
                 try {
@@ -84,9 +84,9 @@ public class VueltasReportProvider {
                     Logger.getLogger(VueltasReportProvider.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-            System.out.println("Itinerarios del grupo " + groupid + ": " + itinerarios);
+//            System.out.println("Itinerarios del grupo " + groupid + ": " + itinerarios);
             for (Date date : GenericUtils.getDatesBetween(from, to)) {
-                System.out.println(date);
+//                System.out.println(date);
                 for (Itinerario itinerario : itinerarios) {
                     VueltaReportItem vri = new VueltaReportItem();
                     vri.setItinerarioId((int) itinerario.getId());
@@ -96,7 +96,7 @@ public class VueltasReportProvider {
                         HoraSalida hora = storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerario.getHorasId())));
                         horas.addAll(storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", hora.getName()))));
 
-                        System.out.println("Tabla de horas \n\r " + horas);
+//                        System.out.println("Tabla de horas \n\r " + horas);
 
                         List<VueltaReportItem.VueltaDataItem> objs = new ArrayList<>();
 
@@ -131,7 +131,7 @@ public class VueltasReportProvider {
                                 for (Ticket ticket : tickets) {
                                     System.out.println(sdf.format(ticket.getExpectedTime()));
                                     if (!GenericUtils.isSameDate(calendar_date.getTime(), GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.HOUR_OF_DAY, -6))) {
-                                        System.out.println("Not same date");
+//                                        System.out.println("Not same date");
                                         continue;
                                     }
                                     var obj = vri.new VueltaDataItem();
@@ -139,7 +139,7 @@ public class VueltasReportProvider {
                                     obj.setSalida(0);
                                     obj.setDispositivo(0);
                                     obj.setAsignado(false);
-                                    System.out.println("Ticket encontrado " + ticket);
+//                                    System.out.println("Ticket encontrado " + ticket);
 
                                     Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                                         {
@@ -182,14 +182,14 @@ public class VueltasReportProvider {
         ArrayList<String> sheetNames = new ArrayList<>();
 
         for (long groupid : groupIds) {
-            System.out.println("Grupo " + groupid);
+//            System.out.println("Grupo " + groupid);
             List<Subroute> subrutas = new ArrayList<>();
             try {
                 subrutas.addAll(storage.getObjects(Subroute.class, new Request(new Columns.All(), new Condition.Equals("groupId", groupid))));
             } catch (StorageException ex) {
                 Logger.getLogger(VueltasReportProvider.class.getName()).log(Level.SEVERE, null, ex);
             }
-            System.out.println("Subrutas del grupo " + groupid + ": " + subrutas);
+//            System.out.println("Subrutas del grupo " + groupid + ": " + subrutas);
             List<Itinerario> itinerarios = new ArrayList<>();
             for (Subroute subruta : subrutas) {
                 try {
@@ -198,9 +198,9 @@ public class VueltasReportProvider {
                     Logger.getLogger(VueltasReportProvider.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-            System.out.println("Itinerarios del grupo " + groupid + ": " + itinerarios);
+//            System.out.println("Itinerarios del grupo " + groupid + ": " + itinerarios);
             for (Date date : GenericUtils.getDatesBetween(from, to)) {
-                System.out.println(date);
+//                System.out.println(date);
                 for (Itinerario itinerario : itinerarios) {
                     VueltaReportItem vri = new VueltaReportItem();
                     vri.setItinerarioId((int) itinerario.getId());
@@ -210,7 +210,7 @@ public class VueltasReportProvider {
                         HoraSalida hora = storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerario.getHorasId())));
                         horas.addAll(storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", hora.getName()))));
 
-                        System.out.println("Tabla de horas \n\r " + horas);
+//                        System.out.println("Tabla de horas \n\r " + horas);
 
                         List<VueltaReportItem.VueltaDataItem> objs = new ArrayList<>();
 
@@ -244,7 +244,7 @@ public class VueltasReportProvider {
                                 boolean added = false;
                                 for (Ticket ticket : tickets) {
                                     if (!GenericUtils.isSameDate(calendar_date.getTime(), GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.HOUR_OF_DAY, -6))) {
-                                        System.out.println("Not same date");
+//                                        System.out.println("Not same date");
                                         continue;
                                     }
                                     var obj = vri.new VueltaDataItem();
@@ -252,7 +252,7 @@ public class VueltasReportProvider {
                                     obj.setSalida(0);
                                     obj.setDispositivo(0);
                                     obj.setAsignado(false);
-                                    System.out.println("Ticket encontrado " + ticket);
+//                                    System.out.println("Ticket encontrado " + ticket);
 
                                     Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                                         {
@@ -286,8 +286,8 @@ public class VueltasReportProvider {
 
         File file = Paths.get(config.getString(Keys.TEMPLATES_ROOT), "export", unify ? "salidas.xlsx" : "salidas.xlsx").toFile();
 
-        System.out.println("File");
-        System.out.println(file);
+//        System.out.println("File");
+//        System.out.println(file);
         sheetNames.add(WorkbookUtil.createSafeSheetName("Todos"));
         try (InputStream inputStream = new FileInputStream(file)) {
             var context = reportUtils.initializeContext(userId);

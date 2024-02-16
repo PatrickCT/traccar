@@ -88,8 +88,7 @@ dependencies {
     implementation "redis.clients:jedis:4.4.1"
     implementation "com.google.firebase:firebase-admin:9.1.1"
     implementation "com.nimbusds:oauth2-oidc-sdk:10.9.1"
-    implementation "org.apache.httpcomponents.client5:httpclient5:5.2.1"
-    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.16.1'
+    implementation "org.apache.httpcomponents.client5:httpclient5:5.2.1"    
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junitVersion"
     testImplementation "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
     testImplementation "org.mockito:mockito-core:5.3.1"
