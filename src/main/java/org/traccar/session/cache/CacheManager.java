@@ -15,6 +15,7 @@
  */
 package org.traccar.session.cache;
 
+import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.traccar.broadcast.BroadcastInterface;
@@ -84,7 +85,7 @@ public class CacheManager implements BroadcastInterface {
     private final Map<Long, List<User>> notificationUsers = new HashMap<>();
 
     private final Map<Long, List<AsyncSocket>> socketsLogged = new HashMap<>();
-    
+
     private boolean calculating;
 
     @Inject
@@ -311,7 +312,7 @@ public class CacheManager implements BroadcastInterface {
 
     private void recalculateDevices() throws StorageException, InterruptedException {
 //        System.out.println("invalidating users");
-                
+
         List<Permission> user_devices = storage.getPermissions(User.class, Device.class);
         List<Permission> user_group = storage.getPermissions(User.class, Group.class);
         Map<Long, List<Long>> groups_devices = new HashMap<>();
@@ -344,19 +345,52 @@ public class CacheManager implements BroadcastInterface {
             }
 
             devicesPerUser.putIfAbsent(userId, devices.stream().distinct().collect(Collectors.toList()).size());
-        }        
-    }
-
-    public void invalidateCalculationDevices(){
-        try {            
-            recalculateDevices();
-        } catch (StorageException ex) {
-            java.util.logging.Logger.getLogger(CacheManager.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
-            java.util.logging.Logger.getLogger(CacheManager.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
+    public void recalculateDevices(long deviceId, int v) throws StorageException {
+//        System.out.println("invalidating users");
+        System.out.println("Recalculando");
+        Device d = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", deviceId)));
+        if (d == null) {
+            return;
+        }
+        List<Permission> user_devices = storage.getPermissions(User.class, Device.class);
+        List<Permission> user_group = storage.getPermissions(User.class, Group.class);
+
+        List<Long> users = new ArrayList<>();
+        users.addAll(user_devices.stream()
+                .filter(item -> (item.getPropertyId() == deviceId))
+                .map(item -> item.getOwnerId())
+                .map(Long::valueOf)
+                .collect(Collectors.toList()));
+
+        users.addAll(user_group.stream()
+                .filter(item -> (item.getPropertyId() == d.getGroupId()))
+                .map(item -> item.getOwnerId())
+                .map(Long::valueOf)
+                .collect(Collectors.toList()));
+
+        for (long item : new ArrayList<Long>(new HashSet<Long>(users))) {
+            System.out.println(item);
+            System.out.println(devicesPerUser.getOrDefault(item, 0) + v);
+            devicesPerUser.put(item, devicesPerUser.getOrDefault(item, 0) + v);
+        }
+
+    }
+
+    public void invalidateCalculationDevices() {
+        try {
+            recalculateDevices();
+        } catch (StorageException ex) {
+            java.util.logging.Logger.getLogger(CacheManager.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        } catch (InterruptedException ex) {
+            java.util.logging.Logger.getLogger(CacheManager.class
+                    .getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
     private void addObject(long deviceId, BaseModel object) {
         deviceCache.computeIfAbsent(new CacheKey(object), k -> new CacheValue(object)).retain(deviceId);
     }
@@ -364,17 +398,20 @@ public class CacheManager implements BroadcastInterface {
     private void unsafeAddDevice(long deviceId) throws StorageException {
         Map<Class<? extends BaseModel>, Set<Long>> links = new HashMap<>();
 
-        Device device = storage.getObject(Device.class, new Request(
-                new Columns.All(), new Condition.Equals("id", deviceId)));
+        Device device = storage.getObject(Device.class,
+                new Request(
+                        new Columns.All(), new Condition.Equals("id", deviceId)));
         if (device != null) {
             addObject(deviceId, device);
 
             int groupDepth = 0;
             long groupId = device.getGroupId();
             while (groupDepth < GROUP_DEPTH_LIMIT && groupId > 0) {
-                Group group = storage.getObject(Group.class, new Request(
-                        new Columns.All(), new Condition.Equals("id", groupId)));
-                links.computeIfAbsent(Group.class, k -> new LinkedHashSet<>()).add(group.getId());
+                Group group = storage.getObject(Group.class,
+                        new Request(
+                                new Columns.All(), new Condition.Equals("id", groupId)));
+                links.computeIfAbsent(Group.class,
+                        k -> new LinkedHashSet<>()).add(group.getId());
                 addObject(deviceId, group);
                 groupId = group.getGroupId();
                 groupDepth += 1;
@@ -382,16 +419,19 @@ public class CacheManager implements BroadcastInterface {
 
             for (Class<? extends BaseModel> clazz : CLASSES) {
                 var objects = storage.getObjects(clazz, new Request(
-                        new Columns.All(), new Condition.Permission(Device.class, deviceId, clazz)));
+                        new Columns.All(), new Condition.Permission(Device.class,
+                                deviceId, clazz)));
                 links.put(clazz, objects.stream().map(BaseModel::getId).collect(Collectors.toSet()));
                 for (var object : objects) {
                     addObject(deviceId, object);
                     if (object instanceof ScheduledModel) {
                         var scheduled = (ScheduledModel) object;
                         if (scheduled.getCalendarId() > 0) {
-                            var calendar = storage.getObject(Calendar.class, new Request(
-                                    new Columns.All(), new Condition.Equals("id", scheduled.getCalendarId())));
-                            links.computeIfAbsent(Notification.class, k -> new LinkedHashSet<>())
+                            var calendar = storage.getObject(Calendar.class,
+                                    new Request(
+                                            new Columns.All(), new Condition.Equals("id", scheduled.getCalendarId())));
+                            links.computeIfAbsent(Notification.class,
+                                    k -> new LinkedHashSet<>())
                                     .add(calendar.getId());
                             addObject(deviceId, calendar);
                         }
@@ -399,24 +439,34 @@ public class CacheManager implements BroadcastInterface {
                 }
             }
 
-            var users = storage.getObjects(User.class, new Request(
-                    new Columns.All(), new Condition.Permission(User.class, Device.class, deviceId)));
-            links.put(User.class, users.stream().map(BaseModel::getId).collect(Collectors.toSet()));
+            var users = storage.getObjects(User.class,
+                    new Request(
+                            new Columns.All(), new Condition.Permission(User.class,
+                                    Device.class,
+                                    deviceId)));
+            links.put(User.class,
+                    users.stream().map(BaseModel::getId).collect(Collectors.toSet()));
             for (var user : users) {
                 addObject(deviceId, user);
-                var notifications = storage.getObjects(Notification.class, new Request(
-                        new Columns.All(),
-                        new Condition.Permission(User.class, user.getId(), Notification.class))).stream()
+                var notifications = storage.getObjects(Notification.class,
+                        new Request(
+                                new Columns.All(),
+                                new Condition.Permission(User.class,
+                                        user.getId(), Notification.class
+                                ))).stream()
                         .filter(Notification::getAlways)
                         .collect(Collectors.toList());
                 for (var notification : notifications) {
-                    links.computeIfAbsent(Notification.class, k -> new LinkedHashSet<>())
+                    links.computeIfAbsent(Notification.class,
+                            k -> new LinkedHashSet<>())
                             .add(notification.getId());
                     addObject(deviceId, notification);
                     if (notification.getCalendarId() > 0) {
-                        var calendar = storage.getObject(Calendar.class, new Request(
-                                new Columns.All(), new Condition.Equals("id", notification.getCalendarId())));
-                        links.computeIfAbsent(Notification.class, k -> new LinkedHashSet<>())
+                        var calendar = storage.getObject(Calendar.class,
+                                new Request(
+                                        new Columns.All(), new Condition.Equals("id", notification.getCalendarId())));
+                        links.computeIfAbsent(Notification.class,
+                                k -> new LinkedHashSet<>())
                                 .add(calendar.getId());
                         addObject(deviceId, calendar);
                     }
@@ -426,14 +476,16 @@ public class CacheManager implements BroadcastInterface {
             deviceLinks.put(deviceId, links);
 
             if (device.getPositionId() > 0) {
-                devicePositions.put(deviceId, storage.getObject(Position.class, new Request(
-                        new Columns.All(), new Condition.Equals("id", device.getPositionId()))));
+                devicePositions.put(deviceId, storage.getObject(Position.class,
+                        new Request(
+                                new Columns.All(), new Condition.Equals("id", device.getPositionId()))));
             }
         }
     }
 
     private void unsafeRemoveDevice(long deviceId) {
-        deviceCache.remove(new CacheKey(Device.class, deviceId));
+        deviceCache.remove(new CacheKey(Device.class,
+                deviceId));
         deviceLinks.remove(deviceId).forEach((clazz, ids) -> ids.forEach(id -> {
             var key = new CacheKey(clazz, id);
             deviceCache.computeIfPresent(key, (k, value) -> {
@@ -458,10 +510,13 @@ public class CacheManager implements BroadcastInterface {
         boolean invalidateUsers = false;
         Set<Long> linkedDevices = new HashSet<>();
         for (var key : keys) {
-            if (key.classIs(Server.class)) {
+            if (key.classIs(Server.class
+            )) {
                 invalidateServer = true;
             } else {
-                if (key.classIs(User.class) || key.classIs(Notification.class)) {
+                if (key.classIs(User.class
+                ) || key.classIs(Notification.class
+                )) {
                     invalidateUsers = true;
                 }
                 deviceCache.computeIfPresent(key, (k, value) -> {
@@ -500,5 +555,14 @@ public class CacheManager implements BroadcastInterface {
 
     public void setCalculating(boolean calculating) {
         this.calculating = calculating;
-    }        
+    }
+
+    public void setDevicesPerUser(long userid, int v) {
+        if(devicesPerUser.containsKey(userid)){
+            devicesPerUser.put(userid, devicesPerUser.get(userid) + v);
+        }else {
+            devicesPerUser.putIfAbsent(userid, devicesPerUser.getOrDefault(userid,0) + v);
+        }
+        
+    }
 }

@@ -47,7 +47,7 @@ public class PermissionsResource extends BaseResource {
     @Inject
     private CacheManager cacheManager;
 
-    private void checkPermission(Permission permission) throws StorageException {        
+    private void checkPermission(Permission permission) throws StorageException {
         if (permissionsService.notAdmin(getUserId())
                 && (!permission.getOwnerClass().equals(Itinerario.class)
                 && !permission.getOwnerClass().equals(Tramo.class))) {
@@ -88,6 +88,9 @@ public class PermissionsResource extends BaseResource {
 
     @POST
     public Response add(LinkedHashMap<String, Long> entity) throws StorageException, ClassNotFoundException {
+        if (entity.containsKey("deviceId") && entity.containsKey("userId")) {
+            cacheManager.setDevicesPerUser(entity.get("userId"), 1);
+        }
         return add(Collections.singletonList(entity));
     }
 
@@ -113,6 +116,9 @@ public class PermissionsResource extends BaseResource {
 
     @DELETE
     public Response remove(LinkedHashMap<String, Long> entity) throws StorageException, ClassNotFoundException {
+        if (entity.containsKey("deviceId") && entity.containsKey("userId")) {
+            cacheManager.setDevicesPerUser(entity.get("userId"), -1);
+        }
         return remove(Collections.singletonList(entity));
     }
 

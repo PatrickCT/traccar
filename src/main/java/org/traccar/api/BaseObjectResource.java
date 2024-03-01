@@ -37,23 +37,24 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Response;
+import org.traccar.model.Device;
 import org.traccar.model.Subroute;
 import org.traccar.model.Tramo;
 
 public abstract class BaseObjectResource<T extends BaseModel> extends BaseResource {
-
+    
     @Inject
     private CacheManager cacheManager;
-
+    
     @Inject
     private ConnectionManager connectionManager;
-
+    
     protected final Class<T> baseClass;
-
+    
     public BaseObjectResource(Class<T> baseClass) {
         this.baseClass = baseClass;
     }
-
+    
     @Path("{id}")
     @GET
     public Response getSingle(@PathParam("id") long id) throws StorageException {
@@ -66,24 +67,26 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
             return Response.status(Response.Status.NOT_FOUND).build();
         }
     }
-
+    
     @POST
     public Response add(T entity) throws StorageException {
         permissionsService.checkEdit(getUserId(), entity, true);
-
+        
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
         LogAction.create(getUserId(), entity);
-
+        
         if (getUserId() != ServiceAccountUser.ID) {
             storage.addPermission(new Permission(User.class, getUserId(), baseClass, entity.getId()));
             cacheManager.invalidatePermission(true, User.class, getUserId(), baseClass, entity.getId());
             connectionManager.invalidatePermission(true, User.class, getUserId(), baseClass, entity.getId());
             LogAction.link(getUserId(), User.class, getUserId(), baseClass, entity.getId());
         }
-
+        if (entity.getClass().equals(Device.class)) {
+            cacheManager.recalculateDevices(entity.getId(), 1);
+        }
         return Response.ok(entity).build();
     }
-
+    
     @Path("{id}")
     @PUT
     public Response update(T entity) throws StorageException {
@@ -91,7 +94,7 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
         if (!baseClass.equals(Subroute.class) || !baseClass.equals(Tramo.class)) {
             permissionsService.checkPermission(baseClass, getUserId(), entity.getId());
         }
-
+        
         if (entity instanceof User) {
             User before = storage.getObject(User.class, new Request(
                     new Columns.All(), new Condition.Equals("id", entity.getId())));
@@ -102,7 +105,7 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
                 throw new IllegalArgumentException("Cycle in group hierarchy");
             }
         }
-
+        
         storage.updateObject(entity, new Request(
                 new Columns.Exclude("id"),
                 new Condition.Equals("id", entity.getId())));
@@ -114,25 +117,28 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
                         new Condition.Equals("id", entity.getId())));
             }
         }
-        cacheManager.updateOrInvalidate(true, entity);       
+        cacheManager.updateOrInvalidate(true, entity);
         
         LogAction.edit(getUserId(), entity);
-
+        
         return Response.ok(entity).build();
     }
-
+    
     @Path("{id}")
     @DELETE
     public Response remove(@PathParam("id") long id) throws StorageException {
         permissionsService.checkEdit(getUserId(), baseClass, false);
         permissionsService.checkPermission(baseClass, getUserId(), id);
-
+        if (baseClass.equals(Device.class)) {
+            cacheManager.recalculateDevices(id, -1);
+        }
+        
         storage.removeObject(baseClass, new Request(new Condition.Equals("id", id)));
         cacheManager.invalidate(baseClass, id);
-
+        
         LogAction.remove(getUserId(), baseClass, id);
-
+        
         return Response.noContent().build();
     }
-
+    
 }
