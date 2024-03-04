@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -30,12 +31,15 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.traccar.api.BaseObjectResource;
 import org.traccar.config.Config;
+import org.traccar.helper.LogAction;
 import org.traccar.model.Device;
 import org.traccar.model.Geofence;
+import org.traccar.model.Group;
 import org.traccar.model.HojaSalida;
 import org.traccar.model.HoraSalida;
 import org.traccar.model.Itinerario;
 import org.traccar.model.Salida;
+import org.traccar.model.Subroute;
 import org.traccar.model.Ticket;
 import org.traccar.model.Tramo;
 import org.traccar.model.User;
@@ -118,6 +122,27 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
 
     }
 
+    @Path("{id}")
+    @PUT
+    @Override
+    public Response update(Ticket entity) throws StorageException {
+        Ticket ticket = storage.getObject(baseClass, new Request(new Columns.All(), new Condition.Equals("id", entity.getId())));
+        if (ticket == null) {
+            return Response.status(400).build();
+        }
+
+        ticket.setExcuse(entity.getExcuse());
+        ticket.setGlobalExcuse(entity.getGlobalExcuse());
+
+        storage.updateObject(ticket, new Request(
+                new Columns.Exclude("id"),
+                new Condition.Equals("id", entity.getId())));
+
+        LogAction.edit(getUserId(), entity);
+
+        return Response.ok(ticket).build();
+    }
+
     @GET
     @Path("/hoja")
     public Response getHoja(
@@ -130,7 +155,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
             JSONObject obj = new JSONObject();
             //1 encontrar el itinerario
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            System.out.println(String.format("select * from tc_hojas where valid = true and date(day ) = '%s' and deviceid = %s", sdf.format(day), String.valueOf(deviceId)));
+            System.out.println(String.format("select * from tc_hojas where valid = true and date(day) = '%s' and deviceid = %s", sdf.format(day), String.valueOf(deviceId)));
             HojaSalida sheet = storage.getObjectsByQuery(HojaSalida.class, String.format("select * from tc_hojas where valid = true and date(day) = '%s' and deviceid = %s", sdf.format(day), String.valueOf(deviceId))).stream().findFirst().orElse(null);
             if (sheet == null) {
                 System.out.println(String.format("select * from tc_salidas where valid = true and date(date) = '%s' and deviceid = %s", sdf.format(day), String.valueOf(deviceId)));
@@ -154,13 +179,14 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
             //2 encontrar las horas de ese itinerario
 //            System.out.println(sheet);
             final HojaSalida s = sheet;
+            System.out.println(s);
             Itinerario schedule = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("id", s.getScheduleId()));
                 }
             })
             ));
-//            System.out.println(schedule);
+            System.out.println(schedule);
             List<HoraSalida> horas_ida = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule.getHorasId()))).getName())));
             Itinerario schedule_rel = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -169,8 +195,8 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
             })
             ));
             List<HoraSalida> horas_vuelta = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule_rel.getHorasId()))).getName())));
-//            System.out.println(horas_ida);
-//            System.out.println(horas_vuelta);
+            System.out.println(horas_ida);
+            System.out.println(horas_vuelta);
             //3 encontrar las geocercas de ese itinerario(tramos)
             List<Tramo> tramos_ida = cacheManager.getStorage().getObjects(Tramo.class, new Request(new Columns.All(), new Condition.Permission(Itinerario.class, schedule.getId(), Tramo.class)));
             List<Tramo> tramos_vuelta = cacheManager.getStorage().getObjects(Tramo.class, new Request(new Columns.All(), new Condition.Permission(Itinerario.class, schedule_rel.getId(), Tramo.class)));
@@ -187,7 +213,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                 })
                 ));
             }
-//            System.out.println(device);
+            System.out.println(device);
             obj.put("device", device.getName());
             obj.put("route", schedule.getName());
             obj.put("going", new JSONArray());
@@ -195,6 +221,9 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
             obj.put("day", day);
             Map<Long, String> geofencesNames = new HashMap<>();
             for (HoraSalida ida : horas_ida) {
+                ida.getHour().setYear(day.getYear());
+                ida.getHour().setMonth(day.getMonth());
+                ida.getHour().setDate(day.getDate());
                 JSONObject going = new JSONObject();
                 going.put("hour", ida.getHour());
                 going.put("tickets", new JSONArray());
@@ -209,6 +238,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                         })));
 
                 if (salida != null) {
+                    System.out.println(salida);
                     (going.getJSONArray("tickets")).putAll(storage.getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                         {
                             add(new Condition.Equals("salidaId", salida.getId()));
@@ -224,7 +254,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                             put("punishment", ticket.getPunishment());
                             put("tramo", ticket.getTramo());
                             put("excuse", ticket.getExcuse());
-                            put("globalExcuse", ticket.getGlobalExcuse());                            
+                            put("globalExcuse", ticket.getGlobalExcuse());
                         }
                     }).collect(Collectors.toList()));
                 }
@@ -233,13 +263,16 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
             }
 
             for (HoraSalida vuelta : horas_vuelta) {
+                vuelta.getHour().setYear(day.getYear());
+                vuelta.getHour().setMonth(day.getMonth());
+                vuelta.getHour().setDate(day.getDate());
                 JSONObject going = new JSONObject();
                 going.put("hour", vuelta.getHour());
                 going.put("tickets", new JSONArray());
                 Salida salida = storage.getObject(Salida.class,
                         new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                             {
-                                add(new Condition.Equals("scheduleId", s.getScheduleId()));
+                                add(new Condition.Equals("scheduleId", schedule_rel.getId()));
                                 add(new Condition.Equals("deviceId", s.getDeviceId()));
                                 add(new Condition.Equals("date", vuelta.getHour()));
                                 add(new Condition.Equals("valid", true));
@@ -247,6 +280,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                         })));
 
                 if (salida != null) {
+                    System.out.println(salida);
                     (going.getJSONArray("tickets")).putAll(storage.getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                         {
                             add(new Condition.Equals("salidaId", salida.getId()));
@@ -262,7 +296,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                             put("punishment", ticket.getPunishment());
                             put("tramo", ticket.getTramo());
                             put("excuse", ticket.getExcuse());
-                            put("globalExcuse", ticket.getGlobalExcuse());                            
+                            put("globalExcuse", ticket.getGlobalExcuse());
                         }
                     }).collect(Collectors.toList()));
                 }
