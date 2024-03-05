@@ -445,4 +445,14 @@ public class GenericUtils {
         
         return servers.getOrDefault(ip, ip);
     }
+    
+    public static <T> void printArray(T[] array) {
+        System.out.println("/[");
+        
+        for (T element : array) {
+            System.out.print(element + ", ");
+        }
+        System.out.println("/]");
+        System.out.println(); // Move to the next line after printing the array
+    }
 }

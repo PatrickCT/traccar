@@ -279,15 +279,16 @@ public class TransporteUtils {
                 return false;
             }
 
-            List<Itinerario> itinerarios = cacheManager.getStorage().getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofenceId", geofenceId)));
-            if (!itinerarios.isEmpty()) {
-                salida.setFinished(true);
-                cacheManager.getStorage().updateObject(salida, new Request(
-                        new Columns.Exclude("id"),
-                        new Condition.Equals("id", salida.getId())));
-                return false;
-            }
-            return itinerarios.isEmpty();
+            return true;
+//            List<Itinerario> itinerarios = cacheManager.getStorage().getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofenceId", geofenceId)));
+//            if (!itinerarios.isEmpty()) {
+//                salida.setFinished(true);
+//                cacheManager.getStorage().updateObject(salida, new Request(
+//                        new Columns.Exclude("id"),
+//                        new Condition.Equals("id", salida.getId())));
+//                return false;
+//            }
+//            return itinerarios.isEmpty();
 
         } catch (StorageException ex) {
             ex.printStackTrace();
@@ -746,6 +747,8 @@ public class TransporteUtils {
     private static List<Itinerario> filterByHours(List<Itinerario> i) throws ParseException, IOException {
         List<Itinerario> filterd = new ArrayList<>();
         int[] utc = GenericUtils.fetchUTCDate();
+        System.out.println(utc[0]);
+        System.out.println(utc[1]);
 
         i.forEach((iti) -> {
 
