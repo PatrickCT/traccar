@@ -428,4 +428,14 @@ public class DatabaseStorage extends Storage {
             throw new StorageException(e);
         }
     }
+    
+    @Override
+    public void executeQuery(String query) throws StorageException {
+        try {
+            QueryBuilder builder = QueryBuilder.create(config, dataSource, objectMapper, query);
+            builder.executeUpdate();
+        } catch (Exception e) {
+            throw new StorageException(e);
+        }
+    }
 }

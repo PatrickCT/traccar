@@ -11,6 +11,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -22,6 +23,7 @@ import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
+import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
 
 /**
@@ -50,12 +52,24 @@ public class ExcusesResource extends BaseObjectResource<Excuse> {
     public Collection<Excuse> get() throws StorageException {
         return storage.getObjects(Excuse.class, new Request(new Columns.All()));
     }
-    
+
     @POST
-    public Response add(Excuse entity) throws StorageException {   
+    public Response add(Excuse entity) throws StorageException {
         entity.setAvailability(new Date());
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
-        LogAction.create(getUserId(), entity);       
+        LogAction.create(getUserId(), entity);
         return Response.ok(entity).build();
+    }
+
+    @Path("{id}")
+    @GET
+    public Response getSingle(@PathParam("id") long id) throws StorageException {
+        Excuse entity = storage.getObject(baseClass, new Request(
+                new Columns.All(), new Condition.Equals("id", id)));
+        if (entity != null) {
+            return Response.ok(entity).build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
     }
 }

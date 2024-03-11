@@ -114,6 +114,10 @@ public class GenericUtils {
         return calendar.getTime();
     }
 
+    public static long aDate2Epoch(Date d) {
+        return d.toInstant().toEpochMilli();
+    }
+
     public static boolean isSameDate(Date date1, Date date2) {
         Calendar cal1 = Calendar.getInstance();
         cal1.setTime(date1);
@@ -209,11 +213,10 @@ public class GenericUtils {
         LocalTime startRange = LocalTime.of(start[0], start[1]);
         LocalTime endRange = LocalTime.of(end[0], end[1]);
         LocalTime timeToCheck = LocalTime.of(current[0], current[1]);
-        
+
 //        System.out.println(startRange);
 //        System.out.println(endRange);
 //        System.out.println(timeToCheck);
-
         if (endRange.isBefore(startRange)) {
             // If the end time is before the start time, check if the time to check is after the start time
             // or before the end time (i.e., it's between midnight and the end of the range)
@@ -256,7 +259,7 @@ public class GenericUtils {
                 reader.close();
 
                 JSONObject json = new JSONObject(response.toString());
-                
+
                 String datetime = json.getString("datetime");
                 String time = datetime.split("T")[1];
                 result[0] = Integer.parseInt(time.split(":")[0]);
@@ -284,23 +287,18 @@ public class GenericUtils {
     public static Date localDate2UTC() throws ParseException {
         // Create a Date object representing the local time
         Date localDate = new Date();
-        
 
         // Define the time zone for UTC
         TimeZone utcTimeZone = TimeZone.getTimeZone("UTC");
-        
 
         // Get the time zone offset
         int timeZoneOffset = utcTimeZone.getOffset(localDate.getTime());
-        
 
         // Adjust the time by subtracting the offset
         long utcTime = localDate.getTime() - timeZoneOffset;
-        
 
         // Create a new Date object with the adjusted time
         Date utcDate = new Date(utcTime);
-        
 
         return utcDate;
     }
@@ -309,7 +307,7 @@ public class GenericUtils {
         System.out.println(new Date() + " to UTC");
         return new Date(date.getTime() - Calendar.getInstance().getTimeZone().getOffset(date.getTime()));
     }
-    
+
     public static Date utcToDate(Date utcDate) {
         return new Date(utcDate.getTime() + Calendar.getInstance().getTimeZone().getOffset(utcDate.getTime()));
     }
@@ -333,8 +331,7 @@ public class GenericUtils {
             CloseableHttpResponse response = client.execute(httpPost);
             HttpEntity responseEntity = response.getEntity();
             String responseString = EntityUtils.toString(responseEntity, "UTF-8");
-            
-            
+
             client.close();
 
             return responseString;
@@ -365,8 +362,7 @@ public class GenericUtils {
             CloseableHttpResponse response = client.execute(httpPost);
             HttpEntity responseEntity = response.getEntity();
             String responseString = EntityUtils.toString(responseEntity, "UTF-8");
-            
-            
+
             client.close();
 
             return responseString;
@@ -413,7 +409,7 @@ public class GenericUtils {
         return res;
 
     }
-    
+
     public static List<Date> getDatesBetween(Date startDate, Date endDate) {
         List<Date> dates = new ArrayList<>();
         Calendar calendar = Calendar.getInstance();
@@ -427,8 +423,8 @@ public class GenericUtils {
 
         return dates;
     }
-    
-    public static String findServerName(String ip){
+
+    public static String findServerName(String ip) {
         Map<String, String> servers = new HashMap<>();
         servers.put("173.255.203.21", "Alba");
         servers.put("198.58.114.237", "AutoKapital");
@@ -442,13 +438,13 @@ public class GenericUtils {
         servers.put("23.239.25.71", "Transporte");
         servers.put("45.56.66.144", "Comit");
         servers.put("45.33.116.80", "Combis");
-        
+
         return servers.getOrDefault(ip, ip);
     }
-    
+
     public static <T> void printArray(T[] array) {
         System.out.println("/[");
-        
+
         for (T element : array) {
             System.out.print(element + ", ");
         }

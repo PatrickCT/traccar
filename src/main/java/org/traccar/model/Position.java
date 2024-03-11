@@ -339,6 +339,16 @@ public class Position extends Message {
         super.setType(type);
     }
 
+    private boolean enviadows;
+
+    public boolean isEnviadows() {
+        return enviadows;
+    }
+
+    public void setEnviadows(boolean enviadows) {
+        this.enviadows = enviadows;
+    }
+            
     @Override
     public String toString() {
         return "Position{" + "protocol=" + protocol + ", serverTime=" + serverTime + ", deviceTime=" + deviceTime + ", fixTime=" + fixTime + ", outdated=" + outdated + ", valid=" + valid + ", latitude=" + latitude + ", longitude=" + longitude + ", altitude=" + altitude + ", speed=" + speed + ", course=" + course + ", address=" + address + ", accuracy=" + accuracy + ", network=" + network + ", geofenceIds=" + geofenceIds + '}';

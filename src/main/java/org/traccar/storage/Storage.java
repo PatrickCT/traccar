@@ -51,4 +51,6 @@ public abstract class Storage {
     }
 
     public abstract <T> List<T> getObjectsByQuery(Class<T> clazz, String queryString) throws StorageException;
+    
+    public abstract void executeQuery(String query) throws StorageException;
 }
