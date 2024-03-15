@@ -103,11 +103,18 @@ public class DeviceResource extends BaseObjectResource<Device> {
                                 new Condition.Permission(User.class, getUserId(), Device.class)))));
             }
             for (Long deviceId : deviceIds) {
-                result.addAll(storage.getObjects(Device.class, new Request(
-                        new Columns.All(),
-                        new Condition.And(
-                                new Condition.Equals("id", deviceId),
-                                new Condition.Permission(User.class, getUserId(), Device.class)))));
+                if (permissionsService.notAdmin(getUserId())) {
+                    result.addAll(storage.getObjects(Device.class, new Request(
+                            new Columns.All(),
+                            new Condition.And(
+                                    new Condition.Equals("id", deviceId),
+                                    new Condition.Permission(User.class, getUserId(), Device.class)))));
+                } else {
+                    result.addAll(storage.getObjects(Device.class, new Request(
+                            new Columns.All(),
+                            new Condition.Equals("id", deviceId))));
+                }
+
             }
             return result;
 
@@ -296,10 +303,10 @@ public class DeviceResource extends BaseObjectResource<Device> {
     ) throws SQLException {
         try {
             var conditions = new LinkedList<Condition>();
-            
+
             permissionsService.checkUser(getUserId(), id);
             conditions.add(new Condition.Permission(User.class, id, baseClass).excludeGroups());
-            
+
             return storage.getObjects(baseClass, new Request(new Columns.All(), Condition.merge(conditions)));
         } catch (StorageException ex) {
             Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
