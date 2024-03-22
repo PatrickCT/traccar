@@ -193,4 +193,8 @@ public class NotificatorTraccar implements Notificator {
         }
     }
 
+    @Override
+    public void sendPublic(String phone, String message) throws MessageException {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
 }

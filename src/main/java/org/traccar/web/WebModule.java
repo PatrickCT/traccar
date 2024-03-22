@@ -17,6 +17,7 @@ package org.traccar.web;
 
 import com.google.inject.servlet.ServletModule;
 import org.traccar.api.AsyncSocketServlet;
+import org.traccar.api.AsyncSocketServletGuest;
 import org.traccar.api.MediaFilter;
 
 public class WebModule extends ServletModule {
@@ -27,5 +28,6 @@ public class WebModule extends ServletModule {
         filter("/api/*").through(ThrottlingFilter.class);
         filter("/api/media/*").through(MediaFilter.class);
         serve("/api/socket").with(AsyncSocketServlet.class);
+        serve("/api/socket/share").with(AsyncSocketServletGuest.class);
     }
 }

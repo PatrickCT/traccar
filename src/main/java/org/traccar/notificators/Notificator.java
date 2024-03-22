@@ -28,4 +28,6 @@ public interface Notificator {
     void send(Notification notification, User user, Event event, Position position) throws MessageException;
 
     void send(Notification notification, User user, Event event, Position position, Storage storage) throws MessageException;
+    
+    void sendPublic(String phone, String message) throws MessageException;
 }

@@ -41,7 +41,7 @@ public class NotificatorTelegram implements Notificator {
     private final String urlSendText;
     private final String urlSendLocation;
     private final String chatId;
-    private final boolean sendLocation;
+    private final boolean sendLocation;    
 
     public static class TextMessage {
 
@@ -121,5 +121,10 @@ public class NotificatorTelegram implements Notificator {
             client.target(urlSendLocation).request().post(
                     Entity.json(createLocationMessage(message.chatId, position))).close();
         }
+    }
+    
+    @Override
+    public void sendPublic(String phone, String message) throws MessageException {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 }

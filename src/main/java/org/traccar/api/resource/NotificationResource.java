@@ -40,6 +40,8 @@ import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import javax.annotation.security.PermitAll;
+import org.json.JSONObject;
 
 @Path("notifications")
 @Produces(MediaType.APPLICATION_JSON)
@@ -97,4 +99,12 @@ public class NotificationResource extends ExtendedObjectResource<Notification> {
         return Response.noContent().build();
     }
 
+    @POST
+    @Path("send")
+    @PermitAll
+    public Response sendMessage(String body) throws MessageException, InterruptedException {
+        JSONObject obj = new JSONObject(body);
+        notificatorManager.getNotificator("sms").sendPublic(obj.getString("numero"), obj.getString("msg"));
+        return Response.noContent().build();
+    }
 }

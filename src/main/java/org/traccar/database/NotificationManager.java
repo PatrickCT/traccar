@@ -44,8 +44,11 @@ import javax.inject.Singleton;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.traccar.model.User;
 import org.traccar.storage.query.Condition;
@@ -111,6 +114,20 @@ public class NotificationManager {
 
             notifications.forEach(notification -> {
                 cacheManager.getNotificationUsers(notification.getId(), event.getDeviceId()).forEach(user -> {
+
+                    if (event.getType().equals(Event.TYPE_GEOFENCE_ENTER) || event.getType().equals(Event.TYPE_GEOFENCE_EXIT)) {
+                        try {
+                            var conditions = new LinkedList<Condition>();
+                            conditions.add(new Condition.Permission(User.class, user.getId(), Geofence.class).excludeGroups());
+                            List<Geofence> geofences = storage.getObjects(Geofence.class, new Request(new Columns.All(), Condition.merge(conditions)));
+                            if (!geofences.stream().map((g) -> g.getId()).collect(Collectors.toList()).contains(event.getGeofenceId())) {
+                                user.setPhone("");
+                            }
+                        } catch (StorageException ex) {
+                            java.util.logging.Logger.getLogger(NotificationManager.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+
                     for (String notificator : notification.getNotificatorsTypes()) {
                         try {
 
@@ -125,20 +142,20 @@ public class NotificationManager {
                                 default:
                                     tiempoEspera = 0;
                             }
-                            if(position != null && alerted.containsKey(position.getDeviceId()) && alerted.get(position.getDeviceId()).containsKey(user.getId())){           
+                            if (position != null && alerted.containsKey(position.getDeviceId()) && alerted.get(position.getDeviceId()).containsKey(user.getId())) {
                                 Date check = alerted.get(position.getDeviceId()).get(user.getId()).putIfAbsent(notificator, new Date());
-                            if (check == null) {
-                                notificatorManager.getNotificator(notificator).send(notification, user, event, position, storage);
-                            } else {
-                                if (GenericUtils.checkElapsedTime(new Date(),
-                                        alerted.get(position.getDeviceId()).get(user.getId()).get(notificator),
-                                        tiempoEspera) || check == null) {
-
-                                    alerted.get(position.getDeviceId()).get(user.getId()).put(notificator, new Date());
+                                if (check == null) {
                                     notificatorManager.getNotificator(notificator).send(notification, user, event, position, storage);
-                                }
+                                } else {
+                                    if (GenericUtils.checkElapsedTime(new Date(),
+                                            alerted.get(position.getDeviceId()).get(user.getId()).get(notificator),
+                                            tiempoEspera) || check == null) {
 
-                            }
+                                        alerted.get(position.getDeviceId()).get(user.getId()).put(notificator, new Date());
+                                        notificatorManager.getNotificator(notificator).send(notification, user, event, position, storage);
+                                    }
+
+                                }
                             } else {
                                 notificatorManager.getNotificator(notificator).send(notification, user, event, position, storage);
                             }

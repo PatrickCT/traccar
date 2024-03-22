@@ -39,7 +39,7 @@ public class NotificatorPushover implements Notificator {
 
     private final String url;
     private final String token;
-    private final String user;
+    private final String user;    
 
     public static class Message {
 
@@ -106,5 +106,10 @@ public class NotificatorPushover implements Notificator {
         message.message = shortMessage.getBody();
 
         client.target(url).request().post(Entity.json(message)).close();
+    }
+    
+    @Override
+    public void sendPublic(String phone, String message) throws MessageException {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 }

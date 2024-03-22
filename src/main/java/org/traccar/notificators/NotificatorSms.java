@@ -34,6 +34,7 @@ import org.traccar.sms.SmsManager;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import org.traccar.Main;
 import org.traccar.model.ExtraPhone;
 import org.traccar.storage.Storage;
 import org.traccar.storage.StorageException;
@@ -68,7 +69,7 @@ public class NotificatorSms implements Notificator {
     @Override
     public void send(Notification notification, User user, Event event, Position position, Storage storaqe) throws MessageException {
         if (user.getPhone() != null) {
-            try {                
+            try {
                 var shortMessage = notificationFormatter.formatMessage(user, event, position, "short");
                 statisticsManager.registerSms();
                 List<String> phones = new ArrayList<>();
@@ -87,5 +88,15 @@ public class NotificatorSms implements Notificator {
             }
         }
     }
+
+    @Override
+    public void sendPublic(String phone, String message) throws MessageException {
+        if (phone != null) {
+            smsManager.sendMessage("\"" + phone + "\"",
+                    message, false);
+        }
+    }
+
+
 
 }
