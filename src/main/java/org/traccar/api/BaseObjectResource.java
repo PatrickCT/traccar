@@ -59,6 +59,7 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
     @GET
     public Response getSingle(@PathParam("id") long id) throws StorageException {
         permissionsService.checkPermission(baseClass, getUserId(), id);
+        
         T entity = storage.getObject(baseClass, new Request(
                 new Columns.All(), new Condition.Equals("id", id)));
         if (entity != null) {

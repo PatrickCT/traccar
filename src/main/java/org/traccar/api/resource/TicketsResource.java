@@ -102,7 +102,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                 }
             });
         } else {
-            List<Long> devices = storage.getPermissions(User.class, Device.class).stream().map((item) -> item.getPropertyId()).collect(Collectors.toList());
+            List<Long> devices = storage.getPermissions(User.class, Device.class).stream().filter((item) -> item.getOwnerId() == getUserId()).map((item) -> item.getPropertyId()).collect(Collectors.toList());
             devices.forEach(id -> {
                 try {
                     salidas.addAll(storage.getObjects(Salida.class, new Request(new Columns.All(), new Condition.Equals("deviceId", id))).stream().map(item -> item.getId()).collect(Collectors.toList()));
@@ -115,6 +115,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                 try {
                     result.addAll(storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("salidaId", id))));
                 } catch (Exception e) {
+                    e.printStackTrace();
                 }
             });
         }
