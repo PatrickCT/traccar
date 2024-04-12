@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.SecureRandom;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -40,10 +41,12 @@ import org.threeten.bp.LocalTime;
 public class GenericUtils {
 
     interface HasId {
-
         long getId();
     }
+    
     private static final String[] WEEK_DAYS = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
+    private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private static final int MONDAY = 1;     // 0000001
     private static final int TUESDAY = 2;    // 0000010
@@ -450,5 +453,17 @@ public class GenericUtils {
         }
         System.out.println("/]");
         System.out.println(); // Move to the next line after printing the array
+    }
+    
+    public static String generateRandomCode(int length) {
+        StringBuilder sb = new StringBuilder(length);
+
+        for (int i = 0; i < length; i++) {
+            int randomIndex = RANDOM.nextInt(ALPHANUMERIC.length());
+            char randomChar = ALPHANUMERIC.charAt(randomIndex);
+            sb.append(randomChar);
+        }
+
+        return sb.toString();
     }
 }
