@@ -4,9 +4,11 @@
  */
 package org.traccar.schedule;
 
+import java.net.NetworkInterface;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +57,8 @@ public class TaskFinishExits implements ScheduleTask {
         Map<Event, Position> events = new HashMap<>();
 
         try {
-
+            if(GenericUtils.getLocalIP().equals("development")) return;
+            LOGGER.info("Checking");
             List<Salida> salidas = storage.getObjects(Salida.class,
                     new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                         {

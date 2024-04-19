@@ -62,6 +62,7 @@ import org.json.JSONObject;
 import org.traccar.model.Driver;
 import org.traccar.model.Geofence;
 import org.traccar.model.Salida;
+import org.traccar.model.Subroute;
 import org.traccar.model.Ticket;
 import org.traccar.utils.GenericUtils;
 
@@ -209,6 +210,8 @@ public class DeviceResource extends BaseObjectResource<Device> {
     @Path("{id}/ticket")
     public Response ticket(@PathParam("id") long deviceId) throws StorageException {
         JSONObject response = new JSONObject("{}");
+        List<Subroute> subroutes = storage.getObjects(Subroute.class, new Request(new Columns.All()));
+        response.put("subroutes", subroutes);
         Salida salida = storage.getObject(Salida.class,
                 new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                     {
@@ -239,7 +242,7 @@ public class DeviceResource extends BaseObjectResource<Device> {
             }
         });
         response.put("choferes", choferes);
-        if (salida != null) {
+        if (salida != null) {            
             response.put("salida", salida);
             List<Ticket> tickets = storage.getObjects(Ticket.class,
                     new Request(new Columns.All(), new Condition.Equals("salidaId", salida.getId())));

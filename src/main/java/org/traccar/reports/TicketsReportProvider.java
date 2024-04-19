@@ -23,6 +23,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.poi.ss.util.WorkbookUtil;
+import org.slf4j.LoggerFactory;
 import org.traccar.config.Config;
 import org.traccar.config.Keys;
 import org.traccar.reports.common.ReportUtils;
@@ -40,6 +41,8 @@ import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
+import org.traccar.utils.GeneralUtils;
+import org.traccar.utils.GenericUtils;
 
 /**
  *
@@ -47,6 +50,7 @@ import org.traccar.storage.query.Request;
  */
 public class TicketsReportProvider {
 
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(TicketsReportProvider.class);
     private final Config config;
     private final ReportUtils reportUtils;
     private final Storage storage;
@@ -193,7 +197,9 @@ public class TicketsReportProvider {
             long userId, Collection<Long> deviceIds, Collection<Long> groupIds,
             Date from, Date to, boolean unify) throws StorageException, IOException {
         reportUtils.checkPeriodLimit(from, to);
+        ProccessLogger logger = new ProccessLogger(LOGGER);
 
+        logger.info("excel tickets");
         ArrayList<TicketReportItem> result = new ArrayList<>();
         ArrayList<DeviceReportSection> devicesTickets = new ArrayList<>();
         ArrayList<String> sheetNames = new ArrayList<>();
@@ -202,8 +208,9 @@ public class TicketsReportProvider {
         Map<Long, String> subroutesNames = new HashMap<Long, String>();
         Map<Long, Salida> salidasReportadas = new HashMap<Long, Salida>();
         Map<Long, DeviceReportSection> devicesReportados = new HashMap<Long, DeviceReportSection>();
-
+        logger.info("paso 1 grupos");
         for (long groupId : groupIds) {
+            logger.info("revisando grupo " + groupId);
             List<Ticket> tickets = new ArrayList<>();
             List<Salida> salidas = storage.getObjects(Salida.class,
                     new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
@@ -213,7 +220,7 @@ public class TicketsReportProvider {
                             add(new Condition.Equals("valid", true));
                         }
                     })));
-
+            logger.info("se encontraron las siguientes salidas " + GenericUtils.printArray(salidas.toArray(), true));
             for (Salida salida : salidas) {
                 try {
                     if (salidasReportadas.containsKey(salida.getId())) {
@@ -226,6 +233,7 @@ public class TicketsReportProvider {
                             add(new Condition.Equals("salidaId", salida.getId()));
                         }
                     }))));
+                    logger.info("se encontraron los siguientes tickets para la salida " + salida.getId() + " " + GenericUtils.printArray(tickets.toArray(), true));
                 } catch (StorageException ex) {
                     Logger.getLogger(TicketsReportProvider.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -260,10 +268,13 @@ public class TicketsReportProvider {
                 Device device = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", tri.getDevice())));
                 tri.setDeviceName(device.getName());
                 result.add(tri);
+                logger.info("Report item " + tri);
             }
         }
 
+        logger.info("paso 2 dispositivos");
         for (long deviceId : deviceIds) {
+            logger.info("revisando dispositivo " + deviceId);
             List<Ticket> tickets = new ArrayList<>();
             List<Salida> salidas = storage.getObjects(Salida.class,
                     new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
@@ -273,7 +284,7 @@ public class TicketsReportProvider {
                             add(new Condition.Equals("valid", true));
                         }
                     })));
-
+            logger.info("se encontraron las siguientes salidas " + GenericUtils.printArray(salidas.toArray(), true));
             for (Salida salida : salidas) {
                 try {
                     if (salidasReportadas.containsKey(salida.getId())) {
@@ -285,6 +296,7 @@ public class TicketsReportProvider {
                             add(new Condition.Equals("salidaId", salida.getId()));
                         }
                     }))));
+                    logger.info("se encontraron los siguientes tickets para la salida " + salida.getId() + " " + GenericUtils.printArray(tickets.toArray(), true));
                 } catch (StorageException ex) {
                     Logger.getLogger(TicketsReportProvider.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -309,7 +321,7 @@ public class TicketsReportProvider {
                 tri.setEnterTime(ticket.getEnterTime());
                 tri.setExitTime(ticket.getExitTime());
                 tri.setExpectedTime(ticket.getExpectedTime());
-                tri.setId(ticket.getId());                
+                tri.setId(ticket.getId());
                 tri.setPunishment(ticket.getEnterTime() != null ? ticket.getPunishment() : 0);
                 tri.setSalida(ticket.getSalidaId());
                 tri.setGeofence(geofenceNames.get(ticket.getGeofenceId()));
@@ -319,34 +331,54 @@ public class TicketsReportProvider {
                 Device device = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", tri.getDevice())));
                 tri.setDeviceName(device.getName());
                 result.add(tri);
+                logger.info("report item " + tri);
             }
         }
-        List<Long> salidas = new ArrayList<>();
+        Map<Long, String> final_devices = new HashMap<>();
+        Map<Long, List<TicketReportItem>> final_tickets = new HashMap<>();
         for (TicketReportItem tri : result) {
-            if(salidas.contains(tri.getSalida())){
-                continue;
-            }else {
-                salidas.add(tri.getSalida());
+
+            if (!final_devices.containsKey(tri.getDevice())) {
+                Device device = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", tri.getDevice())));
+                final_devices.put(tri.getDevice(), device.getName());
+
             }
-            Device device = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", tri.getDevice())));
-            if (unify) {
-                if (!sheetNames.contains(WorkbookUtil.createSafeSheetName("Todos"))) {
-                    sheetNames.add(WorkbookUtil.createSafeSheetName("Todos"));
-                }
 
-            } else {
-                sheetNames.add(WorkbookUtil.createSafeSheetName(device.getName()));
+            if (!final_tickets.containsKey(tri.getDevice())) {
+                final_tickets.put(tri.getDevice(), result.stream().filter((r) -> r.getDevice() == tri.getDevice()).collect(Collectors.toList()));
             }
-            DeviceReportSection deviceTickets = new DeviceReportSection();
-            deviceTickets.setDeviceName(device.getName());
-
-            deviceTickets.setObjects(result.stream().filter((r) -> r.getDevice() == tri.getDevice() && r.getSalida() == tri.getSalida()).collect(Collectors.toList()));
-            devicesTickets.add(deviceTickets);
-
         }
+
+        if (unify) {
+            sheetNames.add(WorkbookUtil.createSafeSheetName("Todos"));
+//            DeviceReportSection deviceTickets = new DeviceReportSection();
+//            deviceTickets.setDeviceName("Todos");
+//
+//            deviceTickets.setObjects(final_tickets.values());
+//            devicesTickets.add(deviceTickets);
+            for (Long device : final_devices.keySet()) {
+                sheetNames.add(WorkbookUtil.createSafeSheetName(final_devices.get(device)));
+                DeviceReportSection deviceTickets = new DeviceReportSection();
+                deviceTickets.setDeviceName(final_devices.get(device));
+                deviceTickets.setObjects(final_tickets.get(device));
+                devicesTickets.add(deviceTickets);
+            }
+
+        } else {
+
+            for (Long device : final_devices.keySet()) {
+                sheetNames.add(WorkbookUtil.createSafeSheetName(final_devices.get(device)));
+                DeviceReportSection deviceTickets = new DeviceReportSection();
+                deviceTickets.setDeviceName(final_devices.get(device));
+                deviceTickets.setObjects(final_tickets.get(device));
+                devicesTickets.add(deviceTickets);
+            }
+        }
+
+        logger.info("device tickets " + GenericUtils.printArray(devicesTickets.toArray(), true));
 
         File file = Paths.get(config.getString(Keys.TEMPLATES_ROOT), "export", unify ? "tickets_unified.xlsx" : "tickets.xlsx").toFile();
-        
+
         try (InputStream inputStream = new FileInputStream(file)) {
             var context = reportUtils.initializeContext(userId);
             context.putVar("tickets", removeDuplicates(devicesTickets));
@@ -356,7 +388,7 @@ public class TicketsReportProvider {
             reportUtils.processTemplateWithSheets(inputStream, outputStream, context, unify);
         }
     }
-    
+
     public static <T> List<T> removeDuplicates(List<T> list) {
         Set<T> seen = new HashSet<>();
         List<T> filteredList = new ArrayList<>();
@@ -368,5 +400,20 @@ public class TicketsReportProvider {
         }
 
         return filteredList;
+    }
+}
+
+class ProccessLogger {
+
+    org.slf4j.Logger LOGGER;
+    String code;
+
+    public ProccessLogger(org.slf4j.Logger LOGGER) {
+        this.LOGGER = LOGGER;
+        this.code = GenericUtils.generateRandomCode(10);
+    }
+
+    public void info(String msg) {
+        LOGGER.info(String.format("[%s] %s", code, msg));
     }
 }

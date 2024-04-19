@@ -24,7 +24,7 @@ public class Ticket extends BaseModel {
     private boolean passed;
     private long tramo;
     private String excuse;
-    private boolean globalExcuse;
+    private boolean globalExcuse;    
 
     public long getSalidaId() {
         return salidaId;

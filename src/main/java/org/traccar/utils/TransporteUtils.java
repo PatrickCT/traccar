@@ -756,25 +756,25 @@ public class TransporteUtils {
         return filterd;
     }
     
-    public static void terminarSalidas(CacheManager cacheManager) {
-        try {
-            List<Salida> salidas = cacheManager.getStorage().getObjects(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                {
-                    add(new Condition.Equals("finished", false));
-                }
-            })));
-            for (Salida salida : salidas) {
-                if (salida.getEndingDate().getTime() > new Date().getTime()) {
-                    salida.setFinished(true);
-                    cacheManager.getStorage().updateObject(salida, new Request(
-                            new Columns.Exclude("id"),
-                            new Condition.Equals("id", salida.getId())));
-                }
-            }
-        } catch (StorageException ex) {
-            Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
+//    public static void terminarSalidas(CacheManager cacheManager) {
+//        try {
+//            List<Salida> salidas = cacheManager.getStorage().getObjects(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+//                {
+//                    add(new Condition.Equals("finished", false));
+//                }
+//            })));
+//            for (Salida salida : salidas) {
+//                if (salida.getEndingDate().getTime() > new Date().getTime()) {
+//                    salida.setFinished(true);
+//                    cacheManager.getStorage().updateObject(salida, new Request(
+//                            new Columns.Exclude("id"),
+//                            new Condition.Equals("id", salida.getId())));
+//                }
+//            }
+//        } catch (StorageException ex) {
+//            Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//    }
     
     public static JSONObject obtenerTickets(long deviceId, Date from, Date to, Storage storage) throws StorageException {
         JSONObject response = new JSONObject("{}");

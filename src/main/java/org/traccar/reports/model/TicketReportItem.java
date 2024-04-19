@@ -11,6 +11,7 @@ import java.util.Date;
  * @author K
  */
 public class TicketReportItem {
+
     private long id;
     private long salida;
     private String geofence;
@@ -38,7 +39,7 @@ public class TicketReportItem {
 
     public void setSalida(long salida) {
         this.salida = salida;
-    }    
+    }
 
     public String getGeofence() {
         return geofence;
@@ -94,7 +95,7 @@ public class TicketReportItem {
 
     public void setDevice(long device) {
         this.device = device;
-    }    
+    }
 
     public String getDeviceName() {
         return deviceName;
@@ -118,5 +119,10 @@ public class TicketReportItem {
 
     public void setSubroute(String subroute) {
         this.subroute = subroute;
-    }       
+    }
+
+    @Override
+    public String toString() {
+        return "TicketReportItem{" + "id=" + id + ", salida=" + salida + ", geofence=" + geofence + ", expectedTime=" + expectedTime + ", enterTime=" + enterTime + ", exitTime=" + exitTime + ", difference=" + difference + ", punishment=" + punishment + ", device=" + device + ", deviceName=" + deviceName + ", group=" + group + ", subroute=" + subroute + '}';
+    }
 }

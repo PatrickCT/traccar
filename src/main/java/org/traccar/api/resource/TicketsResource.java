@@ -119,6 +119,7 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
                 }
             });
         }
+
         return result;
 
     }

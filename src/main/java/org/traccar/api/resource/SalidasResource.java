@@ -145,7 +145,6 @@ public class SalidasResource extends BaseObjectResource<Salida> {
         final long id = getUserId();
         Collection<Salida> result = new ArrayList<>();
         List<Long> devices = storage.getPermissions(User.class, Device.class).stream().filter((item) -> item.getOwnerId() == id).map((item) -> item.getPropertyId()).collect(Collectors.toList());
-        System.out.println(devices);
         result.addAll(storage.getObjectsByQuery(baseClass, "select * from tc_salidas "
                 + "where finished = false and "
                 + "deviceid in "

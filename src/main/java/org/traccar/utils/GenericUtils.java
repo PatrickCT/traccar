@@ -8,7 +8,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.security.SecureRandom;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.classic.methods.HttpPut;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -41,9 +44,10 @@ import org.threeten.bp.LocalTime;
 public class GenericUtils {
 
     interface HasId {
+
         long getId();
     }
-    
+
     private static final String[] WEEK_DAYS = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"};
     private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private static final SecureRandom RANDOM = new SecureRandom();
@@ -217,9 +221,9 @@ public class GenericUtils {
         LocalTime endRange = LocalTime.of(end[0], end[1]);
         LocalTime timeToCheck = LocalTime.of(current[0], current[1]);
 
-//        System.out.println(startRange);
-//        System.out.println(endRange);
-//        System.out.println(timeToCheck);
+        System.out.println(startRange);
+        System.out.println(endRange);
+        System.out.println(timeToCheck);
         if (endRange.isBefore(startRange)) {
             // If the end time is before the start time, check if the time to check is after the start time
             // or before the end time (i.e., it's between midnight and the end of the range)
@@ -228,6 +232,10 @@ public class GenericUtils {
             // Normal case where the end time is after the start time
             return timeToCheck.isAfter(startRange) && timeToCheck.isBefore(endRange);
         }
+//        if (endRange.isBefore(startRange)) {
+//            endRange.plusHours(24);
+//        }
+//        return timeToCheck.isAfter(startRange) && timeToCheck.isBefore(endRange);
     }
 
     public static int[] fetchUTCDate() throws IOException, ParseException {
@@ -427,6 +435,17 @@ public class GenericUtils {
         return dates;
     }
 
+    public static String getLocalIP() {
+        try {
+            InetAddress localhost = InetAddress.getLocalHost();
+            String hostAddress = localhost.getHostAddress();
+            return GenericUtils.findServerName(hostAddress);
+        } catch (UnknownHostException e) {
+            System.err.println("Unable to get the host IP address: " + e.getMessage());
+        }
+        return "";
+    }
+
     public static String findServerName(String ip) {
         Map<String, String> servers = new HashMap<>();
         servers.put("173.255.203.21", "Alba");
@@ -442,7 +461,7 @@ public class GenericUtils {
         servers.put("45.56.66.144", "Comit");
         servers.put("45.33.116.80", "Combis");
 
-        return servers.getOrDefault(ip, ip);
+        return servers.getOrDefault(ip, "development");
     }
 
     public static <T> void printArray(T[] array) {
@@ -454,7 +473,15 @@ public class GenericUtils {
         System.out.println("/]");
         System.out.println(); // Move to the next line after printing the array
     }
-    
+
+    public static <T> String printArray(T[] array, boolean return_value) {
+        if (!return_value) {
+            printArray(array);
+            return "";
+        }
+        return String.format("[\n\r%s\n\r]", StringUtils.join(array, ", "));
+    }
+
     public static String generateRandomCode(int length) {
         StringBuilder sb = new StringBuilder(length);
 
