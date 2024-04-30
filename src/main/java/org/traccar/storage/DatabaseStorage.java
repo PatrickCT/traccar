@@ -16,6 +16,9 @@
 package org.traccar.storage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import org.traccar.config.Config;
 import org.traccar.model.BaseModel;
 import org.traccar.model.Device;
@@ -30,11 +33,14 @@ import org.traccar.storage.query.Request;
 import javax.inject.Inject;
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class DatabaseStorage extends Storage {
@@ -438,4 +444,44 @@ public class DatabaseStorage extends Storage {
             throw new StorageException(e);
         }
     }
+    
+    @Override
+    public boolean checkTable(String table) {
+        int counter = 0;
+        try (Connection con = dataSource.getConnection();
+                PreparedStatement pst = con.prepareStatement(""
+                        + String.format("SELECT COUNT(*) AS counter  "
+                                + "FROM information_schema.tables  "
+                                + "WHERE table_schema = DATABASE() "
+                                + "AND TABLE_NAME = '%s';", table));
+                ResultSet rs = pst.executeQuery();) {
+            while (rs.next()) {
+                counter = rs.getInt("counter");
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(DatabaseStorage.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        if (counter > 0) {
+            return true;
+        }
+        return false;
+    }
+    
+    @Override
+    public List<String> getImeisWS(String table) {
+        List<String> imeis = new ArrayList();
+        try (Connection con = dataSource.getConnection();
+                PreparedStatement pst = con.prepareStatement(""
+                        + String.format("SELECT imei AS imei "
+                                + "FROM %s "
+                                , table));
+                ResultSet rs = pst.executeQuery();) {
+            while (rs.next()) {
+                imeis.add(String.valueOf(rs.getObject("imei")));
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(DatabaseStorage.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return imeis;
+    }    
 }

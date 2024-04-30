@@ -23,6 +23,10 @@ import org.traccar.model.Event;
 import org.traccar.model.Position;
 
 import javax.inject.Inject;
+import org.json.JSONObject;
+import org.traccar.model.Device;
+import org.traccar.session.cache.CacheManager;
+import org.traccar.utils.GeneralUtils;
 
 public abstract class BaseEventHandler extends BaseDataHandler {
 
@@ -32,13 +36,21 @@ public abstract class BaseEventHandler extends BaseDataHandler {
     public void setNotificationManager(NotificationManager notificationManager) {
         this.notificationManager = notificationManager;
     }
+    
+    @Inject
+    private CacheManager cacheManager;
 
     @Override
     protected Position handlePosition(Position position) {
         Map<Event, Position> events = analyzePosition(position);
         if (events != null && !events.isEmpty()) {
             notificationManager.updateEvents(events);
-        }
+        }       
+        JSONObject obj = new JSONObject();
+        obj.put("type", "position");
+        obj.put("data", position);
+        obj.put("imei", cacheManager.getObject(Device.class, position.getDeviceId()).getUniqueId());
+        cacheManager.getSocket().emit("traccar", obj);
         return position;
     }
 

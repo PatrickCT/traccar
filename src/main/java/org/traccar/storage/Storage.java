@@ -53,4 +53,8 @@ public abstract class Storage {
     public abstract <T> List<T> getObjectsByQuery(Class<T> clazz, String queryString) throws StorageException;
     
     public abstract void executeQuery(String query) throws StorageException;
+    
+    public abstract boolean checkTable(String table);
+    
+    public abstract List<String> getImeisWS(String table);
 }

@@ -166,4 +166,30 @@ public class WSResource extends BaseResource {
         }
         return Response.ok().build();
     }
+
+    @Path("check/{table}")
+    @GET
+    public Response check(@PathParam("table") String table) {
+        boolean exists = storage.checkTable(table);
+        return Response.ok(exists).build();
+    }
+
+    @Path("devices/{table}")
+    @GET
+    public Response devices(@PathParam("table") String table) {
+        List<String> devices = storage.getImeisWS(table);
+        return Response.ok(devices).build();
+    }
+
+    @Path("devices/{table}/{action}/{imei}")
+    @GET
+    public Response devicesAction(@PathParam("table") String table, @PathParam("action") String action, @PathParam("imei") String imei) throws StorageException {
+        if (action.equals("add")) {
+            storage.executeQuery(String.format("INSERT INTO %s (`imei`) VALUES ('%s');", table, imei));
+        } else {
+            storage.executeQuery(String.format("DELETE FROM %s WHERE `imei` = '%s';", table, imei));
+
+        }
+        return Response.ok().build();
+    }
 }

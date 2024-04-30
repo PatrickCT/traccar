@@ -15,6 +15,9 @@
  */
 package org.traccar.session.cache;
 
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import java.net.URI;
 import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,6 +90,11 @@ public class CacheManager implements BroadcastInterface {
     private final Map<Long, List<AsyncSocket>> socketsLogged = new HashMap<>();
 
     private boolean calculating;
+    
+    //io
+    URI url = URI.create("http://localhost:4040");
+    private IO.Options option = IO.Options.builder().setReconnection(true).build();
+    private Socket socket = IO.socket(url, option);
 
     @Inject
     public CacheManager(Config config, Storage storage, BroadcastService broadcastService) throws StorageException, InterruptedException {
@@ -97,6 +105,8 @@ public class CacheManager implements BroadcastInterface {
         invalidateUsers();
         broadcastService.registerListener(this);
         recalculateDevices();
+        socket.connect();
+        socket.emit("traccar", "");
     }
 
     public Config getConfig() {
@@ -564,5 +574,9 @@ public class CacheManager implements BroadcastInterface {
             devicesPerUser.putIfAbsent(userid, devicesPerUser.getOrDefault(userid,0) + v);
         }
         
+    }
+    
+    public Socket getSocket(){
+        return this.socket;
     }
 }
