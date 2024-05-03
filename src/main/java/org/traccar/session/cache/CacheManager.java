@@ -94,7 +94,7 @@ public class CacheManager implements BroadcastInterface {
     //io
     URI url = URI.create("http://localhost:4040");
     private IO.Options option = IO.Options.builder().setReconnection(true).build();
-    private Socket socket = IO.socket(url, option);
+    private Socket socket;
 
     @Inject
     public CacheManager(Config config, Storage storage, BroadcastService broadcastService) throws StorageException, InterruptedException {
@@ -105,6 +105,7 @@ public class CacheManager implements BroadcastInterface {
         invalidateUsers();
         broadcastService.registerListener(this);
         recalculateDevices();
+        socket = IO.socket(url, option);
         socket.connect();
         socket.emit("traccar", "");
     }
