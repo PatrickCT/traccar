@@ -210,8 +210,12 @@ public class DeviceResource extends BaseObjectResource<Device> {
     @Path("{id}/ticket")
     public Response ticket(@PathParam("id") long deviceId) throws StorageException {
         JSONObject response = new JSONObject("{}");
+
+        // Fetching subroutes
         List<Subroute> subroutes = storage.getObjects(Subroute.class, new Request(new Columns.All()));
         response.put("subroutes", subroutes);
+
+        // Fetching salida
         Salida salida = storage.getObject(Salida.class,
                 new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                     {
@@ -219,20 +223,27 @@ public class DeviceResource extends BaseObjectResource<Device> {
                         add(new Condition.Equals("finished", false));
                     }
                 })));
+
         Date StartDate = new Date();
         StartDate.setHours(0);
-        List<Salida> salidas = storage.getObjects(Salida.class,
-                new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                    {
-                        add(new Condition.Equals("deviceId", deviceId));
-                        add(new Condition.Between("date", "from", StartDate, "to",
-                                GenericUtils.addTimeToDate(StartDate, Calendar.DAY_OF_MONTH, 1)));
-                    }
-                })));
+
+        // Fetching salidas
+        List<Salida> salidas = storage.getObjectsByQuery(Salida.class, String.format("select * from tc_salidas where deviceid='%s' and DATE(date)= DATE(NOW())", deviceId));
+//        List<Salida> salidas = storage.getObjects(Salida.class,
+//                new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+//                    {
+//                        add(new Condition.Equals("deviceId", deviceId));
+//                        add(new Condition.Between("date", "from", StartDate, "to",
+//                                GenericUtils.addTimeToDate(StartDate, Calendar.DAY_OF_MONTH, 1)));
+//                    }
+//                })));
         response.put("vueltas", salidas.size());
+
+        // Fetching choferes permissions
         List<Driver> choferes = new ArrayList<>();
         List<Long> permisos = storage.getPermissions(Device.class, Driver.class).stream()
                 .filter((p) -> p.getOwnerId() == deviceId).map((p) -> p.getPropertyId()).collect(Collectors.toList());
+
         permisos.forEach((id) -> {
             try {
                 choferes.add(storage.getObject(Driver.class,
@@ -241,54 +252,17 @@ public class DeviceResource extends BaseObjectResource<Device> {
                 Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
+//        System.out.println("Time taken to fetch choferes permissions: " + (choferesEndTime - choferesStartTime) / 1e6 + " ms");
         response.put("choferes", choferes);
-        if (salida != null) {            
+
+        // Processing salida
+        if (salida != null) {
             response.put("salida", salida);
+
+            // Fetching tickets
             List<Ticket> tickets = storage.getObjects(Ticket.class,
                     new Request(new Columns.All(), new Condition.Equals("salidaId", salida.getId())));
             response.put("ticket", tickets);
-            List<Geofence> geoNames = new ArrayList<>();
-            Map<Long, Object> otros = new HashMap<>();
-
-            List<Salida> otras_salidas = storage.getObjects(Salida.class,
-                    new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                        {
-                            add(new Condition.Equals("scheduleId", salida.getScheduleId()));
-                            add(new Condition.Between("date", "from",
-                                    GenericUtils.addTimeToDate(new Date(), Calendar.HOUR_OF_DAY, -1), "to",
-                                    new Date()));
-                        }
-                    })));
-
-            for (int i = 0; i < tickets.size(); i++) {
-                Ticket ticket = tickets.get(i);
-                Geofence g;
-                List<Ticket> t;
-                try {
-                    g = storage.getObject(Geofence.class,
-                            new Request(new Columns.All(), new Condition.Equals("id", ticket.getGeofenceId())));
-                    geoNames.add(g);
-
-                    t = storage.getObjects(Ticket.class,
-                            new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                                {
-                                    add(new Condition.Equals("geofenceId", g.getId()));
-                                    add(new Condition.Between("enterTime", "from",
-                                            GenericUtils.addTimeToDate(new Date(), Calendar.HOUR_OF_DAY, -1), "to",
-                                            new Date()));
-                                }
-                            })));
-
-                    if (!t.isEmpty()) {
-
-                    }
-                } catch (StorageException ex) {
-                    Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
-                }
-
-                response.put("geofencesNames", geoNames);
-                response.put("geofencesPassed", otros);
-            }
         }
 
         return Response.ok(response.toMap()).build();

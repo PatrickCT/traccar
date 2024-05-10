@@ -54,21 +54,25 @@ public class AsyncSocketServlet extends JettyWebSocketServlet {
 
     @Override
     public void configure(JettyWebSocketServletFactory factory) {
-        factory.setIdleTimeout(Duration.ofMillis(config.getLong(Keys.WEB_TIMEOUT)));
-        factory.setCreator((req, resp) -> {
-            if (req.getSession() != null) {
-                Long userId = (Long) ((HttpSession) req.getSession()).getAttribute(SessionResource.USER_ID_KEY);
-                if (userId != null) {
-                    AsyncSocket soc = new AsyncSocket(objectMapper, connectionManager, storage, userId, cacheManager);
-                    if (!cacheManager.getSocketsLogged().containsKey(userId)) {                        
-                        cacheManager.getSocketsLogged().put(userId, new ArrayList<>());
-                    }                    
-                    cacheManager.getSocketsLogged().get(userId).add(soc);                    
-                    return soc;
+        try {
+            factory.setIdleTimeout(Duration.ofMillis(config.getLong(Keys.WEB_TIMEOUT)));
+            factory.setCreator((req, resp) -> {
+                if (req.getSession() != null) {
+                    Long userId = (Long) ((HttpSession) req.getSession()).getAttribute(SessionResource.USER_ID_KEY);
+                    if (userId != null) {
+                        AsyncSocket soc = new AsyncSocket(objectMapper, connectionManager, storage, userId, cacheManager);
+                        if (!cacheManager.getSocketsLogged().containsKey(userId)) {
+                            cacheManager.getSocketsLogged().put(userId, new ArrayList<>());
+                        }
+                        cacheManager.getSocketsLogged().get(userId).add(soc);
+                        return soc;
+                    }
                 }
-            }
-            return null;
-        });
+                return null;
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 }

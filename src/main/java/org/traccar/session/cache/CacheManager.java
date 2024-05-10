@@ -17,6 +17,7 @@ package org.traccar.session.cache;
 
 import io.socket.client.IO;
 import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
 import java.net.URI;
 import java.util.ArrayList;
 import org.slf4j.Logger;
@@ -57,6 +58,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Timer;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
@@ -90,9 +93,10 @@ public class CacheManager implements BroadcastInterface {
     private final Map<Long, List<AsyncSocket>> socketsLogged = new HashMap<>();
 
     private boolean calculating;
-    
+    private Timer reconnectionTimer;
+
     //io
-    URI url = URI.create("http://localhost:4040");
+    URI url = URI.create("http://45.79.45.108:4040");
     private IO.Options option = IO.Options.builder().setReconnection(true).build();
     private Socket socket;
 
@@ -104,10 +108,7 @@ public class CacheManager implements BroadcastInterface {
         invalidateServer();
         invalidateUsers();
         broadcastService.registerListener(this);
-        recalculateDevices();
-        socket = IO.socket(url, option);
-        socket.connect();
-        socket.emit("traccar", "");
+        recalculateDevices();        
     }
 
     public Config getConfig() {
@@ -569,15 +570,76 @@ public class CacheManager implements BroadcastInterface {
     }
 
     public void setDevicesPerUser(long userid, int v) {
-        if(devicesPerUser.containsKey(userid)){
+        if (devicesPerUser.containsKey(userid)) {
             devicesPerUser.put(userid, devicesPerUser.get(userid) + v);
-        }else {
-            devicesPerUser.putIfAbsent(userid, devicesPerUser.getOrDefault(userid,0) + v);
+        } else {
+            devicesPerUser.putIfAbsent(userid, devicesPerUser.getOrDefault(userid, 0) + v);
         }
-        
+
+    }
+
+    public Socket getSocket() {
+        return this.socket;
     }
     
-    public Socket getSocket(){
-        return this.socket;
+    public void initSocket(){
+        socket = IO.socket(url, option);
+        socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println("connect");
+                System.out.println(socket.id());
+            }
+        });
+        socket.on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println("error");
+                Arrays.asList(args).stream().forEach((o) -> System.out.println(String.valueOf(o)));
+            }
+        });
+        socket.on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                System.out.println("disconnect");
+                if (reconnectionTimer != null) {
+                    reconnectionTimer.cancel();
+                }
+                reconnectionTimer = new Timer();
+                // Schedule the task at a fixed rate
+                java.util.TimerTask task = new java.util.TimerTask() {
+                    @Override
+                    public void run() {
+                        try {
+                            CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+                                try {
+                                    if (!socket.connected()) {
+                                        socket.connect();
+                                    } else {
+                                        if (reconnectionTimer != null) {
+                                            reconnectionTimer.cancel();
+                                            reconnectionTimer.purge();
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    // Handle exceptions if needed
+                                }
+                                return null;
+                            });
+                        } catch (Exception error) {
+                            // Handle exceptions if needed
+                        }
+                    }
+                };
+                reconnectionTimer.scheduleAtFixedRate(task, 0, 10 * 1000);
+            }
+        });
+        socket.connect();
+        System.out.println("socket " + socket.id());
+    }
+    
+    public void stopSocket(){
+        socket.off();
+        socket.disconnect();
     }
 }

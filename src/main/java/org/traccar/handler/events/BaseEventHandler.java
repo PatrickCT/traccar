@@ -36,7 +36,7 @@ public abstract class BaseEventHandler extends BaseDataHandler {
     public void setNotificationManager(NotificationManager notificationManager) {
         this.notificationManager = notificationManager;
     }
-    
+
     @Inject
     private CacheManager cacheManager;
 
@@ -45,12 +45,14 @@ public abstract class BaseEventHandler extends BaseDataHandler {
         Map<Event, Position> events = analyzePosition(position);
         if (events != null && !events.isEmpty()) {
             notificationManager.updateEvents(events);
-        }       
+        }
         JSONObject obj = new JSONObject();
         obj.put("type", "position");
         obj.put("data", position);
         obj.put("imei", cacheManager.getObject(Device.class, position.getDeviceId()).getUniqueId());
-        cacheManager.getSocket().emit("traccar", obj);
+        if (cacheManager.getSocket() != null) {
+            cacheManager.getSocket().emit("traccar", obj);
+        }
         return position;
     }
 
