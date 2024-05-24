@@ -314,9 +314,9 @@ public class User extends ExtendedModel implements UserRestrictions, Disableable
     public void setPrincipal(int principal) {
         this.principal = principal;
     }
-    
+
     private int offlineTimeout;
-   
+
     public int getOfflineTimeout() {
         return offlineTimeout;
     }
@@ -334,7 +334,7 @@ public class User extends ExtendedModel implements UserRestrictions, Disableable
     public void setStopTimeout(int stopTimeout) {
         this.stopTimeout = stopTimeout;
     }
-    
+
     private boolean billing;
 
     public boolean getBilling() {
@@ -343,10 +343,10 @@ public class User extends ExtendedModel implements UserRestrictions, Disableable
 
     public void setBilling(boolean billing) {
         this.billing = billing;
-    }    
-        
+    }
+
     private boolean debt;
-    
+
     public boolean getDebt() {
         return debt;
     }
@@ -355,5 +355,25 @@ public class User extends ExtendedModel implements UserRestrictions, Disableable
     public void setDebt(boolean debt) {
         this.debt = debt;
     }
-        
+
+    private boolean addUnits;
+
+    public boolean getAddUnits() {
+        return addUnits;
+    }
+
+    public void setAddUnits(boolean addUnits) {
+        this.addUnits = addUnits;
+    }
+
+    private boolean support;
+
+    public boolean getSupport() {
+        return support;
+    }
+
+    public void setSupport(boolean support) {
+        this.support = support;
+    }
+
 }

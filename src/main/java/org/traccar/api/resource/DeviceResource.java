@@ -48,23 +48,18 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.json.JSONObject;
 import org.traccar.model.Driver;
-import org.traccar.model.Geofence;
 import org.traccar.model.Salida;
 import org.traccar.model.Subroute;
 import org.traccar.model.Ticket;
-import org.traccar.utils.GenericUtils;
 
 @Path("devices")
 @Produces(MediaType.APPLICATION_JSON)
@@ -135,8 +130,8 @@ public class DeviceResource extends BaseObjectResource<Device> {
                     conditions.add(new Condition.Permission(User.class, userId, baseClass).excludeGroups());
                 }
             }
-
-            return storage.getObjects(baseClass, new Request(new Columns.All(), Condition.merge(conditions)));
+            List<Device> result = storage.getObjects(baseClass, new Request(new Columns.All(), Condition.merge(conditions)));            
+            return result;
 
         }
     }
@@ -203,6 +198,7 @@ public class DeviceResource extends BaseObjectResource<Device> {
             }
             return Response.ok(name + "." + extension).build();
         }
+        
         return Response.status(Response.Status.NOT_FOUND).build();
     }
 

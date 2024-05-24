@@ -17,6 +17,7 @@ package org.traccar.api;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.slf4j.Logger;
@@ -32,8 +33,11 @@ import org.traccar.storage.StorageException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import org.json.JSONObject;
+import org.traccar.model.Salida;
 import org.traccar.session.cache.CacheManager;
 
 public class AsyncSocket extends WebSocketAdapter implements ConnectionManager.UpdateListener {
@@ -59,7 +63,7 @@ public class AsyncSocket extends WebSocketAdapter implements ConnectionManager.U
     }
 
     @Override
-    public void onWebSocketConnect(Session session) {        
+    public void onWebSocketConnect(Session session) {
         try {
             super.onWebSocketConnect(session);
             Map<String, Collection<?>> data = new HashMap<>();
@@ -86,6 +90,15 @@ public class AsyncSocket extends WebSocketAdapter implements ConnectionManager.U
     @Override
     public void onUpdateDevice(Device device) {
         Map<String, Collection<?>> data = new HashMap<>();
+        if (storage.checkTable("tc_salidas")) {
+            List<Salida> salidas = new ArrayList<>();
+            try {
+                salidas = storage.getObjectsByQuery(Salida.class, "select * from tc_salidas where finished = false and deviceid = " + device.getId());
+            } catch (StorageException ex) {
+                java.util.logging.Logger.getLogger(AsyncSocket.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            device.getAttributes().put("Salida", !salidas.isEmpty());
+        }
         data.put(KEY_DEVICES, Collections.singletonList(device));
         sendData(data);
     }

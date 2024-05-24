@@ -185,9 +185,9 @@ public class WSResource extends BaseResource {
     @GET
     public Response devicesAction(@PathParam("table") String table, @PathParam("action") String action, @PathParam("imei") String imei) throws StorageException {
         if (action.equals("add")) {
-            storage.executeQuery(String.format("INSERT INTO %s (`imei`) VALUES ('%s');", table, imei));
+            storage.executeQuery(String.format("INSERT INTO %s (`imei`) VALUES ('%s');", table, imei.trim()));
         } else {
-            storage.executeQuery(String.format("DELETE FROM %s WHERE `imei` = '%s';", table, imei));
+            storage.executeQuery(String.format("DELETE FROM %s WHERE `imei` = '%s';", table, imei.trim()));
 
         }
         return Response.ok().build();
