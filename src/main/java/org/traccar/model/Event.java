@@ -58,6 +58,8 @@ public class Event extends Message {
     public static final String TYPE_GEOFENCE_EXIT = "geofenceExit";
 
     public static final String TYPE_ALARM = "alarm";
+    public static final String TYPE_ALARM_MAX_TEMP = "alarmMaxTemp";
+    public static final String TYPE_ALARM_MIN_TEMP = "alarmMinTemp";
 
     public static final String TYPE_IGNITION_ON = "ignitionOn";
     public static final String TYPE_IGNITION_OFF = "ignitionOff";
@@ -66,6 +68,9 @@ public class Event extends Message {
     public static final String TYPE_TEXT_MESSAGE = "textMessage";
     public static final String TYPE_DRIVER_CHANGED = "driverChanged";
     public static final String TYPE_MEDIA = "media";
+    
+    public static final String TYPE_ALARM_POWERCUT = "alarmPowerCut";
+    public static final String TYPE_ALARM_OVERSPEED = "alarmOverSpeed";
 
     private Date eventTime;
 
@@ -109,8 +114,7 @@ public class Event extends Message {
 
     @Override
     public String toString() {
-        return "Event{" + "eventTime=" + eventTime + ", positionId=" + positionId + ", geofenceId=" + geofenceId + ", maintenanceId=" + maintenanceId + "type=" + getType() +'}';
+        return "Event{" + "eventTime=" + eventTime + ", positionId=" + positionId + ", geofenceId=" + geofenceId + ", maintenanceId=" + maintenanceId + "type=" + getType() + '}';
     }
 
-        
 }

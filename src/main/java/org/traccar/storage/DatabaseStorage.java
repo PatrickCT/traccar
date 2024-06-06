@@ -484,4 +484,30 @@ public class DatabaseStorage extends Storage {
         }
         return imeis;
     }    
+
+    @Override
+    public boolean checkWSTable(String imei, String table) {
+
+        int counter = 0;
+        boolean checkTable = checkTable(table);
+        if (!checkTable) {
+            return false;
+        }
+        try (Connection con = dataSource.getConnection();
+                PreparedStatement pst = con.prepareStatement("SELECT count(*) as counter "
+                        + "FROM " + table + " "
+                        + "WHERE imei like '%" + imei + "%'");
+                ResultSet rs = pst.executeQuery();) {
+
+            while (rs.next()) {
+                counter = rs.getInt("counter");
+            }
+        } catch (SQLException ex) {
+            Logger.getLogger(DatabaseStorage.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        if (counter > 0) {
+            return true;
+        }
+        return false;
+    }
 }

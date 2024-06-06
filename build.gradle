@@ -90,12 +90,24 @@ dependencies {
     implementation "com.nimbusds:oauth2-oidc-sdk:10.9.1"
     implementation "org.apache.httpcomponents.client5:httpclient5:5.2.1"  
     implementation ('io.socket:socket.io-client:2.1.0') {
-      // excluding org.json which is provided by Android
-      exclude group: 'org.json', module: 'json'
+        // excluding org.json which is provided by Android
+        exclude group: 'org.json', module: 'json'
     }  
+    implementation ('com.liferay:org.apache.axis:1.4.LIFERAY-PATCHED-7') {
+        exclude module: 'commons-logging'
+    }
+    implementation 'javax.xml.rpc:javax.xml.rpc-api:1.1.2'
+    implementation 'javax.xml.bind:jaxb-api:2.3.1'
+    implementation 'com.sun.xml.bind:jaxb-core:2.3.0.1'
+    implementation 'com.sun.xml.bind:jaxb-impl:2.3.2'
+    implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.3'
+    implementation 'commons-discovery:commons-discovery:0.5'
+    implementation 'javax.xml.soap:javax.xml.soap-api:1.4.0'
+
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junitVersion"
     testImplementation "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
     testImplementation "org.mockito:mockito-core:5.3.1"
+
 }
 
 test {

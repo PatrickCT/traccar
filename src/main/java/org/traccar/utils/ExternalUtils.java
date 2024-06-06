@@ -1,0 +1,251 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package org.traccar.utils;
+
+import com.unisolutions.PEvento;
+import com.unisolutions.ServiceSoapStub;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.rmi.RemoteException;
+import java.security.SecureRandom;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.apache.axis.AxisFault;
+import org.apache.axis.client.Service;
+import org.apache.commons.lang3.ObjectUtils;
+import org.datacontract.schemas._2004._07.IronTracking.AppointResult;
+import org.datacontract.schemas._2004._07.IronTracking.Event;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.tempuri.BasicHttpBinding_IRCServiceStub;
+import org.traccar.model.Device;
+import org.traccar.model.Position;
+import org.traccar.session.cache.CacheManager;
+import org.traccar.storage.StorageException;
+
+/**
+ *
+ * @author K
+ */
+public final class ExternalUtils {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExternalUtils.class);
+    private static final String ALPHANUMERIC = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    private static final SecureRandom RANDOM = new SecureRandom();
+
+    public static String generateRandomCode(int length) {
+        StringBuilder sb = new StringBuilder(length);
+
+        for (int i = 0; i < length; i++) {
+            int randomIndex = RANDOM.nextInt(ALPHANUMERIC.length());
+            char randomChar = ALPHANUMERIC.charAt(randomIndex);
+            sb.append(randomChar);
+        }
+
+        return sb.toString();
+    }
+
+    public static String sitrackSend(Position position, CacheManager cacheManager) throws IOException {
+        try {
+            JSONObject obj = new JSONObject();
+            Device device = cacheManager.getObject(Device.class, position.getDeviceId()); // Context.getDeviceManager().getById(position.getDeviceId());
+            obj.put("imei_no", device.getUniqueId());
+            obj.put("lattitude", String.valueOf(position.getLatitude()));
+            obj.put("longitude", String.valueOf(position.getLongitude()));
+            obj.put("angle", String.valueOf(position.getCourse()));
+            obj.put("speed", String.valueOf(position.getSpeed() * 1.852));
+
+//        OffsetDateTime offsetDateTime = OffsetDateTime
+//                .of(position.getDeviceTime()
+//                        .toInstant()
+//                        .atZone(ZoneId.systemDefault())
+//                        .toLocalDateTime(),
+//                        ZoneOffset.UTC);
+            // Format and display the result
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        String utcTime = offsetDateTime.format(formatter);
+
+            obj.put("time", sdf.format(GeneralUtils.dateToUTC(position.getDeviceTime())));
+            obj.put("battery_voltage", position.getAttributes().getOrDefault("battery", 0).toString());
+            obj.put("gps_validity", position.getValid() ? "A" : "A"); //se cambia a solicitud de sitrack para enviar siempre la letra A
+
+            String result = GeneralUtils.genericPOST("http://54.193.100.127:5175/", obj.toString(), new HashMap<>(), 5);
+            LOGGER.info(obj.toString());
+            JSONObject wh = new JSONObject();
+            wh.put("webservice", obj.toString());
+            wh.put("device", device);
+            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(), 5);
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+        }
+        return "";
+    }
+
+    public static String recursoConfiable(Position position, CacheManager cacheManager) {
+        try {
+            String identifier = "[" + generateRandomCode(10) + "] - ";
+            LOGGER.info(identifier + "DAcero start");
+            List<Event> evts = new ArrayList<>();
+
+            Device dev = cacheManager.getObject(Device.class, position.getDeviceId());
+
+            Event evt = null;
+            evt = new Event();
+
+            evt.setAltitude(String.valueOf(position.getAltitude()));
+            evt.setAsset(ObjectUtils.firstNonNull(dev.getCarPlate(), ""));
+            if (dev.getAttributes().containsKey("battery")) {
+                evt.setBattery(String.valueOf(dev.getAttributes().getOrDefault("battery", "0")));
+            }
+            evt.setCode("");
+            evt.setCourse(String.valueOf(position.getCourse()));
+            //pendiente nombre e identificador
+            Instant instant = position.getFixTime().toInstant();
+            ZonedDateTime zonedDateTime = instant.atZone(ZoneId.of("UTC"));
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(Date.from(zonedDateTime.toInstant()));
+            evt.setDate(calendar);
+            evt.setDirection(position.getAddress());
+            if (position.getAttributes().containsKey("ignition")) {
+                evt.setIgnition(String.valueOf(position.getAttributes().get("ignition")));
+            }
+            evt.setLatitude(String.valueOf(position.getLatitude()));
+            evt.setLongitude(String.valueOf(position.getLongitude()));
+            //pendiente odometro
+            evt.setSpeed(String.valueOf(position.getSpeed()));
+            //pendiente temperatura
+            evts.add(evt);
+
+            LOGGER.info(identifier + "DAcero Service start");
+            LOGGER.info(identifier + evt.toString());
+            Service service = new Service();
+
+            BasicHttpBinding_IRCServiceStub client = new BasicHttpBinding_IRCServiceStub(new URL("http://gps.rcontrol.com.mx/Tracking/wcf/RCService.svc?singleWsdl"), service);
+            LOGGER.info(identifier + "Client " + client);
+            String token = client.getUserToken("user_avl_MBSV", "Hhss$847sbsZ*1").getToken();
+            LOGGER.info(identifier + "Token " + token);
+            AppointResult[] res = client.GPSAssetTracking(token, evts.toArray(new Event[evts.size()]));
+            LOGGER.info(identifier + "Resultado dacero");
+
+            StringBuilder builder = new StringBuilder();
+            builder.append("[");
+            for (int i = 0; i < res.length; i++) {
+                builder.append(res[i]);
+                if (i < res.length - 1) {
+                    builder.append(", ");
+                }
+            }
+            builder.append("]");
+            String arrayAsString = builder.toString();
+
+            LOGGER.info(identifier + arrayAsString);
+            JSONObject wh = new JSONObject();
+            wh.put("webservice", evt.toString());
+            wh.put("device", dev);
+            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(), 5);
+            return "";
+        } catch (IOException | JSONException ex) {
+            ex.printStackTrace();
+        }
+        LOGGER.info("DAcero something wrong");
+        return "";
+    }
+
+    public static String lala(Position position, CacheManager cacheManager) throws AxisFault, SQLException, RemoteException, MalformedURLException, StorageException, IOException {
+        try {
+            String code = generateRandomCode(10);
+            LOGGER.info(String.format("[%s]WS Lala", code));
+            Map<String, String> events_codes = new HashMap();
+            events_codes.put(org.traccar.model.Event.TYPE_COMMAND_RESULT, "CR");
+            events_codes.put(org.traccar.model.Event.TYPE_DEVICE_ONLINE, "DO");
+            events_codes.put(org.traccar.model.Event.TYPE_DEVICE_UNKNOWN, "DU");
+            events_codes.put(org.traccar.model.Event.TYPE_DEVICE_OFFLINE, "DF");
+            events_codes.put(org.traccar.model.Event.TYPE_DEVICE_MOVING, "DM");
+            events_codes.put(org.traccar.model.Event.TYPE_DEVICE_STOPPED, "DS");
+            events_codes.put(org.traccar.model.Event.TYPE_DEVICE_OVERSPEED, "DOS");
+            events_codes.put(org.traccar.model.Event.TYPE_DEVICE_FUEL_DROP, "DF");
+            events_codes.put(org.traccar.model.Event.TYPE_GEOFENCE_ENTER, "DGI");
+            events_codes.put(org.traccar.model.Event.TYPE_GEOFENCE_EXIT, "DGO");
+            events_codes.put(org.traccar.model.Event.TYPE_ALARM, "A");
+            events_codes.put(org.traccar.model.Event.TYPE_ALARM_MAX_TEMP, "ATU");
+            events_codes.put(org.traccar.model.Event.TYPE_ALARM_MIN_TEMP, "ATD");
+            events_codes.put(org.traccar.model.Event.TYPE_IGNITION_ON, "II");
+            events_codes.put(org.traccar.model.Event.TYPE_IGNITION_OFF, "IO");
+            events_codes.put(org.traccar.model.Event.TYPE_MAINTENANCE, "M");
+            events_codes.put(org.traccar.model.Event.TYPE_TEXT_MESSAGE, "TM");
+            events_codes.put(org.traccar.model.Event.TYPE_DRIVER_CHANGED, "DC");
+            events_codes.put(org.traccar.model.Event.TYPE_ALARM_POWERCUT, "PC");
+            events_codes.put(org.traccar.model.Event.TYPE_ALARM_OVERSPEED, "OS");
+
+            Device device = cacheManager.getObject(Device.class, position.getDeviceId());;
+
+            List<PEvento> eventos = new ArrayList<>();
+            PEvento pevento = new PEvento();
+            pevento.setAltitud(position.getAltitude());
+            pevento.setCodigo(events_codes.get(""));
+            pevento.setDominio(device.getUniqueId());
+            pevento.setFechaHoraEvento(toCalendar(position.getFixTime()));
+            pevento.setFechaHoraRecepcion(toCalendar(position.getServerTime()));
+            pevento.setLatitud(position.getLatitude());
+            pevento.setLongitud(position.getLongitude());
+            pevento.setNroSerie("-1");
+            pevento.setVelocidad(position.getSpeed());
+            LOGGER.info(String.format("[%s]WS Lala evento", code));
+            LOGGER.info(String.format("[%s]WS Lala evento", code) + pevento.toString());
+            PEvento[] evts = new PEvento[1];
+            evts[0] = pevento;
+            LOGGER.info(String.format("[%s]WS Lala evento", code) + Arrays.toString(eventos.toArray(new PEvento[0])));
+            LOGGER.info(String.format("[%s]WS Lala evento", code) + Arrays.toString(evts));
+            org.traccar.model.Event evento = null;
+            List<org.traccar.model.Event> events = cacheManager.getStorage().getObjectsByQuery(org.traccar.model.Event.class, "select * from tc_events where positionid = " + position.getId());
+            if (!events.isEmpty()) {
+                evento = events.get(0);
+            }
+            if (evento != null) {
+                pevento.setCodigo(events_codes.getOrDefault(evento.getType(), "P"));
+            } else {
+                pevento.setCodigo("P");
+            }
+
+            Service service = new Service();
+
+            ServiceSoapStub client = new ServiceSoapStub(new URL("http://hub.unisolutions.com.ar/hub/unigis/Mapi/soap/gps/service.asmx?wsdl"), service);
+            int[] response = client.loginYInsertarEventos("GPSTRACKER", "LSM985kuj", evts);
+            LOGGER.info(String.format("[%s]WS Lala response", code));
+            LOGGER.info(String.format("[%s]: %s", code, Arrays.toString(response)));
+            JSONObject wh = new JSONObject();
+            wh.put("webservice", pevento.toString());
+            wh.put("device", device);
+            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(), 5);
+            return Arrays.toString(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    public static Calendar toCalendar(Date date) {
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(date);
+        return cal;
+    }
+}

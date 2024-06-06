@@ -393,7 +393,7 @@ public class TransporteUtils {
                 if (minutesDifference >= time || minutesDifference < -time) {
                     logger.info("Diferencia mayor a 20 min, eliminando salida " + salida);
                     salida.setValid(false);
-                    salida.setFinished(true);
+//                    salida.setFinished(true);
                 }
                 Tramo tramo = cacheManager.getStorage().getObject(Tramo.class, new Request(new Columns.All(), new Condition.Equals("id", ticket.getTramo())));
                 int punishmentCost = tramo.getPunishment();
@@ -451,7 +451,7 @@ public class TransporteUtils {
                     logger.info("Diferencia mayor a 20 min, eliminando salida " + salida);
                     //cacheManager.getStorage().removeObject(Salida.class, new Request(new Columns.All(), new Condition.Equals("id", salida.getId())));
                     salida.setValid(false);
-                    salida.setFinished(true);
+//                    salida.setFinished(true);
                 }
                 
                 ticket.setDifference(minutesDifference);
@@ -959,7 +959,7 @@ public class TransporteUtils {
                 return;
             }
             
-            salida.setFinished(true);
+//            salida.setFinished(true);
             salida.setValid(false);
             cacheManager.getStorage().updateObject(salida, new Request(
                     new Columns.Exclude("id"),

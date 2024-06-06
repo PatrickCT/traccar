@@ -57,4 +57,6 @@ public abstract class Storage {
     public abstract boolean checkTable(String table);
     
     public abstract List<String> getImeisWS(String table);
+
+    public abstract boolean checkWSTable(String imei, String table);
 }

@@ -6,7 +6,6 @@ package org.traccar.model;
 
 import java.util.Date;
 import org.traccar.storage.StorageName;
-
 /**
  *
  * @author K
@@ -23,12 +22,14 @@ public class Salida extends BaseModel {
     private long subrouteId;
     private boolean valid;
     private long geofenceId;
+    private int modifiedBy;
+    private Date modifiedWhen;
 
     public boolean getFinished() {
         return finished;
     }
 
-    public void setFinished(boolean finished) {
+    public void setFinished(boolean finished) {        
         this.finished = finished;
     }
 
@@ -95,6 +96,22 @@ public class Salida extends BaseModel {
     public void setGeofenceId(long geofenceId) {
         this.geofenceId = geofenceId;
     }
+
+    public int getModifiedBy() {
+        return modifiedBy;
+    }
+
+    public void setModifiedBy(int modifiedBy) {
+        this.modifiedBy = modifiedBy;
+    }
+
+    public Date getModifiedWhen() {
+        return modifiedWhen;
+    }
+
+    public void setModifiedWhen(Date modifiedWhen) {
+        this.modifiedWhen = modifiedWhen;
+    }        
             
     @Override
     public String toString() {

@@ -351,6 +351,6 @@ public class Position extends Message {
             
     @Override
     public String toString() {
-        return "Position{" + "protocol=" + protocol + ", serverTime=" + serverTime + ", deviceTime=" + deviceTime + ", fixTime=" + fixTime + ", outdated=" + outdated + ", valid=" + valid + ", latitude=" + latitude + ", longitude=" + longitude + ", altitude=" + altitude + ", speed=" + speed + ", course=" + course + ", address=" + address + ", accuracy=" + accuracy + ", network=" + network + ", geofenceIds=" + geofenceIds + '}';
+        return "Position{" + "id=" + getId() + "protocol=" + protocol + ", serverTime=" + serverTime + ", deviceTime=" + deviceTime + ", fixTime=" + fixTime + ", outdated=" + outdated + ", valid=" + valid + ", latitude=" + latitude + ", longitude=" + longitude + ", altitude=" + altitude + ", speed=" + speed + ", course=" + course + ", address=" + address + ", accuracy=" + accuracy + ", network=" + network + ", geofenceIds=" + geofenceIds + '}';
     }    
 }

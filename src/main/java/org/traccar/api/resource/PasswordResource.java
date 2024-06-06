@@ -86,6 +86,5 @@ public class PasswordResource extends BaseResource {
             return Response.ok().build();
         }
         return Response.status(Response.Status.NOT_FOUND).build();
-    }
-
+    }    
 }

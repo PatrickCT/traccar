@@ -42,6 +42,10 @@ public class GeneralUtils {
 
     private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(GeneralUtils.class);
 
+    public static Date dateToUTC(Date date) {
+        return new Date(date.getTime() - Calendar.getInstance().getTimeZone().getOffset(date.getTime()));
+    }
+
     public String nuevoWSGigaPegasus(CacheManager cacheManager) {
 
         try {
@@ -195,7 +199,6 @@ public class GeneralUtils {
     }
 
     public static String genericPOST(String url, String json, Map<String, Object> headers, int timeoutInSeconds) throws IOException {
-        //System.out.println("Generic post to " + url);
         try {
             // Configure request timeout
             RequestConfig requestConfig = RequestConfig.custom()
@@ -221,16 +224,16 @@ public class GeneralUtils {
             CloseableHttpResponse response = client.execute(httpPost);
             HttpEntity responseEntity = response.getEntity();
             String responseString = EntityUtils.toString(responseEntity, "UTF-8");
-            System.out.println("Generic post to " + url + " response");
-            System.out.println(responseString);
+//            System.out.println("Generic post to " + url + " response");
+//            System.out.println(responseString);
             client.close();
 
             return responseString;
         } catch (org.apache.hc.core5.http.ParseException ex) {
             // Handle exception
-            //System.out.println("error generic post");
-            //System.out.println(ex.getMessage());
-            //System.out.println(ex);
+            System.out.println("error generic post");
+            System.out.println(ex.getMessage());
+            System.out.println(ex);
         }
         return "";
     }

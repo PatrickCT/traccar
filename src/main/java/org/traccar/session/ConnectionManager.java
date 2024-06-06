@@ -43,6 +43,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -52,9 +53,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.traccar.utils.ExternalUtils;
 
 @Singleton
 public class ConnectionManager implements BroadcastInterface {
@@ -318,7 +322,66 @@ public class ConnectionManager implements BroadcastInterface {
                     listener.onUpdatePosition(position);
                 }
             }
-        }             
+        }
+        Device dev = cacheManager.getObject(Device.class, position.getDeviceId());      
+
+        try {
+            if (cacheManager.getStorage().checkWSTable(dev.getUniqueId(), "tc_sitrack")) {
+                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        String r = ExternalUtils.sitrackSend(position, cacheManager);
+                        LOGGER.info("Sitrack res: " + r);
+                    } catch (Exception e) {
+                        // Handle exceptions if needed
+                    }
+                    return null;
+                });
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            java.util.logging.Logger.getLogger(ConnectionManager.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        try {
+            if (cacheManager.getStorage().checkWSTable(dev.getUniqueId(), "tc_dacero")) {
+                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+                    try {
+
+                        LOGGER.info("DAcero ws");
+                        String r = ExternalUtils.recursoConfiable(position, cacheManager);
+                        LOGGER.info("dacero res: " + r);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        LOGGER.info("Error dacero");
+                        LOGGER.info(e.getMessage());
+                        // Handle exceptions if needed
+                    }
+                    return null;
+                });
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        try {
+            if (cacheManager.getStorage().checkWSTable(dev.getUniqueId(), "tc_lala")) {
+                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        LOGGER.info("Lala ws");
+                        String r = ExternalUtils.lala(position, cacheManager);
+
+                        LOGGER.info("Lala res: " + r);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        LOGGER.info("Error lala");
+                        LOGGER.info(e.getMessage());
+                        // Handle exceptions if needed
+                    }
+                    return null;
+                });
+            }
+        } catch (Exception e) {
+        }
     }
 
     @Override
@@ -347,9 +410,13 @@ public class ConnectionManager implements BroadcastInterface {
     }
 
     public interface UpdateListener {
+
         void onKeepalive();
+
         void onUpdateDevice(Device device);
+
         void onUpdatePosition(Position position);
+
         void onUpdateEvent(Event event);
     }
 
