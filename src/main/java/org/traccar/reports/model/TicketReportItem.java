@@ -5,6 +5,7 @@
 package org.traccar.reports.model;
 
 import java.util.Date;
+import org.traccar.model.Salida;
 
 /**
  *
@@ -24,6 +25,7 @@ public class TicketReportItem {
     private String deviceName;
     private String group;
     private String subroute;
+    private Salida s;
 
     public long getId() {
         return id;
@@ -121,6 +123,13 @@ public class TicketReportItem {
         this.subroute = subroute;
     }
 
+    public Salida getS() {
+        return s;
+    }
+
+    public void setS(Salida s) {
+        this.s = s;
+    }        
     @Override
     public String toString() {
         return "TicketReportItem{" + "id=" + id + ", salida=" + salida + ", geofence=" + geofence + ", expectedTime=" + expectedTime + ", enterTime=" + enterTime + ", exitTime=" + exitTime + ", difference=" + difference + ", punishment=" + punishment + ", device=" + device + ", deviceName=" + deviceName + ", group=" + group + ", subroute=" + subroute + '}';

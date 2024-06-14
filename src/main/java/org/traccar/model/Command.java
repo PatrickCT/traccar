@@ -106,4 +106,10 @@ public class Command extends BaseCommand {
         this.description = description;
     }
 
+    @Override
+    public String toString() {
+        return "Command{" + "deviceId=" + getDeviceId()+ ", type=" + getType() + ", textChannel=" + getTextChannel() + ", description=" + description + '}';
+    }
+
+    
 }

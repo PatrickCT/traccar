@@ -128,6 +128,7 @@ public class TicketsReportProvider {
                 tri.setDevice(salidasReportadas.get(ticket.getSalidaId()).getDeviceId());
                 tri.setGroup(groupNames.get(salidasReportadas.get(ticket.getSalidaId()).getGroupId()));
                 tri.setSubroute(subroutesNames.get(salidasReportadas.get(ticket.getSalidaId()).getSubrouteId()));
+                tri.setS(salidasReportadas.getOrDefault(ticket.getSalidaId(), null));
                 result.add(tri);
             }
         }
@@ -185,6 +186,7 @@ public class TicketsReportProvider {
                 tri.setDevice(salidasReportadas.get(ticket.getSalidaId()).getDeviceId());
                 tri.setGroup(groupNames.get(salidasReportadas.get(ticket.getSalidaId()).getGroupId()));
                 tri.setSubroute(subroutesNames.get(salidasReportadas.get(ticket.getSalidaId()).getSubrouteId()));
+                tri.setS(salidasReportadas.getOrDefault(ticket.getSalidaId(), null));
                 result.add(tri);
             }
         }

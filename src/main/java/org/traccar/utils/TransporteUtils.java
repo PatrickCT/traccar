@@ -959,7 +959,7 @@ public class TransporteUtils {
                 return;
             }
             
-//            salida.setFinished(true);
+            salida.setFinished(true);
             salida.setValid(false);
             cacheManager.getStorage().updateObject(salida, new Request(
                     new Columns.Exclude("id"),

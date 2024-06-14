@@ -99,7 +99,7 @@ public abstract class BaseProtocol implements Protocol {
     }
 
     @Override
-    public void sendDataCommand(Channel channel, SocketAddress remoteAddress, Command command) {
+    public void sendDataCommand(Channel channel, SocketAddress remoteAddress, Command command) {        
         if (supportedDataCommands.contains(command.getType())) {
             channel.writeAndFlush(new NetworkMessage(command, remoteAddress));
         } else if (command.getType().equals(Command.TYPE_CUSTOM)) {
@@ -121,7 +121,7 @@ public abstract class BaseProtocol implements Protocol {
 
     @Override
     public void sendTextCommand(String destAddress, Command command) throws Exception {
-        if (smsManager != null) {
+        if (smsManager != null) {            
             if (command.getType().equals(Command.TYPE_CUSTOM)) {
                 smsManager.sendMessage(destAddress, command.getString(Command.KEY_DATA), true);
             } else if (supportedTextCommands.contains(command.getType()) && textCommandEncoder != null) {

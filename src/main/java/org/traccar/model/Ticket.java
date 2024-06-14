@@ -4,7 +4,9 @@
  */
 package org.traccar.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Date;
+import org.traccar.storage.QueryIgnore;
 import org.traccar.storage.StorageName;
 
 /**
@@ -117,5 +119,5 @@ public class Ticket extends BaseModel {
     @Override
     public String toString() {
         return "Ticket{" + "salidaId=" + salidaId + ", geofenceId=" + geofenceId + ", expectedTime=" + expectedTime + ", enterTime=" + enterTime + ", exitTime=" + exitTime + ", difference=" + difference + ", punishment=" + punishment + ", passed=" + passed + ", tramo=" + tramo + ", excuse=" + excuse + ", globalExcuse=" + globalExcuse + '}';
-    }                    
+    }                                
 }
