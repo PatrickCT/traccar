@@ -9,6 +9,7 @@ import com.unisolutions.ServiceSoapStub;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.security.SecureRandom;
 import java.sql.SQLException;
@@ -29,11 +30,13 @@ import org.apache.axis.client.Service;
 import org.apache.commons.lang3.ObjectUtils;
 import org.datacontract.schemas._2004._07.IronTracking.AppointResult;
 import org.datacontract.schemas._2004._07.IronTracking.Event;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.tempuri.BasicHttpBinding_IRCServiceStub;
+import org.traccar.helper.DataConverter;
 import org.traccar.model.Device;
 import org.traccar.model.Position;
 import org.traccar.session.cache.CacheManager;
@@ -71,27 +74,29 @@ public final class ExternalUtils {
             obj.put("angle", String.valueOf(position.getCourse()));
             obj.put("speed", String.valueOf(position.getSpeed() * 1.852));
 
-//        OffsetDateTime offsetDateTime = OffsetDateTime
-//                .of(position.getDeviceTime()
-//                        .toInstant()
-//                        .atZone(ZoneId.systemDefault())
-//                        .toLocalDateTime(),
-//                        ZoneOffset.UTC);
+            // OffsetDateTime offsetDateTime = OffsetDateTime
+            // .of(position.getDeviceTime()
+            // .toInstant()
+            // .atZone(ZoneId.systemDefault())
+            // .toLocalDateTime(),
+            // ZoneOffset.UTC);
             // Format and display the result
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//        String utcTime = offsetDateTime.format(formatter);
+            // String utcTime = offsetDateTime.format(formatter);
 
             obj.put("time", sdf.format(GeneralUtils.dateToUTC(position.getDeviceTime())));
             obj.put("battery_voltage", position.getAttributes().getOrDefault("battery", 0).toString());
-            obj.put("gps_validity", position.getValid() ? "A" : "A"); //se cambia a solicitud de sitrack para enviar siempre la letra A
+            obj.put("gps_validity", position.getValid() ? "A" : "A"); // se cambia a solicitud de sitrack para enviar
+                                                                      // siempre la letra A
 
             String result = GeneralUtils.genericPOST("http://54.193.100.127:5175/", obj.toString(), new HashMap<>(), 5);
             LOGGER.info(obj.toString());
             JSONObject wh = new JSONObject();
             wh.put("webservice", obj.toString());
             wh.put("device", device);
-            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(), 5);
+            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(),
+                    5);
             return result;
         } catch (Exception e) {
             e.printStackTrace();
@@ -118,7 +123,7 @@ public final class ExternalUtils {
             }
             evt.setCode("");
             evt.setCourse(String.valueOf(position.getCourse()));
-            //pendiente nombre e identificador
+            // pendiente nombre e identificador
             Instant instant = position.getFixTime().toInstant();
             ZonedDateTime zonedDateTime = instant.atZone(ZoneId.of("UTC"));
             Calendar calendar = Calendar.getInstance();
@@ -130,16 +135,17 @@ public final class ExternalUtils {
             }
             evt.setLatitude(String.valueOf(position.getLatitude()));
             evt.setLongitude(String.valueOf(position.getLongitude()));
-            //pendiente odometro
+            // pendiente odometro
             evt.setSpeed(String.valueOf(position.getSpeed()));
-            //pendiente temperatura
+            // pendiente temperatura
             evts.add(evt);
 
             LOGGER.info(identifier + "DAcero Service start");
             LOGGER.info(identifier + evt.toString());
             Service service = new Service();
 
-            BasicHttpBinding_IRCServiceStub client = new BasicHttpBinding_IRCServiceStub(new URL("http://gps.rcontrol.com.mx/Tracking/wcf/RCService.svc?singleWsdl"), service);
+            BasicHttpBinding_IRCServiceStub client = new BasicHttpBinding_IRCServiceStub(
+                    new URL("http://gps.rcontrol.com.mx/Tracking/wcf/RCService.svc?singleWsdl"), service);
             LOGGER.info(identifier + "Client " + client);
             String token = client.getUserToken("user_avl_MBSV", "Hhss$847sbsZ*1").getToken();
             LOGGER.info(identifier + "Token " + token);
@@ -161,7 +167,8 @@ public final class ExternalUtils {
             JSONObject wh = new JSONObject();
             wh.put("webservice", evt.toString());
             wh.put("device", dev);
-            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(), 5);
+            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(),
+                    5);
             return "";
         } catch (IOException | JSONException ex) {
             ex.printStackTrace();
@@ -170,7 +177,8 @@ public final class ExternalUtils {
         return "";
     }
 
-    public static String lala(Position position, CacheManager cacheManager) throws AxisFault, SQLException, RemoteException, MalformedURLException, StorageException, IOException {
+    public static String lala(Position position, CacheManager cacheManager)
+            throws AxisFault, SQLException, RemoteException, MalformedURLException, StorageException, IOException {
         try {
             String code = generateRandomCode(10);
             LOGGER.info(String.format("[%s]WS Lala", code));
@@ -196,7 +204,8 @@ public final class ExternalUtils {
             events_codes.put(org.traccar.model.Event.TYPE_ALARM_POWERCUT, "PC");
             events_codes.put(org.traccar.model.Event.TYPE_ALARM_OVERSPEED, "OS");
 
-            Device device = cacheManager.getObject(Device.class, position.getDeviceId());;
+            Device device = cacheManager.getObject(Device.class, position.getDeviceId());
+            ;
 
             List<PEvento> eventos = new ArrayList<>();
             PEvento pevento = new PEvento();
@@ -216,7 +225,8 @@ public final class ExternalUtils {
             LOGGER.info(String.format("[%s]WS Lala evento", code) + Arrays.toString(eventos.toArray(new PEvento[0])));
             LOGGER.info(String.format("[%s]WS Lala evento", code) + Arrays.toString(evts));
             org.traccar.model.Event evento = null;
-            List<org.traccar.model.Event> events = cacheManager.getStorage().getObjectsByQuery(org.traccar.model.Event.class, "select * from tc_events where positionid = " + position.getId());
+            List<org.traccar.model.Event> events = cacheManager.getStorage().getObjectsByQuery(
+                    org.traccar.model.Event.class, "select * from tc_events where positionid = " + position.getId());
             if (!events.isEmpty()) {
                 evento = events.get(0);
             }
@@ -228,19 +238,74 @@ public final class ExternalUtils {
 
             Service service = new Service();
 
-            ServiceSoapStub client = new ServiceSoapStub(new URL("http://hub.unisolutions.com.ar/hub/unigis/Mapi/soap/gps/service.asmx?wsdl"), service);
+            ServiceSoapStub client = new ServiceSoapStub(
+                    new URL("http://hub.unisolutions.com.ar/hub/unigis/Mapi/soap/gps/service.asmx?wsdl"), service);
             int[] response = client.loginYInsertarEventos("GPSTRACKER", "LSM985kuj", evts);
             LOGGER.info(String.format("[%s]WS Lala response", code));
             LOGGER.info(String.format("[%s]: %s", code, Arrays.toString(response)));
             JSONObject wh = new JSONObject();
             wh.put("webservice", pevento.toString());
             wh.put("device", device);
-            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(), 5);
+            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(),
+                    5);
             return Arrays.toString(response);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return "";
+    }
+
+    public static String thruster(Position position, CacheManager cacheManager)
+            throws SQLException, IOException, StorageException {
+        JSONArray objs = new JSONArray();
+        JSONObject obj = new JSONObject();
+        Device device = cacheManager.getObject(Device.class, position.getDeviceId());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss");
+        Map<String, Integer> events = new HashMap<String, Integer>();
+        events.put(org.traccar.model.Event.TYPE_ALARM, 1);
+        events.put(org.traccar.model.Event.TYPE_DEVICE_STOPPED, 2);
+        events.put(org.traccar.model.Event.TYPE_IGNITION_OFF, 3);
+        events.put(org.traccar.model.Event.TYPE_ALARM_OVERSPEED, 4);
+        events.put(org.traccar.model.Event.TYPE_DEVICE_OVERSPEED, 4);
+        events.put(org.traccar.model.Event.TYPE_DEVICE_MOVING, 5);
+        events.put(org.traccar.model.Event.TYPE_IGNITION_ON, 6);
+
+        org.traccar.model.Event evento = null;
+        List<org.traccar.model.Event> eventos = cacheManager.getStorage().getObjectsByQuery(
+                org.traccar.model.Event.class, "select * from tc_events where positionid = " + position.getId());
+        if (!eventos.isEmpty()) {
+            evento = eventos.get(0);
+        }
+        obj.put("imei", device.getUniqueId());
+        if (evento != null && events.containsKey(evento.getType())) {
+            obj.put("eventType", events.get(evento.getType()));
+        }
+
+        obj.put("plate", device.getCarPlate());
+        obj.put("lat", String.valueOf(position.getLatitude()));
+        obj.put("lon", String.valueOf(position.getLongitude()));
+        obj.put("speed", String.valueOf(position.getSpeed()));
+        obj.put("course", String.valueOf(position.getCourse()));
+        obj.put("dTime", sdf.format(GeneralUtils.dateToUTC(position.getServerTime())));
+        obj.put("address", position.getAddress());
+        objs.put(obj);
+
+        Map<String, Object> headers = new HashMap<>();
+        headers.put("Content-Type", "application/json");
+        headers.put("Authorization", String.format("Basic %s",
+                DataConverter.printBase64(String.format("%s:%s", "", "").getBytes(StandardCharsets.UTF_8))));
+        LOGGER.info("WS thruster");
+        String result = GeneralUtils.genericPOST(
+                "https://glmsgpstrackerapiserviacero.azurewebsites.net/api/GPSTrackerFunction?clientId=",
+                objs.toString(), headers, 5);
+        LOGGER.info(obj.toString());
+
+        JSONObject wh = new JSONObject();
+        wh.put("webservice", objs.toString());
+        wh.put("device", device);
+        GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(), 5);
+
+        return result;
     }
 
     public static Calendar toCalendar(Date date) {

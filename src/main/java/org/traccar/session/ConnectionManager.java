@@ -44,6 +44,7 @@ import javax.inject.Singleton;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -323,64 +324,53 @@ public class ConnectionManager implements BroadcastInterface {
                 }
             }
         }
-        Device dev = cacheManager.getObject(Device.class, position.getDeviceId());      
+        Device dev = cacheManager.getObject(Device.class, position.getDeviceId());
 
-        try {
-            if (cacheManager.getStorage().checkWSTable(dev.getUniqueId(), "tc_sitrack")) {
-                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
-                    try {
-                        String r = ExternalUtils.sitrackSend(position, cacheManager);
-                        LOGGER.info("Sitrack res: " + r);
-                    } catch (Exception e) {
-                        // Handle exceptions if needed
-                    }
-                    return null;
-                });
+        for (String table : new ArrayList<String>() {
+            {
+                add("tc_sitrack");
+                add("tc_dacero");
+                add("tc_lala");
+                add("tc_thruster");
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            java.util.logging.Logger.getLogger(ConnectionManager.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-        try {
-            if (cacheManager.getStorage().checkWSTable(dev.getUniqueId(), "tc_dacero")) {
-                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
-                    try {
-
-                        LOGGER.info("DAcero ws");
-                        String r = ExternalUtils.recursoConfiable(position, cacheManager);
-                        LOGGER.info("dacero res: " + r);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        LOGGER.info("Error dacero");
-                        LOGGER.info(e.getMessage());
-                        // Handle exceptions if needed
-                    }
-                    return null;
-                });
+        }) {
+            try {
+                if (cacheManager.getStorage().checkWSTable(dev.getUniqueId(), table)) {
+                    CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+                        try {
+                            String ws = table.replaceAll("tc_", "");
+                            String r = "";
+                            LOGGER.info("WS: " + ws.toUpperCase());
+                            switch (ws) {
+                                case "sitrack":
+                                    r = ExternalUtils.sitrackSend(position, cacheManager);
+                                    break;
+                                case "dacero":
+                                    r = ExternalUtils.recursoConfiable(position, cacheManager);
+                                    break;
+                                case "lala":
+                                    r = ExternalUtils.lala(position, cacheManager);
+                                    break;
+                                case "thruster":
+                                    r = ExternalUtils.thruster(position, cacheManager);
+                                    break;
+                                default:
+                                    r = "";
+                            }
+                            LOGGER.info(ws.toUpperCase() + " res: " + r);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            LOGGER.info("Error lala");
+                            LOGGER.info(e.getMessage());
+                            // Handle exceptions if needed
+                        }
+                        return null;
+                    });
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                java.util.logging.Logger.getLogger(ConnectionManager.class.getName()).log(Level.SEVERE, null, ex);
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-
-        try {
-            if (cacheManager.getStorage().checkWSTable(dev.getUniqueId(), "tc_lala")) {
-                CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
-                    try {
-                        LOGGER.info("Lala ws");
-                        String r = ExternalUtils.lala(position, cacheManager);
-
-                        LOGGER.info("Lala res: " + r);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        LOGGER.info("Error lala");
-                        LOGGER.info(e.getMessage());
-                        // Handle exceptions if needed
-                    }
-                    return null;
-                });
-            }
-        } catch (Exception e) {
         }
     }
 
