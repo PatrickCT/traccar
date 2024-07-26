@@ -66,6 +66,7 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.traccar.api.AsyncSocket;
 import org.traccar.model.Permission;
+import org.traccar.utils.DailyLogger;
 
 @Singleton
 public class CacheManager implements BroadcastInterface {
@@ -93,12 +94,8 @@ public class CacheManager implements BroadcastInterface {
     private final Map<Long, List<AsyncSocket>> socketsLogged = new HashMap<>();
 
     private boolean calculating;
-    private Timer reconnectionTimer;
-
-    //io
-    URI url = URI.create("http://45.79.45.108:4040");
-    private IO.Options option = IO.Options.builder().setReconnection(true).build();
-    private Socket socket;
+    
+    private DailyLogger devLog;
 
     @Inject
     public CacheManager(Config config, Storage storage, BroadcastService broadcastService) throws StorageException, InterruptedException {
@@ -108,7 +105,9 @@ public class CacheManager implements BroadcastInterface {
         invalidateServer();
         invalidateUsers();
         broadcastService.registerListener(this);
-        recalculateDevices();        
+        recalculateDevices();
+        this.devLog = new DailyLogger();
+        
     }
 
     public Config getConfig() {
@@ -578,68 +577,7 @@ public class CacheManager implements BroadcastInterface {
 
     }
 
-    public Socket getSocket() {
-        return this.socket;
-    }
-    
-    public void initSocket(){
-        socket = IO.socket(url, option);
-        socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                System.out.println("connect");
-                System.out.println(socket.id());
-            }
-        });
-        socket.on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                System.out.println("error");
-                Arrays.asList(args).stream().forEach((o) -> System.out.println(String.valueOf(o)));
-            }
-        });
-        socket.on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                System.out.println("disconnect");
-                if (reconnectionTimer != null) {
-                    reconnectionTimer.cancel();
-                }
-                reconnectionTimer = new Timer();
-                // Schedule the task at a fixed rate
-                java.util.TimerTask task = new java.util.TimerTask() {
-                    @Override
-                    public void run() {
-                        try {
-                            CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
-                                try {
-                                    if (!socket.connected()) {
-                                        socket.connect();
-                                    } else {
-                                        if (reconnectionTimer != null) {
-                                            reconnectionTimer.cancel();
-                                            reconnectionTimer.purge();
-                                        }
-                                    }
-                                } catch (Exception e) {
-                                    // Handle exceptions if needed
-                                }
-                                return null;
-                            });
-                        } catch (Exception error) {
-                            // Handle exceptions if needed
-                        }
-                    }
-                };
-                reconnectionTimer.scheduleAtFixedRate(task, 0, 10 * 1000);
-            }
-        });
-        socket.connect();
-        System.out.println("socket " + socket.id());
-    }
-    
-    public void stopSocket(){
-        socket.off();
-        socket.disconnect();
-    }
+    public DailyLogger getDevLog() {
+        return devLog;
+    }        
 }

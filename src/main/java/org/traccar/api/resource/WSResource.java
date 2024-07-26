@@ -192,18 +192,4 @@ public class WSResource extends BaseResource {
         }
         return Response.ok().build();
     }
-    
-    @Path("socket/init")
-    @GET
-    public Response initSocket() throws StorageException {
-        cacheManager.initSocket();
-        return Response.ok().build();
-    }
-    
-    @Path("socket/stop")
-    @GET
-    public Response stopSocket() throws StorageException {
-        cacheManager.stopSocket();
-        return Response.ok().build();
-    }
 }

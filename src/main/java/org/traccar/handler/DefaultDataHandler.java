@@ -42,9 +42,8 @@ public class DefaultDataHandler extends BaseDataHandler {
 
     @Override
     protected Position handlePosition(Position position) {
-
         try {
-            position.setId(storage.addObject(position, new Request(new Columns.Exclude("id"))));
+            position.setId(storage.addObject(position, new Request(new Columns.Exclude("id"))));            
         } catch (Exception error) {
             LOGGER.warn("Failed to store position", error);
         }

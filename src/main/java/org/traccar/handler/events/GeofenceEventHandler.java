@@ -53,6 +53,8 @@ public class GeofenceEventHandler extends BaseEventHandler {
 
     @Override
     protected Map<Event, Position> analyzePosition(Position position) {
+        cacheManager.getDevLog().log("Position received on BaseEventHandler " + position.getId());
+        cacheManager.getDevLog().log(position.toString());
         Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence event \n\r" + position + "\n\rdevice " + position.getDeviceId());
         if (!PositionUtil.isLatest(cacheManager, position)) {
             Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Is not latest");
