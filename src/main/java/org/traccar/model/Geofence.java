@@ -84,4 +84,9 @@ public class Geofence extends ScheduledModel {
         this.geometry = geometry;
     }
 
+    @Override
+    public String toString() {
+        return "Geofence{" + "name=" + name + ", description=" + description + '}';
+    }
+
 }

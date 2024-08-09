@@ -71,15 +71,5 @@ public class DailyLogger {
     // Method to stop the logger gracefully
     public void stop() {
         running = false;
-    }
-
-    public static void main(String[] args) {
-        // Example usage
-        DailyLogger logger = new DailyLogger();
-        logger.log("This is a test log message.");
-        logger.log("Another log message.");
-        
-        // To stop the logger when the application exits
-        Runtime.getRuntime().addShutdownHook(new Thread(logger::stop));
-    }
+    }    
 }
