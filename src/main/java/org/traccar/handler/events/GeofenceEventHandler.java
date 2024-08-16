@@ -121,20 +121,8 @@ public class GeofenceEventHandler extends BaseEventHandler {
                     Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, ex);
                 }
 
-                if (g != null && g.hasAttribute("groupChange")) {
-                    cacheManager.getDevLog().log("Cambiando el grupo al dispositivo" + " " + d.getId() + " " + String.valueOf(g.getAttributes().get("groupChange")));
-                    d.setGroupId(Long.parseLong(String.valueOf(g.getAttributes().get("groupChange"))));
-//                    System.out.println(d);
-                    try {
-                        cacheManager.getStorage().updateObject(d, new Request(
-                                new Columns.Exclude("id"),
-                                new Condition.Equals("id", d.getId())));
-                        cacheManager.invalidate(Device.class, d.getId());
-                        LogAction.edit(0, d);
-                    } catch (StorageException ex) {
-                        ex.printStackTrace();
-                        Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+                if (g != null) {
+                    geofenceAttsEval(d, g);
                 }
 
                 Event event = new Event(Event.TYPE_GEOFENCE_ENTER, position);
@@ -164,4 +152,50 @@ public class GeofenceEventHandler extends BaseEventHandler {
         return events;
     }
 
+    private void geofenceAttsEval(Device d, Geofence g) {
+        for (String att : g.getAttributes().keySet()) {
+            String val = String.valueOf(g.getAttributes().get(att));
+            switch (att) {
+                case "groupChange":
+                    changeGroupGeofence(d, Long.parseLong(val));
+                    break;
+                case "colorChange":
+                    changeColorGeofence(d, val);
+                    break;
+                default:
+                    continue;
+            }
+        }
+    }
+
+    private void changeGroupGeofence(Device d, Long groupId) {
+        cacheManager.getDevLog().log("Cambiando el grupo al dispositivo" + " " + d.getId() + " " + groupId);
+        d.setGroupId(groupId);
+
+        try {
+            cacheManager.getStorage().updateObject(d, new Request(
+                    new Columns.Exclude("id"),
+                    new Condition.Equals("id", d.getId())));
+            cacheManager.invalidate(Device.class, d.getId());
+            LogAction.edit(0, d);
+        } catch (StorageException ex) {
+            ex.printStackTrace();
+            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private void changeColorGeofence(Device d, String color) {
+        d.getAttributes().put("background", color);
+
+        try {
+            cacheManager.getStorage().updateObject(d, new Request(
+                    new Columns.Exclude("id"),
+                    new Condition.Equals("id", d.getId())));
+            cacheManager.invalidate(Device.class, d.getId());
+            LogAction.edit(0, d);
+        } catch (StorageException ex) {
+            ex.printStackTrace();
+            Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
 }
