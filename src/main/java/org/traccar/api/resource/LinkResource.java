@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -33,8 +34,8 @@ import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
+import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
-import org.traccar.utils.GenericUtils;
 
 /**
  *
@@ -74,6 +75,17 @@ public class LinkResource extends BaseObjectResource<Link> {
         entity.setUserId((int)getUserId());
         entity.setCode(RandomStringUtils.random(15, true, true));
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
+        return Response.ok(entity).build();
+    }
+    
+    
+    @Path("{id}")
+    @PUT
+    public Response update(Link entity) throws StorageException{
+        if(getUserId() != entity.getUserId()) return Response.notModified().build();
+        storage.updateObject(entity, new Request(
+                new Columns.Exclude("id"),
+                new Condition.Equals("id", entity.getId())));
         return Response.ok(entity).build();
     }
 

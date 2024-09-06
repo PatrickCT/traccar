@@ -55,7 +55,7 @@ public class UserResource extends BaseObjectResource<User> {
 
     @Inject
     private Config config;
-    
+
     @Inject
     private CacheManager cacheManager;
 
@@ -76,8 +76,8 @@ public class UserResource extends BaseObjectResource<User> {
                     new Condition.Permission(User.class, getUserId(), ManagedUser.class).excludeGroups()));
         } else {
             List<User> usuarios = storage.getObjects(baseClass, new Request(new Columns.All()));
-            
-            for (User u : usuarios) {                                
+
+            for (User u : usuarios) {
                 u.getAttributes().put("total_devices", cacheManager.getDevicesPerUser(u.getId()));
             }
 
@@ -206,7 +206,7 @@ public class UserResource extends BaseObjectResource<User> {
         permissionsService.checkAdmin(getUserId());
         return storage.getObjects(baseClass, new Request(new Columns.All(), new Condition.Equals("main", true)));
     }
-    
+
     @Path("{id}/test")
     @PermitAll
     @GET
@@ -215,53 +215,58 @@ public class UserResource extends BaseObjectResource<User> {
         JSONObject obj = new JSONObject();
         obj.put("test", "xdxdxd");
         System.out.println(obj.toString());
-        for(AsyncSocket soc : cacheManager.getSocketsLogged().get(id)){
-            soc.onUpdateCustom(obj);
+        if (cacheManager.getSocketsLogged().get(id) != null) {
+            for (AsyncSocket soc : cacheManager.getSocketsLogged().get(id)) {
+                soc.onUpdateCustom(obj);
+            }
         }
-        return Response.ok("").build();        
+        return Response.ok("").build();
     }
-    
+
     @Path("{id}/debt")
     @PermitAll
     @GET
-    public Response markInDebt(@PathParam("id") long id) throws StorageException{        
+    public Response markInDebt(@PathParam("id") long id) throws StorageException {
         JSONObject obj = new JSONObject();
         obj.put("command", "refreshUser");
-                        
+
         User user = storage.getObject(User.class, new Request(new Columns.All(), new Condition.Equals("id", id)));
-        if(user != null){
+        if (user != null) {
             user.setDebt(true);
             storage.updateObject(user, new Request(
-                new Columns.Exclude("id"),
-                new Condition.Equals("id", user.getId())));
+                    new Columns.Exclude("id"),
+                    new Condition.Equals("id", user.getId())));
         }
-        
-        for(AsyncSocket soc : cacheManager.getSocketsLogged().get(id)){
-            soc.onUpdateCustom(obj);
+
+        if (cacheManager.getSocketsLogged().get(id) != null) {
+            for (AsyncSocket soc : cacheManager.getSocketsLogged().get(id)) {
+                soc.onUpdateCustom(obj);
+            }
         }
-        
+
         return Response.ok("").build();
     }
-    
+
     @Path("{id}/undebt")
     @PermitAll
     @GET
-    public Response removeFromDebt(@PathParam("id") long id) throws StorageException{        
+    public Response removeFromDebt(@PathParam("id") long id) throws StorageException {
         JSONObject obj = new JSONObject();
         obj.put("command", "refreshUser");
-                        
+
         User user = storage.getObject(User.class, new Request(new Columns.All(), new Condition.Equals("id", id)));
-        if(user != null){
+        if (user != null) {
             user.setDebt(false);
             storage.updateObject(user, new Request(
-                new Columns.Exclude("id"),
-                new Condition.Equals("id", user.getId())));
+                    new Columns.Exclude("id"),
+                    new Condition.Equals("id", user.getId())));
         }
-        System.out.println(cacheManager.getSocketsLogged().get(id));
-        for(AsyncSocket soc : cacheManager.getSocketsLogged().get(id)){
-            soc.onUpdateCustom(obj);
+        if (cacheManager.getSocketsLogged().get(id) != null) {
+            for (AsyncSocket soc : cacheManager.getSocketsLogged().get(id)) {
+                soc.onUpdateCustom(obj);
+            }
         }
-        
+
         return Response.ok("").build();
     }
 }
