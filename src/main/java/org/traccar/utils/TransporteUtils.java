@@ -495,6 +495,7 @@ public class TransporteUtils {
     private static void updateOldTramos(long salidaId, long itinerarioId, CacheManager cacheManager) {
 //        LOGGER.info("update old");
         try {
+            boolean stop = false;
             Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("id", salidaId));
@@ -529,6 +530,7 @@ public class TransporteUtils {
 //            LOGGER.info(tickets);
             boolean first = true;
             for (Ticket ticket : tickets) {
+                
                 if (ticket.getEnterTime() == null) {
                     List<Event> events = cacheManager.getStorage().getObjects(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                         {
@@ -583,7 +585,9 @@ public class TransporteUtils {
                 cacheManager.getStorage().updateObject(ticket, new Request(
                         new Columns.Exclude("id"),
                         new Condition.Equals("id", ticket.getId())));
-
+                if(ticket.getGeofenceId() == salida.getGeofenceId())stop=true;
+                
+                if(stop)break;
             }
 
         } catch (StorageException ex) {
