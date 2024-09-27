@@ -155,8 +155,10 @@ public class LinkResource extends BaseObjectResource<Link> {
                 JSONObject responseJson = new JSONObject();
                 responseJson.put("userId", links.get(0).getUserId());
                 responseJson.put("linkId", links.get(0).getId());
+                responseJson.put("pass", links.get(0).getPass());
+                responseJson.put("code", links.get(0).getCode());
 
-                return Response.status(Response.Status.OK).entity(responseJson).build();
+                return Response.status(Response.Status.OK).entity(responseJson.toString()).build();
 
             } catch (StorageException ex) {
                 Logger.getLogger(LinkResource.class.getName()).log(Level.SEVERE, null, ex);
