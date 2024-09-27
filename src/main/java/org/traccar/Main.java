@@ -33,10 +33,14 @@ import java.lang.management.MemoryMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.traccar.model.WebService;
+import org.traccar.storage.query.Condition;
+import org.traccar.storage.query.Request;
 
 public final class Main {
 
@@ -149,6 +153,9 @@ public final class Main {
                     }
                 }
             }));
+
+            List<WebService> wss = injector.getInstance(Storage.class).getObjects(WebService.class, new Request(new Condition.Equals("enabled", true)));
+            System.out.println(wss);
         } catch (Exception e) {
             LOGGER.error("Main method error", e);
             throw new RuntimeException(e);

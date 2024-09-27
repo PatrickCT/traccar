@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import org.apache.axis.AxisFault;
 import org.apache.axis.client.Service;
 import org.apache.commons.lang3.ObjectUtils;
@@ -39,8 +40,11 @@ import org.tempuri.BasicHttpBinding_IRCServiceStub;
 import org.traccar.helper.DataConverter;
 import org.traccar.model.Device;
 import org.traccar.model.Position;
+import org.traccar.model.WebService;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.StorageException;
+import org.traccar.storage.query.Condition;
+import org.traccar.storage.query.Request;
 
 /**
  *
@@ -66,6 +70,8 @@ public final class ExternalUtils {
 
     public static String sitrackSend(Position position, CacheManager cacheManager) throws IOException {
         try {
+            WebService ws = cacheManager.getStorage().getObject(WebService.class,
+                    new Request(new Condition.Equals("tableName", "tc_sitrack")));
             JSONObject obj = new JSONObject();
             Device device = cacheManager.getObject(Device.class, position.getDeviceId()); // Context.getDeviceManager().getById(position.getDeviceId());
             obj.put("imei_no", device.getUniqueId());
@@ -74,16 +80,8 @@ public final class ExternalUtils {
             obj.put("angle", String.valueOf(position.getCourse()));
             obj.put("speed", String.valueOf(position.getSpeed() * 1.852));
 
-            // OffsetDateTime offsetDateTime = OffsetDateTime
-            // .of(position.getDeviceTime()
-            // .toInstant()
-            // .atZone(ZoneId.systemDefault())
-            // .toLocalDateTime(),
-            // ZoneOffset.UTC);
-            // Format and display the result
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            // String utcTime = offsetDateTime.format(formatter);
 
             obj.put("time", sdf.format(GeneralUtils.dateToUTC(position.getDeviceTime())));
             obj.put("battery_voltage", position.getAttributes().getOrDefault("battery", 0).toString());
@@ -107,6 +105,8 @@ public final class ExternalUtils {
 
     public static String recursoConfiable(Position position, CacheManager cacheManager) {
         try {
+            WebService ws = cacheManager.getStorage().getObject(WebService.class,
+                    new Request(new Condition.Equals("tableName", "tc_dacero")));
             String identifier = "[" + generateRandomCode(10) + "] - ";
             LOGGER.info(identifier + "DAcero start");
             List<Event> evts = new ArrayList<>();
@@ -147,7 +147,7 @@ public final class ExternalUtils {
             BasicHttpBinding_IRCServiceStub client = new BasicHttpBinding_IRCServiceStub(
                     new URL("http://gps.rcontrol.com.mx/Tracking/wcf/RCService.svc?singleWsdl"), service);
             LOGGER.info(identifier + "Client " + client);
-            String token = client.getUserToken("user_avl_MBSV", "Hhss$847sbsZ*1").getToken();
+            String token = client.getUserToken(ws.getUser(), ws.getPassword()).getToken();
             LOGGER.info(identifier + "Token " + token);
             AppointResult[] res = client.GPSAssetTracking(token, evts.toArray(new Event[evts.size()]));
             LOGGER.info(identifier + "Resultado dacero");
@@ -172,6 +172,8 @@ public final class ExternalUtils {
             return "";
         } catch (IOException | JSONException ex) {
             ex.printStackTrace();
+        } catch (StorageException ex) {
+            java.util.logging.Logger.getLogger(ExternalUtils.class.getName()).log(Level.SEVERE, null, ex);
         }
         LOGGER.info("DAcero something wrong");
         return "";
@@ -180,6 +182,8 @@ public final class ExternalUtils {
     public static String lala(Position position, CacheManager cacheManager)
             throws AxisFault, SQLException, RemoteException, MalformedURLException, StorageException, IOException {
         try {
+            WebService ws = cacheManager.getStorage().getObject(WebService.class,
+                    new Request(new Condition.Equals("tableName", "tc_lala")));
             String code = generateRandomCode(10);
             LOGGER.info(String.format("[%s]WS Lala", code));
             Map<String, String> events_codes = new HashMap();
@@ -240,7 +244,7 @@ public final class ExternalUtils {
 
             ServiceSoapStub client = new ServiceSoapStub(
                     new URL("http://hub.unisolutions.com.ar/hub/unigis/Mapi/soap/gps/service.asmx?wsdl"), service);
-            int[] response = client.loginYInsertarEventos("GPSTRACKER", "LSM985kuj", evts);
+            int[] response = client.loginYInsertarEventos(ws.getUser(), ws.getPassword(), evts);
             LOGGER.info(String.format("[%s]WS Lala response", code));
             LOGGER.info(String.format("[%s]: %s", code, Arrays.toString(response)));
             JSONObject wh = new JSONObject();
@@ -257,6 +261,8 @@ public final class ExternalUtils {
 
     public static String thruster(Position position, CacheManager cacheManager)
             throws SQLException, IOException, StorageException {
+        WebService ws = cacheManager.getStorage().getObject(WebService.class,
+                new Request(new Condition.Equals("tableName", "tc_thruster")));
         JSONArray objs = new JSONArray();
         JSONObject obj = new JSONObject();
         Device device = cacheManager.getObject(Device.class, position.getDeviceId());
@@ -292,8 +298,8 @@ public final class ExternalUtils {
 
         Map<String, Object> headers = new HashMap<>();
         headers.put("Content-Type", "application/json");
-        headers.put("Authorization", String.format("Basic %s",
-                DataConverter.printBase64(String.format("%s:%s", "", "").getBytes(StandardCharsets.UTF_8))));
+        headers.put("Authorization", String.format("Basic %s", DataConverter
+                .printBase64(String.format("%s:%s", ws.getUser(), ws.getPassword()).getBytes(StandardCharsets.UTF_8))));
         LOGGER.info("WS thruster");
         String result = GeneralUtils.genericPOST(
                 "https://glmsgpstrackerapiserviacero.azurewebsites.net/api/GPSTrackerFunction?clientId=",

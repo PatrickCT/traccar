@@ -16,6 +16,7 @@ import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -69,23 +70,36 @@ public class LinkResource extends BaseObjectResource<Link> {
 
         return new ArrayList<Link>();
     }
-    
+
     @POST
-    public Response add(Link entity) throws StorageException{
-        entity.setUserId((int)getUserId());
+    public Response add(Link entity) throws StorageException {
+        entity.setUserId((int) getUserId());
         entity.setCode(RandomStringUtils.random(15, true, true));
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
         return Response.ok(entity).build();
     }
-    
-    
+
     @Path("{id}")
     @PUT
-    public Response update(Link entity) throws StorageException{
-        if(getUserId() != entity.getUserId()) return Response.notModified().build();
+    public Response update(Link entity) throws StorageException {
+        if (getUserId() != entity.getUserId()) {
+            return Response.notModified().build();
+        }
         storage.updateObject(entity, new Request(
                 new Columns.Exclude("id"),
                 new Condition.Equals("id", entity.getId())));
+        return Response.ok(entity).build();
+    }
+    
+    @Path("{id}")
+    @DELETE
+    public Response delete(@PathParam("id") long id) throws StorageException {
+        Link entity = storage.getObject(Link.class, new Request(new Condition.Equals("id", id)));
+        if (getUserId() != entity.getUserId()) {
+            return Response.notModified().build();
+        }
+        storage.removeObject(Link.class, new Request(                
+                new Condition.Equals("id", entity.getId())));        
         return Response.ok(entity).build();
     }
 
@@ -138,7 +152,11 @@ public class LinkResource extends BaseObjectResource<Link> {
                 request.getSession().setAttribute("guestUserId", links.get(0).getUserId());
                 request.getSession().setAttribute("guestLinkId", links.get(0).getId());
 
-                return Response.status(Response.Status.OK).entity(links.get(0)).build();
+                JSONObject responseJson = new JSONObject();
+                responseJson.put("userId", links.get(0).getUserId());
+                responseJson.put("linkId", links.get(0).getId());
+
+                return Response.status(Response.Status.OK).entity(responseJson).build();
 
             } catch (StorageException ex) {
                 Logger.getLogger(LinkResource.class.getName()).log(Level.SEVERE, null, ex);
@@ -182,6 +200,33 @@ public class LinkResource extends BaseObjectResource<Link> {
                 }
 
                 return Response.status(Response.Status.OK).entity(result).build();
+
+            } catch (StorageException ex) {
+                Logger.getLogger(LinkResource.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } else {
+            return Response.status(Response.Status.FORBIDDEN).build();
+        }
+        return Response.status(Response.Status.FORBIDDEN).build();
+    }
+
+    @Path("validate")
+    @POST
+    @PermitAll
+    public Response validate(String body) {
+        JSONObject obj = new JSONObject(body);
+        if (obj.has("code")) {
+            try {
+
+                List<Link> links = cacheManager.getStorage().getObjectsByQuery(Link.class, String.format("select * from tc_links "
+                        + "where code = '%s' "
+                        + "and enabled "
+                        + "and limitDate >= NOW()", obj.getString("code")));
+                if (links.size() <= 0) {
+                    return Response.status(Response.Status.FORBIDDEN).build();
+                }
+
+                return Response.status(Response.Status.OK).build();
 
             } catch (StorageException ex) {
                 Logger.getLogger(LinkResource.class.getName()).log(Level.SEVERE, null, ex);
