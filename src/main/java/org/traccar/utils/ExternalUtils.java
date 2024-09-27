@@ -43,6 +43,7 @@ import org.traccar.model.Position;
 import org.traccar.model.WebService;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.StorageException;
+import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
 
@@ -71,7 +72,7 @@ public final class ExternalUtils {
     public static String sitrackSend(Position position, CacheManager cacheManager) throws IOException {
         try {
             WebService ws = cacheManager.getStorage().getObject(WebService.class,
-                    new Request(new Condition.Equals("tableName", "tc_sitrack")));
+                    new Request(new Columns.All(), new Condition.Equals("tableName", "tc_sitrack")));
             JSONObject obj = new JSONObject();
             Device device = cacheManager.getObject(Device.class, position.getDeviceId()); // Context.getDeviceManager().getById(position.getDeviceId());
             obj.put("imei_no", device.getUniqueId());
@@ -106,7 +107,7 @@ public final class ExternalUtils {
     public static String recursoConfiable(Position position, CacheManager cacheManager) {
         try {
             WebService ws = cacheManager.getStorage().getObject(WebService.class,
-                    new Request(new Condition.Equals("tableName", "tc_dacero")));
+                    new Request(new Columns.All(), new Condition.Equals("tableName", "tc_dacero")));
             String identifier = "[" + generateRandomCode(10) + "] - ";
             LOGGER.info(identifier + "DAcero start");
             List<Event> evts = new ArrayList<>();
@@ -183,7 +184,7 @@ public final class ExternalUtils {
             throws AxisFault, SQLException, RemoteException, MalformedURLException, StorageException, IOException {
         try {
             WebService ws = cacheManager.getStorage().getObject(WebService.class,
-                    new Request(new Condition.Equals("tableName", "tc_lala")));
+                    new Request(new Columns.All(), new Condition.Equals("tableName", "tc_lala")));
             String code = generateRandomCode(10);
             LOGGER.info(String.format("[%s]WS Lala", code));
             Map<String, String> events_codes = new HashMap();
@@ -262,7 +263,7 @@ public final class ExternalUtils {
     public static String thruster(Position position, CacheManager cacheManager)
             throws SQLException, IOException, StorageException {
         WebService ws = cacheManager.getStorage().getObject(WebService.class,
-                new Request(new Condition.Equals("tableName", "tc_thruster")));
+                new Request(new Columns.All(), new Condition.Equals("tableName", "tc_thruster")));
         JSONArray objs = new JSONArray();
         JSONObject obj = new JSONObject();
         Device device = cacheManager.getObject(Device.class, position.getDeviceId());

@@ -91,10 +91,10 @@ public class LinkResource extends BaseObjectResource<Link> {
         return Response.ok(entity).build();
     }
     
-    @Path("{id}")
+    @Path("delete/{id}")
     @DELETE
-    public Response delete(@PathParam("id") long id) throws StorageException {
-        Link entity = storage.getObject(Link.class, new Request(new Condition.Equals("id", id)));
+    public Response deleteLink(@PathParam("id") long linkId) throws StorageException {
+        Link entity = storage.getObject(Link.class, new Request(new Columns.All(), new Condition.Equals("id", linkId)));
         if (getUserId() != entity.getUserId()) {
             return Response.notModified().build();
         }

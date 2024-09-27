@@ -139,7 +139,7 @@ public final class Main {
             for (var service : services) {
                 service.start();
             }
-
+      
             Thread.setDefaultUncaughtExceptionHandler((t, e) -> LOGGER.error("Thread exception", e));
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -152,10 +152,7 @@ public final class Main {
                         throw new RuntimeException(e);
                     }
                 }
-            }));
-
-            List<WebService> wss = injector.getInstance(Storage.class).getObjects(WebService.class, new Request(new Condition.Equals("enabled", true)));
-            System.out.println(wss);
+            }));            
         } catch (Exception e) {
             LOGGER.error("Main method error", e);
             throw new RuntimeException(e);

@@ -306,7 +306,7 @@ public class ConnectionManager implements BroadcastInterface {
 
     @Override
     public synchronized void updatePosition(boolean local, Position position) {
-        //filtrar posiciones
+        //filtrar posiciones        
         if (position.getLongitude() > 0) {
             position.setLongitude(position.getLongitude() * -1);
         }
@@ -324,9 +324,8 @@ public class ConnectionManager implements BroadcastInterface {
             }
         }
         Device dev = cacheManager.getObject(Device.class, position.getDeviceId());
-
         try {
-            List<WebService> wss = storage.getObjects(WebService.class, new Request(new Condition.Equals("enabled", true)));
+            List<WebService> wss = storage.getObjects(WebService.class, new Request(new Columns.All(), new Condition.Equals("enabled", true)));
             for (WebService _ws : wss) {
                 String table = _ws.getTableName();
                 try {
@@ -368,6 +367,8 @@ public class ConnectionManager implements BroadcastInterface {
                 }
             }
         } catch (StorageException ex) {
+            System.out.println("err "+ex.getMessage());
+            ex.printStackTrace();
             java.util.logging.Logger.getLogger(ConnectionManager.class.getName()).log(Level.SEVERE, null, ex);
         }
 
