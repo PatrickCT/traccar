@@ -16,6 +16,7 @@ public class WebService extends BaseModel {
     private String user;
     private String password;
     private String tableName;
+    private String extra;
     private boolean enabled;
 
     public WebService() {
@@ -52,6 +53,10 @@ public class WebService extends BaseModel {
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
+
+    public String getExtra() {
+        return extra;
+    }       
 
     @Override
     public String toString() {

@@ -302,7 +302,8 @@ public final class ExternalUtils {
                 .printBase64(String.format("%s:%s", ws.getUser(), ws.getPassword()).getBytes(StandardCharsets.UTF_8))));
         LOGGER.info("WS thruster");
         String result = GeneralUtils.genericPOST(
-                "https://glmsgpstrackerapiserviacero.azurewebsites.net/api/GPSTrackerFunction?clientId=",
+                "https://glmsgpstrackerapiserviacero.azurewebsites.net/api/GPSTrackerFunction?clientId="
+                        + ws.getExtra(),
                 objs.toString(), headers, 5);
         LOGGER.info(obj.toString());
 
