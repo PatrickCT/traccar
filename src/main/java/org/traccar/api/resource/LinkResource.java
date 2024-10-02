@@ -75,6 +75,7 @@ public class LinkResource extends BaseObjectResource<Link> {
     public Response add(Link entity) throws StorageException {
         entity.setUserId((int) getUserId());
         entity.setCode(RandomStringUtils.random(15, true, true));
+        entity.setEnabled(true);
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
         return Response.ok(entity).build();
     }

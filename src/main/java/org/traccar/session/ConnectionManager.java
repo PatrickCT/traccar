@@ -54,6 +54,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -330,44 +332,47 @@ public class ConnectionManager implements BroadcastInterface {
                 String table = _ws.getTableName();
                 try {
                     if (cacheManager.getStorage().checkWSTable(dev.getUniqueId(), table)) {
-                        CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
+                        new Thread(() -> {
                             try {
                                 String ws = table.replaceAll("tc_", "");
                                 String r = "";
                                 LOGGER.info("WS: " + ws.toUpperCase());
                                 switch (ws) {
                                     case "sitrack":
-                                        r = ExternalUtils.sitrackSend(position, cacheManager);
+                                        LOGGER.info("Send sitrack ws data");
+                                        r = ExternalUtils.sitrackSend(position, cacheManager);  // No need to return anything
                                         break;
                                     case "dacero":
+                                        LOGGER.info("Send dacero ws data");
                                         r = ExternalUtils.recursoConfiable(position, cacheManager);
                                         break;
                                     case "lala":
+                                        LOGGER.info("Send lala ws data");
                                         r = ExternalUtils.lala(position, cacheManager);
                                         break;
                                     case "thruster":
+                                        LOGGER.info("Send thruster ws data");
                                         r = ExternalUtils.thruster(position, cacheManager);
                                         break;
                                     default:
                                         r = "";
                                 }
+
                                 LOGGER.info(ws.toUpperCase() + " res: " + r);
                             } catch (Exception e) {
-                                e.printStackTrace();
-                                LOGGER.info("Error lala");
-                                LOGGER.info(e.getMessage());
-                                // Handle exceptions if needed
+                                LOGGER.error("Exception occurred: " + e.getMessage(), e);
                             }
-                            return null;
-                        });
+                        }).start();
+
                     }
                 } catch (Exception ex) {
+                    System.out.println(ex.getMessage());
                     ex.printStackTrace();
                     java.util.logging.Logger.getLogger(ConnectionManager.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         } catch (StorageException ex) {
-            System.out.println("err "+ex.getMessage());
+            System.out.println("err " + ex.getMessage());
             ex.printStackTrace();
             java.util.logging.Logger.getLogger(ConnectionManager.class.getName()).log(Level.SEVERE, null, ex);
         }

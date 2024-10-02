@@ -69,39 +69,43 @@ public final class ExternalUtils {
         return sb.toString();
     }
 
-    public static String sitrackSend(Position position, CacheManager cacheManager) throws IOException {
-        try {
+    public static String sitrackSend(Position position, CacheManager cacheManager) {
+        try {            
+            LOGGER.info("Sitrack proccess");
             WebService ws = cacheManager.getStorage().getObject(WebService.class,
                     new Request(new Columns.All(), new Condition.Equals("tableName", "tc_sitrack")));
+            LOGGER.info(ws.toString());
             JSONObject obj = new JSONObject();
             Device device = cacheManager.getObject(Device.class, position.getDeviceId()); // Context.getDeviceManager().getById(position.getDeviceId());
+            LOGGER.info(device.toString());
             obj.put("imei_no", device.getUniqueId());
             obj.put("lattitude", String.valueOf(position.getLatitude()));
             obj.put("longitude", String.valueOf(position.getLongitude()));
             obj.put("angle", String.valueOf(position.getCourse()));
             obj.put("speed", String.valueOf(position.getSpeed() * 1.852));
 
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
             obj.put("time", sdf.format(GeneralUtils.dateToUTC(position.getDeviceTime())));
             obj.put("battery_voltage", position.getAttributes().getOrDefault("battery", 0).toString());
             obj.put("gps_validity", position.getValid() ? "A" : "A"); // se cambia a solicitud de sitrack para enviar
-                                                                      // siempre la letra A
+            LOGGER.info("Sitrack obj:"); 
+            LOGGER.info(obj.toString());                                                         // siempre la letra A
 
             String result = GeneralUtils.genericPOST("http://54.193.100.127:5175/", obj.toString(), new HashMap<>(), 5);
             LOGGER.info(obj.toString());
             JSONObject wh = new JSONObject();
             wh.put("webservice", obj.toString());
             wh.put("device", device);
-            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(),
+            GeneralUtils.genericPOST("https://crmgpstracker.mx:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(),
                     5);
             return result;
-        } catch (Exception e) {
+        } catch (IOException | JSONException | StorageException e) {
+            LOGGER.info("Sitrack proccess error");
+            LOGGER.info(e.getMessage());
             e.printStackTrace();
-            System.out.println(e.getMessage());
+            return "";
         }
-        return "";
     }
 
     public static String recursoConfiable(Position position, CacheManager cacheManager) {
@@ -168,7 +172,7 @@ public final class ExternalUtils {
             JSONObject wh = new JSONObject();
             wh.put("webservice", evt.toString());
             wh.put("device", dev);
-            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(),
+            GeneralUtils.genericPOST("https://crmgpstracker.mx:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(),
                     5);
             return "";
         } catch (IOException | JSONException ex) {
@@ -251,7 +255,7 @@ public final class ExternalUtils {
             JSONObject wh = new JSONObject();
             wh.put("webservice", pevento.toString());
             wh.put("device", device);
-            GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(),
+            GeneralUtils.genericPOST("https://crmgpstracker.mx:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(),
                     5);
             return Arrays.toString(response);
         } catch (Exception e) {
@@ -311,7 +315,7 @@ public final class ExternalUtils {
         JSONObject wh = new JSONObject();
         wh.put("webservice", objs.toString());
         wh.put("device", device);
-        GeneralUtils.genericPOST("http://45.79.45.108:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(), 5);
+        GeneralUtils.genericPOST("https://crmgpstracker.mx:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(), 5);
 
         return result;
     }

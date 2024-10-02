@@ -224,8 +224,8 @@ public class GeneralUtils {
             CloseableHttpResponse response = client.execute(httpPost);
             HttpEntity responseEntity = response.getEntity();
             String responseString = EntityUtils.toString(responseEntity, "UTF-8");
-//            System.out.println("Generic post to " + url + " response");
-//            System.out.println(responseString);
+            LOG.info("Generic post to " + url + " response");
+            LOG.info(responseString);
             client.close();
 
             return responseString;

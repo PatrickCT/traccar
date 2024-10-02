@@ -21,6 +21,7 @@ public class Link extends BaseModel {
     private String pass;
     private boolean enabled;
     private String code;
+    private String name;
 
     public Date getLimitDate() {
         return limitDate;
@@ -62,9 +63,21 @@ public class Link extends BaseModel {
         this.code = code;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
     @Override
     public String toString() {
-        return "Link{" + "limit=" + limitDate + ", user=" + userId + ", pass=" + pass + ", enabled=" + enabled + '}';
-    }
+        return "Link{" + "limitDate=" + limitDate + ", userId=" + userId + ", pass=" + pass + ", enabled=" + enabled + ", code=" + code + ", name=" + name + '}';
+    }    
 
 }

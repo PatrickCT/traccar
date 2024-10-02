@@ -493,6 +493,7 @@ public class DatabaseStorage extends Storage {
         if (!checkTable) {
             return false;
         }
+
         try (Connection con = dataSource.getConnection();
                 PreparedStatement pst = con.prepareStatement("SELECT count(*) as counter "
                         + "FROM " + table + " "
@@ -503,6 +504,7 @@ public class DatabaseStorage extends Storage {
                 counter = rs.getInt("counter");
             }
         } catch (SQLException ex) {
+            ex.printStackTrace();
             Logger.getLogger(DatabaseStorage.class.getName()).log(Level.SEVERE, null, ex);
         }
         if (counter > 0) {
