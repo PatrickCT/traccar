@@ -118,12 +118,10 @@ public class SessionResource extends BaseResource {
             }
 
         } else {
-
             User user = permissionsService.getUser(userId);
             if (user != null) {
                 return user;
             }
-
         }
 
         throw new WebApplicationException(Response.status(Response.Status.NOT_FOUND).build());

@@ -278,7 +278,7 @@ public class DeviceResource extends BaseObjectResource<Device> {
             var conditions = new LinkedList<Condition>();
 
             permissionsService.checkUser(getUserId(), id);
-            conditions.add(new Condition.Permission(User.class, id, baseClass).excludeGroups());
+            conditions.add(new Condition.Permission(User.class, id, baseClass));
 
             return storage.getObjects(baseClass, new Request(new Columns.All(), Condition.merge(conditions)));
         } catch (StorageException ex) {
