@@ -140,7 +140,7 @@ public class DeviceResource extends BaseObjectResource<Device> {
     @PUT
     public Response updateAccumulators(DeviceAccumulators entity) throws StorageException {
         if (permissionsService.notAdmin(getUserId())) {
-            permissionsService.checkManager(getUserId());
+//            permissionsService.checkManager(getUserId());
             permissionsService.checkPermission(Device.class, getUserId(), entity.getDeviceId());
         }
 

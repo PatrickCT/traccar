@@ -335,16 +335,6 @@ public class User extends ExtendedModel implements UserRestrictions, Disableable
         this.stopTimeout = stopTimeout;
     }
 
-    private boolean billing;
-
-    public boolean getBilling() {
-        return billing;
-    }
-
-    public void setBilling(boolean billing) {
-        this.billing = billing;
-    }
-
     private boolean debt;
 
     public boolean getDebt() {
@@ -375,5 +365,14 @@ public class User extends ExtendedModel implements UserRestrictions, Disableable
     public void setSupport(boolean support) {
         this.support = support;
     }
+    
+    private String pushId;
 
+    public String getPushId() {
+        return pushId;
+    }
+
+    public void setPushId(String pushId) {
+        this.pushId = pushId;
+    }        
 }

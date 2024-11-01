@@ -1163,6 +1163,13 @@ public final class Keys {
             List.of(KeyType.CONFIG));
 
     /**
+     * Push Custom notification url.
+     */
+    public static final ConfigKey<String> NOTIFICATOR_PUSH_URL = new StringConfigKey(
+            "notificator.push.url",
+            List.of(KeyType.CONFIG));
+    
+    /**
      * Maximum time period for reports in seconds. Can be useful to prevent users to request unreasonably long reports.
      * By default there is no limit.
      */

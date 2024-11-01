@@ -42,7 +42,6 @@ public class NotificatorPushover implements Notificator {
     private final String user;    
 
     public static class Message {
-
         @JsonProperty("token")
         private String token;
         @JsonProperty("user")

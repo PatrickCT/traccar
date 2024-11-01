@@ -30,6 +30,9 @@ import java.util.stream.Collectors;
 import org.json.JSONObject;
 import org.traccar.model.Link;
 import org.traccar.session.cache.CacheManager;
+import org.traccar.storage.query.Columns;
+import org.traccar.storage.query.Condition;
+import org.traccar.storage.query.Request;
 
 /**
  *
@@ -51,6 +54,8 @@ public class AsyncSocketGuest extends WebSocketAdapter implements ConnectionMana
     private long linkId;
     private Link link;
     private List<Long> devices = new ArrayList<>();
+    private List<Device> devicesObj = new ArrayList<>();
+    private List<Position> positions = new ArrayList<>();
 
     public AsyncSocketGuest(ObjectMapper objectMapper, ConnectionManager connectionManager, Storage storage, long userId, CacheManager cacheManager, long linkId) {
         this.objectMapper = objectMapper;
@@ -64,7 +69,10 @@ public class AsyncSocketGuest extends WebSocketAdapter implements ConnectionMana
                     + "inner join tc_link_device ld "
                     + "on ld.deviceid=d.id "
                     + "where ld.linkid=" + String.valueOf(linkId)).stream().map(item -> item.getId()).collect(Collectors.toList()));
-
+            for (Long device : this.devices) {
+                this.devicesObj.addAll(storage.getObjects(Device.class, new Request(new Columns.All(), new Condition.Equals("id", device))));
+                this.positions.addAll(storage.getObjects(Position.class, new Request(new Columns.All(), new Condition.LatestPositions(device))));
+            }
         } catch (StorageException ex) {
             java.util.logging.Logger.getLogger(AsyncSocketGuest.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -74,8 +82,12 @@ public class AsyncSocketGuest extends WebSocketAdapter implements ConnectionMana
     public void onWebSocketConnect(Session session) {
         super.onWebSocketConnect(session);
 
-        try {            
+        try {
             connectionManager.addListener(userId, this);
+            Map<String, Collection<?>> data = new HashMap<>();
+            data.put(KEY_DEVICES, devicesObj);
+            data.put(KEY_POSITIONS, positions);
+            sendData(data);
         } catch (StorageException e) {
             throw new RuntimeException(e);
         }
@@ -96,6 +108,9 @@ public class AsyncSocketGuest extends WebSocketAdapter implements ConnectionMana
     @Override
     public void onUpdateDevice(Device device) {
         Map<String, Collection<?>> data = new HashMap<>();
+        if (!devices.contains(device.getId())) {
+            return;
+        }
         data.put(KEY_DEVICES, Collections.singletonList(device));
         sendData(data);
     }

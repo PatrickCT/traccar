@@ -30,7 +30,9 @@ import org.json.JSONObject;
 import org.traccar.api.BaseObjectResource;
 import org.traccar.model.Device;
 import org.traccar.model.Link;
+import org.traccar.model.Permission;
 import org.traccar.model.Position;
+import org.traccar.model.User;
 import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.StorageException;
@@ -77,6 +79,7 @@ public class LinkResource extends BaseObjectResource<Link> {
         entity.setCode(RandomStringUtils.random(15, true, true));
         entity.setEnabled(true);
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
+        storage.addPermission(new Permission(User.class, getUserId(), Link.class, entity.getId()));
         return Response.ok(entity).build();
     }
 
@@ -99,6 +102,7 @@ public class LinkResource extends BaseObjectResource<Link> {
         if (getUserId() != entity.getUserId()) {
             return Response.notModified().build();
         }
+        storage.removePermission(new Permission(User.class, getUserId(), Link.class, entity.getId()));
         storage.removeObject(Link.class, new Request(                
                 new Condition.Equals("id", entity.getId())));        
         return Response.ok(entity).build();
@@ -158,6 +162,7 @@ public class LinkResource extends BaseObjectResource<Link> {
                 responseJson.put("linkId", links.get(0).getId());
                 responseJson.put("pass", links.get(0).getPass());
                 responseJson.put("code", links.get(0).getCode());
+                responseJson.put("limitDate", links.get(0).getLimitDate());
 
                 return Response.status(Response.Status.OK).entity(responseJson.toString()).build();
 

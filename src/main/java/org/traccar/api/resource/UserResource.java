@@ -39,11 +39,17 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.PUT;
 import javax.ws.rs.PathParam;
 import org.json.JSONObject;
 import org.traccar.api.AsyncSocket;
+import org.traccar.model.Device;
 import org.traccar.model.ExtraMail;
 import org.traccar.model.ExtraPhone;
 import org.traccar.session.cache.CacheManager;
@@ -165,6 +171,16 @@ public class UserResource extends BaseObjectResource<User> {
         ));
     }
 
+    @Path("{id}/mails/{mail}")
+    @DELETE
+    public Collection<ExtraMail> removeUserMail(@PathParam("id") long id, @PathParam("id") String mail) throws StorageException {
+        storage.removeObject(ExtraMail.class, new Request(new Columns.All(), new Condition.And(new Condition.Equals("userId", id), new Condition.Equals("email", mail))));
+        return storage.getObjects(ExtraMail.class, new Request(
+                new Columns.All(),
+                new Condition.Equals("userid", getUserId())
+        ));
+    }
+
     @Path("{id}/phones")
     @GET
     public Collection<ExtraPhone> getUserPhones(@PathParam("id") long id) throws StorageException {
@@ -200,6 +216,16 @@ public class UserResource extends BaseObjectResource<User> {
         ));
     }
 
+    @Path("{id}/phones/{phone}")
+    @DELETE
+    public Collection<ExtraPhone> removeUserPhone(@PathParam("id") long id, @PathParam("id") String phone) throws StorageException {
+        storage.removeObject(ExtraPhone.class, new Request(new Columns.All(), new Condition.And(new Condition.Equals("userId", id), new Condition.Equals("phone", phone))));
+        return storage.getObjects(ExtraPhone.class, new Request(
+                new Columns.All(),
+                new Condition.Equals("userid", getUserId())
+        ));
+    }
+
     @Path("main")
     @GET
     public Collection<User> getMainUsers(@QueryParam("userId") long userId) throws SQLException, StorageException {
@@ -227,22 +253,22 @@ public class UserResource extends BaseObjectResource<User> {
     @PermitAll
     @GET
     public Response markInDebt(@PathParam("id") long id) throws StorageException {
-        JSONObject obj = new JSONObject();
-        obj.put("command", "refreshUser");
-
-        User user = storage.getObject(User.class, new Request(new Columns.All(), new Condition.Equals("id", id)));
-        if (user != null) {
-            user.setDebt(true);
-            storage.updateObject(user, new Request(
-                    new Columns.Exclude("id"),
-                    new Condition.Equals("id", user.getId())));
-        }
-
-        if (cacheManager.getSocketsLogged().get(id) != null) {
-            for (AsyncSocket soc : cacheManager.getSocketsLogged().get(id)) {
-                soc.onUpdateCustom(obj);
+        setUserDebt(id, true);
+        System.out.println("debt "+id);
+        var conditions = new LinkedList<Condition>();
+        conditions.add(new Condition.Permission(User.class, id, Device.class));
+        List<Long> devices = storage.getObjects(Device.class, new Request(new Columns.All(), Condition.merge(conditions))).stream().map((device) -> device.getId()).collect(Collectors.toList());
+        System.out.println("devices");
+        System.out.println(devices);
+        
+        storage.getPermissions(User.class, Device.class).stream().filter((permission) -> devices.indexOf(permission.getPropertyId()) >= 0).forEach((permission) -> {
+            try {
+                System.out.println("found user "+permission);
+                setUserDebt(permission.getOwnerId(), true);
+            } catch (StorageException ex) {
+                Logger.getLogger(UserResource.class.getName()).log(Level.SEVERE, null, ex);
             }
-        }
+        });
 
         return Response.ok("").build();
     }
@@ -251,22 +277,40 @@ public class UserResource extends BaseObjectResource<User> {
     @PermitAll
     @GET
     public Response removeFromDebt(@PathParam("id") long id) throws StorageException {
-        JSONObject obj = new JSONObject();
-        obj.put("command", "refreshUser");
+        setUserDebt(id, false);
+        
+        var conditions = new LinkedList<Condition>();
+        conditions.add(new Condition.Permission(User.class, id, Device.class));
+        List<Long> devices = storage.getObjects(Device.class, new Request(new Columns.All(), Condition.merge(conditions))).stream().map((device) -> device.getId()).collect(Collectors.toList());
 
-        User user = storage.getObject(User.class, new Request(new Columns.All(), new Condition.Equals("id", id)));
+        storage.getPermissions(User.class, Device.class).stream().filter((permission) -> devices.indexOf(permission.getPropertyId()) >= 0).forEach((permission) -> {
+            try {
+                setUserDebt(permission.getOwnerId(), false);
+            } catch (StorageException ex) {
+                Logger.getLogger(UserResource.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });
+
+        return Response.ok("").build();
+    }
+
+    private void setUserDebt(Long userId, boolean debt) throws StorageException {
+        User user = storage.getObject(User.class, new Request(new Columns.All(), new Condition.Equals("id", userId)));
         if (user != null) {
-            user.setDebt(false);
+            user.setDebt(debt);
             storage.updateObject(user, new Request(
                     new Columns.Exclude("id"),
                     new Condition.Equals("id", user.getId())));
         }
-        if (cacheManager.getSocketsLogged().get(id) != null) {
-            for (AsyncSocket soc : cacheManager.getSocketsLogged().get(id)) {
-                soc.onUpdateCustom(obj);
+        if (cacheManager.getSocketsLogged().get(userId) != null) {
+            JSONObject obj = new JSONObject();
+            obj.put("command", "refreshUser");
+            for (AsyncSocket soc : cacheManager.getSocketsLogged().get(userId)) {
+                if (soc != null) {
+                    soc.onUpdateCustom(obj);
+                }
+
             }
         }
-
-        return Response.ok("").build();
     }
 }

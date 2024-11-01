@@ -326,12 +326,16 @@ public class ConnectionManager implements BroadcastInterface {
             }
         }
         Device dev = cacheManager.getObject(Device.class, position.getDeviceId());
+
         try {
+            if (dev == null) {
+                dev = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", position.getDeviceId())));
+            }
             List<WebService> wss = storage.getObjects(WebService.class, new Request(new Columns.All(), new Condition.Equals("enabled", true)));
             for (WebService _ws : wss) {
                 String table = _ws.getTableName();
                 try {
-                    if (cacheManager.getStorage().checkWSTable(dev.getUniqueId(), table)) {
+                    if (dev != null && cacheManager.getStorage().checkWSTable(dev.getUniqueId(), table)) {
                         new Thread(() -> {
                             try {
                                 String ws = table.replaceAll("tc_", "");
