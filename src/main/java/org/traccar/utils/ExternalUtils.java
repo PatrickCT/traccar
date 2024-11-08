@@ -21,6 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +47,9 @@ import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
+import static org.traccar.utils.GeneralUtils.genericPOST;
+import static org.traccar.utils.GenericUtils.aDate2Epoch;
+import static org.traccar.utils.GenericUtils.addTimeToDate;
 
 /**
  *
@@ -70,7 +74,7 @@ public final class ExternalUtils {
     }
 
     public static String sitrackSend(Position position, CacheManager cacheManager) {
-        try {            
+        try {
             LOGGER.info("Sitrack proccess");
             WebService ws = cacheManager.getStorage().getObject(WebService.class,
                     new Request(new Columns.All(), new Condition.Equals("tableName", "tc_sitrack")));
@@ -89,7 +93,7 @@ public final class ExternalUtils {
             obj.put("time", sdf.format(GeneralUtils.dateToUTC(position.getDeviceTime())));
             obj.put("battery_voltage", position.getAttributes().getOrDefault("battery", 0).toString());
             obj.put("gps_validity", position.getValid() ? "A" : "A"); // se cambia a solicitud de sitrack para enviar
-            LOGGER.info("Sitrack obj:"); 
+            LOGGER.info("Sitrack obj:");
             LOGGER.info(obj.toString());                                                         // siempre la letra A
 
             String result = GeneralUtils.genericPOST("http://54.193.100.127:5175/", obj.toString(), new HashMap<>(), 5);
@@ -308,7 +312,7 @@ public final class ExternalUtils {
         LOGGER.info("WS thruster");
         String result = GeneralUtils.genericPOST(
                 "https://glmsgpstrackerapiserviacero.azurewebsites.net/api/GPSTrackerFunction?clientId="
-                        + ws.getExtra(),
+                + ws.getExtra(),
                 objs.toString(), headers, 5);
         LOGGER.info(obj.toString());
 
@@ -318,6 +322,138 @@ public final class ExternalUtils {
         GeneralUtils.genericPOST("https://crmgpstracker.mx:4040/api/webhooks/traccar", wh.toString(), new HashMap<>(), 5);
 
         return result;
+    }
+
+    public static String nuevoWSGigaPegasus(CacheManager cacheManager, Position position) {
+
+        try {
+            WebService ws = cacheManager.getStorage().getObject(WebService.class,
+                    new Request(new Columns.All(), new Condition.Equals("tableName", "tc_activetrack")));
+            //System.out.println("Init giga new ws (pegasus)");
+            String endpoint = "https://pegasus248.peginstances.com/receivers/json";
+            String body;
+            String bodyContent;
+            Map<String, Object> headers = new HashMap<>();
+            headers.putIfAbsent("Content-Type", "application/json");
+            headers.putIfAbsent("Authenticate", ws.getUser());
+            //proceso
+            //requeridos
+            bodyContent = "";
+            String query = ""
+                    + "SELECT pd.* "
+                    + "FROM tc_positions_day pd "
+                    + "INNER JOIN tc_positions p "
+                    + "ON p.id=pd.id "
+                    + "WHERE p.enviadows=FALSE and "
+                    + "DATE(p.fixtime) = CURDATE()"
+                    + "LIMIT 50";
+            Collection<Position> positions = new ArrayList<>() {
+                {
+                    add(position);
+                }
+            };
+            if (positions.size() <= 0) {
+                return "";
+            }
+            boolean first = true;
+            for (Position p : positions) {
+                String temp = "";
+                Device d = cacheManager.getObject(Device.class, p.getDeviceId());
+                org.traccar.model.Event e = cacheManager.getStorage().getObject(org.traccar.model.Event.class, new Request(new Columns.All(), new Condition.Equals("positionId", p.getId())));
+
+                try {
+                    if (!first) {
+                        temp += ",";
+                    }
+                    temp += "{";
+                    temp += "\"device.id\": " + d.getUniqueId() + ",";
+                    temp += "\"position.latitude\": " + p.getLatitude() + ",";
+                    temp += "\"position.longitude\": " + p.getLongitude() + ",";
+                    temp += "\"timestamp\": " + aDate2Epoch(p.getFixTime()) + ",";
+                    temp += "\"protocol.id\":  \"rt.platform\"" + ",";
+                    temp += "\"device.type.id\":  \"rt.platform\"" + ",";
+                    temp += "\"device.name\": \"" + ObjectUtils.firstNonNull(d.getName(), "") + "\",";
+
+                    if (e != null) {
+                        if (e.getAttributes().containsValue("sos")) {
+                            temp += "\"event.enum\": 1" + ",";
+                        } else if (e.getAttributes().containsValue("powerOff")) {
+                            temp += "\"event.enum\": 3" + ",";
+                        } else if (e.getAttributes().containsValue("powerOn")) {
+                            temp += "\"event.enum\": 6" + ",";
+                        } else if (e.getAttributes().containsValue("overspeed")) {
+                            temp += "\"event.enum\": 4" + ",";
+                        } else if (e.getAttributes().containsKey("motion") && (boolean) e.getAttributes().get("motion")) {
+                            temp += "\"event.enum\": 5" + ",";
+                        } else {
+                            temp += "\"event.enum\": 2" + ",";
+                        }
+                        temp += "\"event.label\": \"" + e.getType() + "\",";
+                    }
+                    temp += "\"position.direction\": " + p.getCourse() + ",";
+                    temp += "\"position.speed\": " + p.getSpeed() / 0.539957 + ",";
+                    temp += "\"position.altitude\": " + p.getAltitude() + ",";
+
+                    if (p.getAttributes().containsKey("hdop")) {
+                        temp += "\"position.hdop\": " + Double.valueOf(p.getAttributes().get("hdop").toString()) + ",";
+                    }
+                    if (p.getAttributes().containsKey("sat")) {
+                        temp += "\"position.satellites\": " + (int) p.getAttributes().get("sat") + ",";
+                    }
+                    temp += "\"position.valid\": " + p.getValid() + ",";
+
+                    if (p.getAttributes().containsKey("ignition") && (boolean) p.getAttributes().get("ignition")) {
+                        temp += "\"io.ignition\": " + (boolean) p.getAttributes().get("ignition") + ",";
+                    }
+                    if (p.getAttributes().containsKey("battery")) {
+                        temp += "\"device.battery.level\": " + Double.parseDouble(p.getAttributes().get("battery")
+                                .toString()) * 1000 + ",";
+                    }
+                    if (p.getAttributes().containsKey("batteryLevel")) {
+                        temp += "\"device.battery.percent\": " + p.getAttributes().get("batteryLevel") + ",";
+                    }
+
+                    if (p.getAttributes().containsKey("motion")) {
+                        temp += "\"movement.status\": " + p.getAttributes().get("motion");
+                    }
+
+                    temp += "}";
+                    first = false;
+
+                } catch (Exception ee) {
+                    temp = "";
+                    ee.printStackTrace();
+                }
+                bodyContent += temp;
+                p.setEnviadows(true);
+                cacheManager.getStorage().updateObject(p, new Request(new Columns.Exclude("id"), new Condition.Equals("id", p.getId())));
+
+            }
+
+            body = ""
+                    + "["
+                    + bodyContent
+                    + "]";
+
+            //envio
+            LOGGER.info("Pawload pegasus ws");
+            LOGGER.info(body);
+            String result = "";
+
+            try {
+                result = genericPOST(endpoint, body, headers, 5);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                //System.out.println(ex);
+            }
+            LOGGER.info("WS Response");
+            LOGGER.info(result);
+
+            return body;
+        } catch (StorageException ex) {
+            java.util.logging.Logger.getLogger(GeneralUtils.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return "";
     }
 
     public static Calendar toCalendar(Date date) {

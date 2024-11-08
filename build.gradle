@@ -6,7 +6,7 @@ plugins {
 }
 
 repositories {
-    mavenCentral()
+    mavenCentral()    
 }
 
 sourceCompatibility = "11"
@@ -103,6 +103,7 @@ dependencies {
     implementation 'org.glassfish.jaxb:jaxb-runtime:2.3.3'
     implementation 'commons-discovery:commons-discovery:0.5'
     implementation 'javax.xml.soap:javax.xml.soap-api:1.4.0'
+    
 
     testImplementation "org.junit.jupiter:junit-jupiter-api:$junitVersion"
     testImplementation "org.junit.jupiter:junit-jupiter-engine:$junitVersion"

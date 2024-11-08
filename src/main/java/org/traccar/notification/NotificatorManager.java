@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.traccar.notificators.NotificatorGmail;
 
 @Singleton
 public class NotificatorManager {
@@ -45,7 +46,7 @@ public class NotificatorManager {
     private static final Map<String, Class<? extends Notificator>> NOTIFICATORS_ALL = Map.of(
             "command", NotificatorCommand.class,
             "web", NotificatorWeb.class,
-            "mail", NotificatorMail.class,
+            "mail", NotificatorGmail.class,
             "sms", NotificatorSms.class,
             "firebase", NotificatorFirebase.class,
             "traccar", NotificatorTraccar.class,

@@ -14,7 +14,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.traccar.api.BaseResource;
 import org.traccar.session.cache.CacheManager;
-import org.traccar.utils.GeneralUtils;
 
 /**
  *
@@ -30,7 +29,6 @@ public class GPSEventsResource extends BaseResource{
     
     @GET
     public Response getJson() throws SQLException{
-        return Response.ok(new GeneralUtils().nuevoWSGigaPegasus(cacheManager)).build();
-
+        return Response.ok().build();
     }
 }

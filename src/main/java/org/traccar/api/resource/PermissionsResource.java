@@ -97,7 +97,8 @@ public class PermissionsResource extends BaseResource {
     @DELETE
     @Path("bulk")
     public Response remove(List<LinkedHashMap<String, Long>> entities) throws StorageException, ClassNotFoundException {
-        permissionsService.checkRestriction(getUserId(), UserRestrictions::getReadonly);
+        try {
+            permissionsService.checkRestriction(getUserId(), UserRestrictions::getReadonly);
         checkPermissionTypes(entities);
         for (LinkedHashMap<String, Long> entity : entities) {
             Permission permission = new Permission(entity);
@@ -112,6 +113,10 @@ public class PermissionsResource extends BaseResource {
                     permission.getPropertyClass(), permission.getPropertyId());
         }
         return Response.noContent().build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Response.accepted(e.getMessage()).build();
+        }
     }
 
     @DELETE

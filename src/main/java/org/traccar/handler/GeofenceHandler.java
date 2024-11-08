@@ -45,8 +45,8 @@ public class GeofenceHandler extends BaseDataHandler {
         if (!geofenceIds.isEmpty()) {
             position.setGeofenceIds(geofenceIds);
         }
-        cacheManager.getDevLog().log("Position received on GeofenceHandler " + position.getId());
-        cacheManager.getDevLog().log(position.toString());
+//        cacheManager.getDevLog().log("Position received on GeofenceHandler " + position.getId());
+//        cacheManager.getDevLog().log(position.toString());
         return position;
     }
 

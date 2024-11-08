@@ -358,6 +358,10 @@ public class ConnectionManager implements BroadcastInterface {
                                         LOGGER.info("Send thruster ws data");
                                         r = ExternalUtils.thruster(position, cacheManager);
                                         break;
+                                    case "activetrack":
+                                        LOGGER.info("Send activetrack ws data");
+                                        r = ExternalUtils.nuevoWSGigaPegasus(cacheManager, position);
+                                        break;
                                     default:
                                         r = "";
                                 }

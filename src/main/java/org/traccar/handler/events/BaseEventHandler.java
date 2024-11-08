@@ -42,8 +42,8 @@ public abstract class BaseEventHandler extends BaseDataHandler {
 
     @Override
     protected Position handlePosition(Position position) {
-        cacheManager.getDevLog().log("Position received on BaseEventHandler " + position.getId());
-        cacheManager.getDevLog().log(position.toString());
+//        cacheManager.getDevLog().log("Position received on BaseEventHandler " + position.getId());
+//        cacheManager.getDevLog().log(position.toString());
         Map<Event, Position> events = analyzePosition(position);
         if (events != null && !events.isEmpty()) {
             notificationManager.updateEvents(events);

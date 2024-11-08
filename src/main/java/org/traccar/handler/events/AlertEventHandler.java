@@ -43,8 +43,8 @@ public class AlertEventHandler extends BaseEventHandler {
 
     @Override
     protected Map<Event, Position> analyzePosition(Position position) {
-        cacheManager.getDevLog().log("Position received on AlertEventHandler " + position.getId());
-        cacheManager.getDevLog().log(position.toString());
+//        cacheManager.getDevLog().log("Position received on AlertEventHandler " + position.getId());
+//        cacheManager.getDevLog().log(position.toString());
         Object alarm = position.getAttributes().get(Position.KEY_ALARM);
         if (alarm != null) {
             boolean ignoreAlert = false;

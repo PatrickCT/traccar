@@ -86,7 +86,8 @@ public class DeviceResource extends BaseObjectResource<Device> {
     public Collection<Device> get(
             @QueryParam("all") boolean all, @QueryParam("userId") long userId,
             @QueryParam("uniqueId") List<String> uniqueIds,
-            @QueryParam("id") List<Long> deviceIds) throws StorageException {
+            @QueryParam("id") List<Long> deviceIds,
+            @QueryParam("includeGroups") boolean includeGroups) throws StorageException {
 
         if (!uniqueIds.isEmpty() || !deviceIds.isEmpty()) {
 
@@ -127,10 +128,14 @@ public class DeviceResource extends BaseObjectResource<Device> {
                     conditions.add(new Condition.Permission(User.class, getUserId(), baseClass));
                 } else {
                     permissionsService.checkUser(getUserId(), userId);
-                    conditions.add(new Condition.Permission(User.class, userId, baseClass).excludeGroups());
+                    if (includeGroups) {
+                        conditions.add(new Condition.Permission(User.class, userId, baseClass));
+                    } else {
+                        conditions.add(new Condition.Permission(User.class, userId, baseClass).excludeGroups());
+                    }
                 }
             }
-            List<Device> result = storage.getObjects(baseClass, new Request(new Columns.All(), Condition.merge(conditions)));            
+            List<Device> result = storage.getObjects(baseClass, new Request(new Columns.All(), Condition.merge(conditions)));
             return result;
 
         }
@@ -198,7 +203,7 @@ public class DeviceResource extends BaseObjectResource<Device> {
             }
             return Response.ok(name + "." + extension).build();
         }
-        
+
         return Response.status(Response.Status.NOT_FOUND).build();
     }
 

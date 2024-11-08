@@ -181,8 +181,8 @@ public abstract class BaseProtocolDecoder extends ExtendedObjectDecoder {
                 Collection<Position> positions = (Collection) decodedMessage;
                 for (Position position : positions) {
                     deviceIds.add(position.getDeviceId());
-                    cacheManager.getDevLog().log("Position received on BaseProtocol decoder "+position.getId());
-                    cacheManager.getDevLog().log(position.toString());
+//                    cacheManager.getDevLog().log("Position received on BaseProtocol decoder "+position.getId());
+//                    cacheManager.getDevLog().log(position.toString());
                     
                 }
             }

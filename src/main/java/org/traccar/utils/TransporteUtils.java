@@ -50,8 +50,8 @@ public class TransporteUtils {
         try {
             ProccessLogger logger = new ProccessLogger(LOGGER);
             logger.info("Generando salida " + deviceId + ", " + time);
-            cacheManager.getDevLog().log("Nueva salida salida");
-            cacheManager.getDevLog().log(deviceId + ", " + geofenceId + ", " + time);
+//            cacheManager.getDevLog().log("Nueva salida salida");
+//            cacheManager.getDevLog().log(deviceId + ", " + geofenceId + ", " + time);
             //revisar salidas pendientes
             Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -112,7 +112,7 @@ public class TransporteUtils {
             //si es de villas
             if (group.hasAttribute("vp") && (boolean) group.getAttributes().get("vp") == true) {
                 logger.info("Villas");
-                cacheManager.getDevLog().log("Villas");
+//                cacheManager.getDevLog().log("Villas");
                 //si es la primer salida del dia
 
                 logger.info(String.format("select * from tc_salidas where deviceid=%s and valid=true and date(tc_salidas.date) = curdate()", deviceId));
