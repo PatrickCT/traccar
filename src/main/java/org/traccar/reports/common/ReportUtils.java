@@ -42,6 +42,7 @@ import org.traccar.model.Position;
 import org.traccar.model.User;
 import org.traccar.reports.model.BaseReportItem;
 import org.traccar.reports.model.StopReportItem;
+import org.traccar.reports.model.SummaryReportItem;
 import org.traccar.reports.model.TripReportItem;
 import org.traccar.session.state.MotionProcessor;
 import org.traccar.session.state.MotionState;
@@ -114,6 +115,11 @@ public class ReportUtils {
         return 0;
     }
 
+    public double calculateFuel(SummaryReportItem result, double fuelEfficiency) {
+        var distance = (result.getEndOdometer()/1000)-(result.getStartOdometer()/1000);
+        return distance/fuelEfficiency;
+    }
+
     public String findDriver(Position firstPosition, Position lastPosition) {
         if (firstPosition.hasAttribute(Position.KEY_DRIVER_UNIQUE_ID)) {
             return firstPosition.getString(Position.KEY_DRIVER_UNIQUE_ID);
@@ -150,18 +156,18 @@ public class ReportUtils {
         context.putVar("bracketsRegex", "[\\{\\}\"]");
         return context;
     }
-    
+
     public void processTemplateWithSheets(
             InputStream templateStream, OutputStream targetStream, org.jxls.common.Context context) throws IOException {
 
         Transformer transformer = TransformerFactory.createTransformer(templateStream, targetStream);
         List<Area> xlsAreas = new XlsCommentAreaBuilder(transformer).build();
-        for (Area xlsArea : xlsAreas) {            
+        for (Area xlsArea : xlsAreas) {
             xlsArea.applyAt(new CellRef(xlsArea.getStartCellRef().getCellName()), context);
             xlsArea.setFormulaProcessor(new StandardFormulaProcessor());
             xlsArea.processFormulas();
         }
-        transformer.deleteSheet(xlsAreas.get(0).getStartCellRef().getSheetName());        
+        transformer.deleteSheet(xlsAreas.get(0).getStartCellRef().getSheetName());
         transformer.write();
     }
 
@@ -170,7 +176,7 @@ public class ReportUtils {
 
         Transformer transformer = TransformerFactory.createTransformer(templateStream, targetStream);
         List<Area> xlsAreas = new XlsCommentAreaBuilder(transformer).build();
-        for (Area xlsArea : xlsAreas) {            
+        for (Area xlsArea : xlsAreas) {
             xlsArea.applyAt(new CellRef(xlsArea.getStartCellRef().getCellName()), context);
             xlsArea.setFormulaProcessor(new StandardFormulaProcessor());
             xlsArea.processFormulas();
@@ -178,7 +184,7 @@ public class ReportUtils {
         if (!unified) {
             transformer.deleteSheet(xlsAreas.get(0).getStartCellRef().getSheetName());
         }
-        
+
         transformer.write();
     }
 
@@ -422,5 +428,5 @@ public class ReportUtils {
 
     public PermissionsService getPermissionsService() {
         return permissionsService;
-    }    
+    }
 }

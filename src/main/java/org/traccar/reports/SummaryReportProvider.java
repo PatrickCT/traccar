@@ -128,6 +128,10 @@ public class SummaryReportProvider {
 
             result.setStartTime(first.getFixTime());
             result.setEndTime(last.getFixTime());
+            if(result.getSpentFuel() == 0){
+                var fuelEfficiency = Double.parseDouble(device.getAttributes().getOrDefault("fuelEfficiency", device.getAttributes().getOrDefault("rendimiento", 0)).toString());
+                result.setSpentFuel(reportUtils.calculateFuel(result, fuelEfficiency));
+            }
             return List.of(result);
         }
 

@@ -41,6 +41,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TimeZone;
+import org.traccar.utils.GenericUtils;
 
 public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
 
@@ -440,7 +441,8 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
         position.setAltitude(buf.readShort());
         position.setSpeed(UnitsConverter.knotsFromKph(buf.readUnsignedShort() * 0.1));
         position.setCourse(buf.readUnsignedShort());
-        position.setTime(readDate(buf, deviceSession.get(DeviceSession.KEY_TIMEZONE)));
+        Date time = readDate(buf, deviceSession.get(DeviceSession.KEY_TIMEZONE));
+        position.setTime(GenericUtils.addTimeToDate(time, Calendar.HOUR_OF_DAY, 8));
 
         if (buf.readableBytes() == 20) {
 
@@ -935,6 +937,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                     getLastLocation(position, time);
                     decodeCoordinates(position, buf);
                     position.setTime(time);
+                    position.setTime(GenericUtils.addTimeToDate(time, Calendar.HOUR_OF_DAY, 8));
                     break;
                 case 0x02:
                     List<String> codes = new LinkedList<>();
@@ -953,6 +956,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                     getLastLocation(position, time);
                     decodeCoordinates(position, buf);
                     position.setTime(time);
+                    position.setTime(GenericUtils.addTimeToDate(time, Calendar.HOUR_OF_DAY, 8));
                     break;
                 case 0x03:
                     count = buf.readUnsignedByte();
@@ -1000,6 +1004,7 @@ public class HuabaoProtocolDecoder extends BaseProtocolDecoder {
                     getLastLocation(position, time);
                     decodeCoordinates(position, buf);
                     position.setTime(time);
+                    position.setTime(GenericUtils.addTimeToDate(time, Calendar.HOUR_OF_DAY, 8));
                     break;
                 case 0x0B:
                     if (buf.readUnsignedByte() > 0) {
