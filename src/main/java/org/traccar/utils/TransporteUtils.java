@@ -6,12 +6,7 @@ package org.traccar.utils;
 
 import java.io.IOException;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -257,7 +252,7 @@ public class TransporteUtils {
             }
 
             if (!isFirstTicket) {
-                updateOldTramos(newSalida.getId(), itinerarioSelected.getId(), cacheManager);
+                updateOldTramos(newSalida.getId(), itinerarioSelected.getId(), cacheManager, geofenceId);
             }
 
             updateSalida(deviceId, geofenceId, time, cacheManager, true);
@@ -492,7 +487,7 @@ public class TransporteUtils {
         }
     }
 
-    private static void updateOldTramos(long salidaId, long itinerarioId, CacheManager cacheManager) {
+    private static void updateOldTramos(long salidaId, long itinerarioId, CacheManager cacheManager, long geofenceId) {
 //        LOGGER.info("update old");
         try {
             boolean stop = false;
@@ -529,7 +524,19 @@ public class TransporteUtils {
             })));
 //            LOGGER.info(tickets);
             boolean first = true;
-            for (Ticket ticket : tickets) {
+            int origin=tickets.size();
+
+            Ticket ticketStart = tickets.stream().filter((t) -> t.getGeofenceId() == geofenceId).findFirst().orElse(null);
+
+            if(ticketStart != null){
+                int originIndexInList = tickets.indexOf(ticketStart);
+                if (originIndexInList != -1) {
+                    origin=originIndexInList;
+
+                }
+            }
+
+            for (Ticket ticket : tickets.subList(0, origin)) {
                 
                 if (ticket.getEnterTime() == null) {
                     List<Event> events = cacheManager.getStorage().getObjects(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
