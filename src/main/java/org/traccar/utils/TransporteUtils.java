@@ -300,21 +300,6 @@ public class TransporteUtils {
         return false;
     }
 
-    private static boolean isSalidaFinished(List<Ticket> tickets) {
-        int totalTickets = tickets.size();
-        int numTicketsWithEnterTime = 0;
-
-        for (Ticket ticket : tickets) {
-            if (ticket.getEnterTime() != null) {
-                numTicketsWithEnterTime++;
-            }
-        }
-
-        // Check if 70% of the tickets have enterTime or if the last ticket has enterTime
-        return (numTicketsWithEnterTime >= 0.7 * totalTickets)
-                && (totalTickets > 0 && tickets.get(totalTickets - 1).getEnterTime() != null);
-    }
-
     public static boolean hasSalida(long deviceId, Storage storage) {
         try {
             Salida salida = storage.getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
@@ -544,7 +529,7 @@ public class TransporteUtils {
                             add(new Condition.Equals("type", (tickets.indexOf(ticket) == 0 ? "geofenceExit" : "geofenceEnter")));
                             add(new Condition.Equals("deviceid", salida.getDeviceId()));
                             add(new Condition.Equals("geofenceid", ticket.getGeofenceId()));
-//                            add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(salida.getDate(), Calendar.MINUTE, -15), "to", GenericUtils.addTimeToDate(salida.getEndingDate(), Calendar.MINUTE, 10)));
+                            add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(salida.getDate(), Calendar.MINUTE, -15), "to", GenericUtils.addTimeToDate(salida.getEndingDate(), Calendar.MINUTE, 10)));
 //                            add(new Condition.Compare("eventtime", "<=", "time", GenericUtils.addTimeToDate(salida.getEndingDate(), Calendar.MINUTE, 10)));
                         }
                     })));
