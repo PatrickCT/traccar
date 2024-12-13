@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
+
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.traccar.config.Config;
 import org.traccar.config.Keys;
@@ -40,7 +41,6 @@ import org.traccar.storage.query.Request;
 import org.traccar.utils.GenericUtils;
 
 /**
- *
  * @author K
  */
 public class VueltasReportProvider {
@@ -60,7 +60,7 @@ public class VueltasReportProvider {
     private CacheManager cacheManager;
 
     public Collection<VueltaReportItem> getObjects(long userId, Collection<Long> deviceIds, Collection<Long> groupIds,
-            Date from, Date to) throws StorageException, ParseException {
+                                                   Date from, Date to) throws StorageException, ParseException {
         var server = reportUtils.getPermissionsService().getServer();
         var user = reportUtils.getPermissionsService().getUser(userId);
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -94,7 +94,7 @@ public class VueltasReportProvider {
                     if (itinerario.getHorasId() > 0) {
                         System.out.println("Itinerario con tabla de horas " + itinerario.getHorasId());
                         HoraSalida hora = storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerario.getHorasId())));
-                        horas.addAll(storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", hora.getName()))));
+                        horas.addAll(storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", hora.getGroup_uuid()))));
 
 //                        System.out.println("Tabla de horas \n\r " + horas);
 
@@ -174,8 +174,8 @@ public class VueltasReportProvider {
     }
 
     public void getExcel(OutputStream outputStream,
-            long userId, Collection<Long> deviceIds, Collection<Long> groupIds,
-            Date from, Date to, boolean unify) throws StorageException, IOException {
+                         long userId, Collection<Long> deviceIds, Collection<Long> groupIds,
+                         Date from, Date to, boolean unify) throws StorageException, IOException {
         reportUtils.checkPeriodLimit(from, to);
 
         ArrayList<VueltaReportItem> result = new ArrayList<>();
@@ -208,9 +208,9 @@ public class VueltasReportProvider {
                     if (itinerario.getHorasId() > 0) {
                         System.out.println("Itinerario con tabla de horas " + itinerario.getHorasId());
                         HoraSalida hora = storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerario.getHorasId())));
-                        horas.addAll(storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", hora.getName()))));
+                        horas.addAll(storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", hora.getGroup_uuid()))));
 
-//                        System.out.println("Tabla de horas \n\r " + horas);
+//                      System.out.println("Tabla de horas \n\r " + horas);
 
                         List<VueltaReportItem.VueltaDataItem> objs = new ArrayList<>();
 
@@ -252,7 +252,7 @@ public class VueltasReportProvider {
                                     obj.setSalida(0);
                                     obj.setDispositivo(0);
                                     obj.setAsignado(false);
-//                                    System.out.println("Ticket encontrado " + ticket);
+//                                  System.out.println("Ticket encontrado " + ticket);
 
                                     Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                                         {

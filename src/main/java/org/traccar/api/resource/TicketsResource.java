@@ -189,16 +189,15 @@ public class TicketsResource extends BaseObjectResource<Ticket> {
             })
             ));
             System.out.println(schedule);
-            List<HoraSalida> horas_ida = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule.getHorasId()))).getName())));
+            List<HoraSalida> horas_ida = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule.getHorasId()))).getGroup_uuid())));
             Itinerario schedule_rel = storage.getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("horasIdRel", schedule.getHorasId()));
                 }
             })
             ));
-            List<HoraSalida> horas_vuelta = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule_rel.getHorasId()))).getName())));
-            System.out.println(horas_ida);
-            System.out.println(horas_vuelta);
+            List<HoraSalida> horas_vuelta = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", schedule_rel.getHorasId()))).getGroup_uuid())));
+            
             //3 encontrar las geocercas de ese itinerario(tramos)
             List<Tramo> tramos_ida = cacheManager.getStorage().getObjects(Tramo.class, new Request(new Columns.All(), new Condition.Permission(Itinerario.class, schedule.getId(), Tramo.class)));
             List<Tramo> tramos_vuelta = cacheManager.getStorage().getObjects(Tramo.class, new Request(new Columns.All(), new Condition.Permission(Itinerario.class, schedule_rel.getId(), Tramo.class)));

@@ -4,13 +4,7 @@
  */
 package org.traccar.api.resource;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -26,15 +20,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.apache.poi.ss.formula.functions.T;
 import org.traccar.api.BaseObjectResource;
 import org.traccar.api.security.ServiceAccountUser;
 import org.traccar.helper.LogAction;
 import org.traccar.model.Group;
 import org.traccar.model.HoraSalida;
 import org.traccar.model.Permission;
-import org.traccar.model.Subroute;
-import org.traccar.model.Tramo;
 import org.traccar.model.User;
 import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
@@ -111,7 +102,7 @@ public class HorasSalidasResource extends BaseObjectResource<HoraSalida> {
             return Response.ok(entity).build();
         }
         permissionsService.checkEdit(getUserId(), entity, true);
-
+        entity.setGroup_uuid(UUID.randomUUID().toString());
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
         LogAction.create(getUserId(), entity);
 
@@ -144,7 +135,7 @@ public class HorasSalidasResource extends BaseObjectResource<HoraSalida> {
     @Path("delete/{name}")
     @DELETE
     public Response remover(@PathParam("name") String name) throws StorageException {
-        List<HoraSalida> horas = storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", name)));
+        List<HoraSalida> horas = storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", name)));
         for (HoraSalida hora : horas) {
             permissionsService.checkEdit(getUserId(), hora, false);
             storage.removeObject(baseClass, new Request(new Condition.Equals("id", hora.getId())));
@@ -166,7 +157,7 @@ public class HorasSalidasResource extends BaseObjectResource<HoraSalida> {
     public Collection<HoraSalida> getHoras(@PathParam("name") String name) throws StorageException {
         Collection<HoraSalida> result = new ArrayList<>();
 
-        result = storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", name)));
+        result = storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", name)));
 
         return removeDuplicates(result.stream().collect(Collectors.toList()));
     }

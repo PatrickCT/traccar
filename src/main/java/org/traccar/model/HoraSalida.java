@@ -16,6 +16,7 @@ public class HoraSalida extends BaseModel {
 
     private String name;
     private Date hour;
+    private String group_uuid;
 
     public String getName() {
         return name;
@@ -31,6 +32,14 @@ public class HoraSalida extends BaseModel {
 
     public void setHour(Date hour) {
         this.hour = hour;
+    }
+
+    public String getGroup_uuid() {
+        return group_uuid;
+    }
+
+    public void setGroup_uuid(String group_uuid) {
+        this.group_uuid = group_uuid;
     }
 
     @Override

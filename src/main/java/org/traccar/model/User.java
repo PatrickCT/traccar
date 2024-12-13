@@ -374,5 +374,11 @@ public class User extends ExtendedModel implements UserRestrictions, Disableable
 
     public void setPushId(String pushId) {
         this.pushId = pushId;
-    }        
+    }
+
+    private Date lastLogin;
+
+    public void setLastLogin(Date lastLogin){ this.lastLogin = lastLogin; }
+
+    public Date getLastLogin(){ return lastLogin; }
 }

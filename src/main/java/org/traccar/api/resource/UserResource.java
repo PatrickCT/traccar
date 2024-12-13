@@ -174,7 +174,7 @@ public class UserResource extends BaseObjectResource<User> {
     @Path("{id}/mails/{mail}")
     @DELETE
     public Collection<ExtraMail> removeUserMail(@PathParam("id") long id, @PathParam("id") String mail) throws StorageException {
-        storage.removeObject(ExtraMail.class, new Request(new Columns.All(), new Condition.And(new Condition.Equals("userId", id), new Condition.Equals("email", mail))));
+        storage.removeObject(ExtraMail.class, new Request(new Columns.All(), new Condition.And(new Condition.Equals("userid", getUserId()), new Condition.Equals("email", mail))));
         return storage.getObjects(ExtraMail.class, new Request(
                 new Columns.All(),
                 new Condition.Equals("userid", getUserId())
@@ -219,7 +219,7 @@ public class UserResource extends BaseObjectResource<User> {
     @Path("{id}/phones/{phone}")
     @DELETE
     public Collection<ExtraPhone> removeUserPhone(@PathParam("id") long id, @PathParam("id") String phone) throws StorageException {
-        storage.removeObject(ExtraPhone.class, new Request(new Columns.All(), new Condition.And(new Condition.Equals("userId", id), new Condition.Equals("phone", phone))));
+        storage.removeObject(ExtraPhone.class, new Request(new Columns.All(), new Condition.And(new Condition.Equals("userid", getUserId()), new Condition.Equals("phone", phone))));
         return storage.getObjects(ExtraPhone.class, new Request(
                 new Columns.All(),
                 new Condition.Equals("userid", getUserId())

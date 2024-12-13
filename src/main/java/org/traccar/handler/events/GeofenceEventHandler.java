@@ -169,7 +169,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
     }
 
     private void changeGroupGeofence(Device d, Long groupId) {
-//        cacheManager.getDevLog().log("Cambiando el grupo al dispositivo" + " " + d.getId() + " " + groupId);
+        cacheManager.getDevLog().log(String.format("Device {imei: %s, name: %s} changed group from %s to %s", d.getUniqueId(), d.getName(), d.getGroupId(), groupId));
         d.setGroupId(groupId);
 
         try {

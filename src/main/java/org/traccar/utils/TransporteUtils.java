@@ -105,7 +105,7 @@ public class TransporteUtils {
             }
 
             //si es de villas
-            if (group.hasAttribute("vp") && (boolean) group.getAttributes().get("vp") == true) {
+            if (group.hasAttribute("vp") && (boolean) group.getAttributes().get("vp")) {
                 logger.info("Villas");
 //                cacheManager.getDevLog().log("Villas");
                 //si es la primer salida del dia
@@ -115,7 +115,7 @@ public class TransporteUtils {
                 if (salidas_today.isEmpty()) {
                     logger.info("primer salida del dia");
                     itinerarioSelected = findClosestObject(todayItinerarios, new Date(), 1, cacheManager.getStorage(), true);
-                    List<HoraSalida> horas = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getHorasId()))).getName())));
+                    List<HoraSalida> horas = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getHorasId()))).getGroup_uuid())));
 
                     itinerarioSelected.getAttributes().put("horaFinal", horas.get(0).getHour());
                     logger.info("iti sel: " + itinerarioSelected);
@@ -142,7 +142,7 @@ public class TransporteUtils {
 
                         })));
                     }
-                    List<HoraSalida> horas = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getHorasId()))).getName())));
+                    List<HoraSalida> horas = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getHorasId()))).getGroup_uuid())));
                     if ((salidas_today.size() / 2) >= horas.size()) {
                         return;
                     }
@@ -150,7 +150,8 @@ public class TransporteUtils {
                     logger.info(itinerarioSelected.toString());
                 }
                 //si no
-            } else {
+            }
+            else {
                 itinerarioSelected = findClosestObject(todayItinerarios, new Date(), 3, cacheManager.getStorage(), false);
             }
             //si no es de villas
@@ -188,7 +189,7 @@ public class TransporteUtils {
 
             //crear nueva salida
             Date today = new Date();
-            if (group.hasAttribute("vp") && (boolean) group.getAttributes().get("vp") == true) {
+            if (group.hasAttribute("vp") && (boolean) group.getAttributes().get("vp")) {
                 Date hourDate = (Date) itinerarioSelected.getAttributes().get("horaFinal");
                 today.setHours(hourDate.getHours());
                 today.setMinutes(hourDate.getMinutes());
@@ -230,6 +231,13 @@ public class TransporteUtils {
                         if (tramo.getGeofenceId() == geofenceId) {
                             break;
                         }
+                    }
+                }
+
+                if(finalItinerarioSelected.getHorasId()>0){
+                    Date _start = findClosestHour(ticketStart, finalItinerarioSelected, cacheManager.getStorage());
+                    if(_start != null){
+                        ticketStart = _start;
                     }
                 }
 
@@ -362,7 +370,7 @@ public class TransporteUtils {
                 }
             })));
 
-            if (device_group != null && device_group.getAttributes().containsKey("vp") && (boolean) device_group.getAttributes().get("vp") == true) {
+            if (device_group != null && device_group.getAttributes().containsKey("vp") && (boolean) device_group.getAttributes().get("vp")) {
                 time = 120;
             }
 
@@ -690,7 +698,7 @@ public class TransporteUtils {
 
         for (Itinerario obj : filteredByHours) {
             if (obj.getHorasId() > 0) {
-                for (HoraSalida h : storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("name", storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", obj.getHorasId()))).getName())))) {
+                for (HoraSalida h : storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", obj.getHorasId()))).getGroup_uuid())))) {
                     h.getHour().setDate(new Date().getDate());
                     h.getHour().setYear(new Date().getYear());
                     h.getHour().setMonth(new Date().getMonth());
@@ -1076,6 +1084,27 @@ public class TransporteUtils {
             ex.printStackTrace();
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    static Date findClosestHour(Date base, Itinerario obj, Storage storage) throws StorageException {
+        long closestDifference = Long.MAX_VALUE;
+        Date closest = null;
+        for (HoraSalida h : storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", obj.getHorasId()))).getGroup_uuid())))) {
+            h.getHour().setDate(new Date().getDate());
+            h.getHour().setYear(new Date().getYear());
+            h.getHour().setMonth(new Date().getMonth());
+
+            LOGGER.info(h.toString());
+            long difference = Math.abs(base.getTime() - h.getHour().getTime());
+
+//                    if (difference <= rangeInMinutes * 60000 && difference < closestDifference) {
+            if (difference < closestDifference) {
+                closest = h.getHour();
+                closestDifference = difference;
+            }
+        }
+
+        return closest;
     }
 }
 
