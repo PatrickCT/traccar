@@ -23,6 +23,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
 import org.json.JSONObject;
 import org.traccar.api.BaseObjectResource;
 import org.traccar.model.Device;
@@ -41,22 +42,21 @@ import org.traccar.utils.GenericUtils;
 import org.traccar.utils.TransporteUtils;
 
 /**
- *
  * @author K
  */
 @Path("salidas")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class SalidasResource extends BaseObjectResource<Salida> {
-    
+
     public SalidasResource() {
         super(Salida.class);
     }
-    
+
     @GET
     public Collection<Salida> get(
             @QueryParam("all") boolean all, @QueryParam("finished") boolean finished) throws StorageException {
-        
+
         Collection<Salida> result = new ArrayList<>();
         List<Long> devices = storage.getPermissions(User.class, Device.class).stream().map((item) -> item.getPropertyId()).collect(Collectors.toList());
         devices.forEach(id -> {
@@ -67,11 +67,11 @@ public class SalidasResource extends BaseObjectResource<Salida> {
             }
         });
         return all ? result : result.stream().filter(item -> item.getFinished() == finished).collect(Collectors.toList());
-        
+
     }
-    
-    @POST
+
     @Path("{id}/adjustment")
+    @POST
     public Response ajuste(@PathParam("id") long salidaId, LinkedHashMap<String, Object> values) throws StorageException, ParseException {
         JSONObject response = new JSONObject("{}");
         response.put("status", true);
@@ -83,7 +83,7 @@ public class SalidasResource extends BaseObjectResource<Salida> {
         if (salida == null) {
             return Response.ok(response.toMap()).build();
         }
-        
+
         List<Ticket> tickets = storage.getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
             {
                 add(new Condition.Equals("salidaId", salida.getId()));
@@ -92,7 +92,7 @@ public class SalidasResource extends BaseObjectResource<Salida> {
         if (tickets.isEmpty()) {
             return Response.ok(response.toMap()).build();
         }
-        
+
         List<Permission> permisos = storage.getPermissions(Itinerario.class, Tramo.class).stream().filter((p) -> p.getOwnerId() == salida.getScheduleId()).collect(Collectors.toList());
         List<Tramo> tramos = new ArrayList<>();
         permisos.forEach((p) -> {
@@ -106,22 +106,29 @@ public class SalidasResource extends BaseObjectResource<Salida> {
                 Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
-        
+
         Date newDate = new Date(tickets.get(0).getExpectedTime().getTime());
-        
+
         Date parsedDate = GenericUtils.parseTime((String) values.get("time"));
         newDate.setHours(parsedDate.getHours());
         newDate.setMinutes(parsedDate.getMinutes());
-        
+
         long differenceInMillis = newDate.getTime() - tickets.get(0).getExpectedTime().getTime();
-        
+
         long minutesDifference = differenceInMillis / (1000 * 60);
-        
+
         for (int i = 0; i < tickets.size(); i++) {
             Ticket ticket = tickets.get(i);
-            
+
             ticket.setExpectedTime(GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.MINUTE, (int) minutesDifference));
-            
+            if (ticket.getEnterTime() != null) {
+                long newDifference = ticket.getEnterTime().getTime() - ticket.getExpectedTime().getTime();
+                long newMinutesDifference = newDifference / (1000 * 60);
+
+                ticket.setDifference(newMinutesDifference);
+                ticket.setPunishment((int) (tramos.stream().filter((t) -> t.getId() == ticket.getTramo()).findFirst().get().getPunishment() * newMinutesDifference));
+            }
+
             storage.updateObject(ticket, new Request(
                     new Columns.Exclude("id"),
                     new Condition.Equals("id", ticket.getId())));
@@ -132,11 +139,11 @@ public class SalidasResource extends BaseObjectResource<Salida> {
         salida.setModifiedBy((int) su.getId());
         salida.setModifiedWhen(new Date());
         storage.updateObject(salida, new Request(
-                    new Columns.Exclude("id"),
-                    new Condition.Equals("id", salida.getId())));
+                new Columns.Exclude("id"),
+                new Condition.Equals("id", salida.getId())));
         return Response.ok(response.toMap()).build();
     }
-    
+
     @POST
     @Path("crear")
     public Response crear(Salida entity) throws StorageException, ParseException {
@@ -146,7 +153,7 @@ public class SalidasResource extends BaseObjectResource<Salida> {
         TransporteUtils.generarSalida(entity.getDeviceId(), entity.getScheduleId(), entity.getDate(), storage);
         return Response.ok(entity).build();
     }
-    
+
     @GET
     @Path("report")
     public Response report() throws StorageException {
@@ -158,7 +165,7 @@ public class SalidasResource extends BaseObjectResource<Salida> {
                 + "deviceid in "
                 + GenericUtils.getIdsAsString(devices)
                 + " "));
-        
+
         return Response.ok(result).build();
     }
 }

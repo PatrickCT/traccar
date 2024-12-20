@@ -18,10 +18,7 @@ package org.traccar.api;
 
 import org.traccar.api.security.ServiceAccountUser;
 import org.traccar.helper.LogAction;
-import org.traccar.model.BaseModel;
-import org.traccar.model.Group;
-import org.traccar.model.Permission;
-import org.traccar.model.User;
+import org.traccar.model.*;
 import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.StorageException;
@@ -37,9 +34,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Response;
-import org.traccar.model.Device;
-import org.traccar.model.Subroute;
-import org.traccar.model.Tramo;
 
 public abstract class BaseObjectResource<T extends BaseModel> extends BaseResource {
 
@@ -72,6 +66,11 @@ public abstract class BaseObjectResource<T extends BaseModel> extends BaseResour
     @POST
     public Response add(T entity) throws StorageException {
         permissionsService.checkEdit(getUserId(), entity, true);
+        if(entity.getClass().equals(HoraSalida.class)){
+            if(((HoraSalida) entity).getName() == null){
+                return Response.ok(entity).build();
+            }
+        }
         if (entity.getClass().equals(Device.class)) {
             User user = storage.getObject(User.class, new Request(new Columns.All(), new Condition.Equals("id", getUserId())));
             if (user.getAdministrator() && user.getSupport()) {

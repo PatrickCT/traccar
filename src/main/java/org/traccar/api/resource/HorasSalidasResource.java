@@ -96,24 +96,28 @@ public class HorasSalidasResource extends BaseObjectResource<HoraSalida> {
         return removeDuplicates(result.stream().collect(Collectors.toList()));
     }
 
+    @Path("add")
     @POST
-    public Response add(HoraSalida entity) throws StorageException {
-        if (entity.getName() == null) {
-            return Response.ok(entity).build();
-        }
-        permissionsService.checkEdit(getUserId(), entity, true);
-        entity.setGroup_uuid(UUID.randomUUID().toString());
-        entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
-        LogAction.create(getUserId(), entity);
+    public Response add(List<HoraSalida> entities) throws StorageException {
+        String uuid = UUID.randomUUID().toString();
+        for (HoraSalida entity : entities) {
+            if (entity.getName() == null) {
+                continue;
+            }
+            permissionsService.checkEdit(getUserId(), entity, true);
+            entity.setGroup_uuid(uuid);
+            entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
+            LogAction.create(getUserId(), entity);
 
-        if (getUserId() != ServiceAccountUser.ID) {
-            storage.addPermission(new Permission(User.class, getUserId(), baseClass, entity.getId()));
-            cacheManager.invalidatePermission(true, User.class, getUserId(), baseClass, entity.getId());
-            connectionManager.invalidatePermission(true, User.class, getUserId(), baseClass, entity.getId());
-            LogAction.link(getUserId(), User.class, getUserId(), baseClass, entity.getId());
+            if (getUserId() != ServiceAccountUser.ID) {
+                storage.addPermission(new Permission(User.class, getUserId(), baseClass, entity.getId()));
+                cacheManager.invalidatePermission(true, User.class, getUserId(), baseClass, entity.getId());
+                connectionManager.invalidatePermission(true, User.class, getUserId(), baseClass, entity.getId());
+                LogAction.link(getUserId(), User.class, getUserId(), baseClass, entity.getId());
+            }
         }
 
-        return Response.ok(entity).build();
+        return Response.ok(entities).build();
     }
 
     @Path("{id}")
@@ -144,12 +148,6 @@ public class HorasSalidasResource extends BaseObjectResource<HoraSalida> {
         }
 
         return Response.noContent().build();
-    }
-
-    @POST
-    @Path("empty")
-    public Response empty(HoraSalida entity) throws StorageException {
-        return Response.ok().build();
     }
 
     @GET

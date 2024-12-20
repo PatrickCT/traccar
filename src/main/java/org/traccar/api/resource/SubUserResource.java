@@ -12,13 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.json.JSONObject;
@@ -58,14 +52,18 @@ public class SubUserResource extends BaseObjectResource<SubUser> {
 
     @GET
     public Collection<SubUser> get() throws StorageException {
+        return storage.getObjectsByQuery(SubUser.class, "select * from tc_subusers where user = " + getUserId());
+    }
 
-        List<SubUser> subusers = storage.getObjectsByQuery(SubUser.class, "select * from tc_subusers where user = " + getUserId());                
-        return subusers;
+    @Path("get/{user}")
+    @GET
+    public Collection<SubUser> list(@PathParam("user") Long user) throws StorageException {
+        System.out.println("user "+user);
+        return storage.getObjectsByQuery(SubUser.class, "select * from tc_subusers where user = " + user);
     }
     
     @POST
     public Response add(SubUser entity) throws StorageException {
-        entity.setUser((int)getUserId());
         entity.setId(storage.addObject(entity, new Request(new Columns.Exclude("id"))));
         LogAction.create(getUserId(), entity);
         return Response.ok(entity).build();
