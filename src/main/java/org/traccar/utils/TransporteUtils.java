@@ -997,6 +997,31 @@ public class TransporteUtils {
         }
     }
 
+    public static void finishOldSalidas(long geofenceId, long deviceId, CacheManager cacheManager){
+        try {
+            ProccessLogger logger = new ProccessLogger(LOGGER);
+            List<Itinerario> itinerarios = cacheManager.getStorage().getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofenceId", geofenceId)));
+            if (itinerarios.isEmpty()) {
+               return;
+            }
+            Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                {
+                    add(new Condition.Equals("finished", false));
+                    add(new Condition.Equals("deviceId", deviceId));
+                }
+            })));
+            if(salida == null){
+                return;
+            }
+            salida.setFinished(true);
+            cacheManager.getStorage().updateObject(salida, new Request(
+                    new Columns.Exclude("id"),
+                    new Condition.Equals("id", salida.getId())));
+            logger.info("Anulando salida: " + salida);
+        } catch (StorageException e) {
+        }
+    }
+
     public static void generarSalida(long deviceId, long itinerario, Date start, Storage storage) throws ParseException {
         try {
 

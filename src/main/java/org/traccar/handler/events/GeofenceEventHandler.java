@@ -94,6 +94,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
                     CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
                         try {
                             TransporteUtils.cleanSalidas(geofenceId, position.getDeviceId(), cacheManager);
+                            TransporteUtils.finishOldSalidas(geofenceId, position.getDeviceId(), cacheManager);
                             if (!TransporteUtils.hasSalida(position.getDeviceId(), cacheManager, geofenceId)) {
 //                                cacheManager.getDevLog().log("Se generara la salida");
                                 TransporteUtils.generarSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager);
