@@ -16,13 +16,24 @@
  */
 package org.traccar.api.resource;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
+import org.apache.poi.ss.formula.functions.T;
+import org.json.JSONObject;
 import org.traccar.api.ExtendedObjectResource;
-import org.traccar.model.Maintenance;
+import org.traccar.model.*;
+import org.traccar.storage.StorageException;
+import org.traccar.storage.query.Columns;
+import org.traccar.storage.query.Condition;
+import org.traccar.storage.query.Request;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Path("maintenance")
 @Produces(MediaType.APPLICATION_JSON)
@@ -33,4 +44,24 @@ public class MaintenanceResource extends ExtendedObjectResource<Maintenance> {
         super(Maintenance.class);
     }
 
+    @Path("{id}")
+    @GET
+    public Response getSingle(@PathParam("id") long id) throws StorageException {
+        Maintenance entity = storage.getObject(Maintenance.class, new Request(
+                new Columns.All(), new Condition.Equals("id", id)));
+        if (entity != null) {
+            JSONObject obj = new JSONObject();
+            obj.put("id", entity.getId());
+            obj.put("attributes", entity.getAttributes());
+            obj.put("name", entity.getName());
+            obj.put("period", entity.getPeriod());
+            obj.put("start", entity.getStart());
+            obj.put("type", entity.getType());
+            List<Permission> p =storage.getPermissions(Device.class, Maintenance.class).stream().filter(m -> m.getPropertyId() == entity.getId()).collect(Collectors.toList());
+            obj.put("device", (p.isEmpty()?null:storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", p.get(0).getOwnerId())))));
+            return Response.ok(obj.toString()).build();
+        } else {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        }
+    }
 }

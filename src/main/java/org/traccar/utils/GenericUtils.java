@@ -17,13 +17,9 @@ import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
@@ -433,6 +429,32 @@ public class GenericUtils {
         }
 
         return dates;
+    }
+
+    public static Map<TimeUnit,Long> computeDiff(Date date1, Date date2) {
+
+        long diffInMillies = date2.getTime() - date1.getTime();
+
+        //create the list
+        List<TimeUnit> units = new ArrayList<TimeUnit>(EnumSet.allOf(TimeUnit.class));
+        Collections.reverse(units);
+
+        //create the result map of TimeUnit and difference
+        Map<TimeUnit,Long> result = new LinkedHashMap<TimeUnit,Long>();
+        long milliesRest = diffInMillies;
+
+        for ( TimeUnit unit : units ) {
+
+            //calculate difference in millisecond
+            long diff = unit.convert(milliesRest,TimeUnit.MILLISECONDS);
+            long diffInMilliesForUnit = unit.toMillis(diff);
+            milliesRest = milliesRest - diffInMilliesForUnit;
+
+            //put the result in the map
+            result.put(unit,diff);
+        }
+
+        return result;
     }
 
     public static String getLocalIP() {

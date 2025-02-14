@@ -82,6 +82,7 @@ public final class ExternalUtils {
             JSONObject obj = new JSONObject();
             Device device = cacheManager.getObject(Device.class, position.getDeviceId()); // Context.getDeviceManager().getById(position.getDeviceId());
             LOGGER.info(device.toString());
+
             obj.put("imei_no", device.getUniqueId());
             obj.put("lattitude", String.valueOf(position.getLatitude()));
             obj.put("longitude", String.valueOf(position.getLongitude()));
@@ -111,6 +112,67 @@ public final class ExternalUtils {
             return "";
         }
     }
+
+
+    public static String sitrackSendReport(Position position, org.traccar.model.Event event, CacheManager cacheManager) {
+        try {
+            Map<String, Integer> reportTypes = new HashMap<String, Integer>(){{
+                put(org.traccar.model.Event.TYPE_DEVICE_MOVING,890);
+                put(org.traccar.model.Event.TYPE_ALARM_OVERSPEED,486);
+                put(org.traccar.model.Event.TYPE_DEVICE_OVERSPEED,486);
+                put(org.traccar.model.Event.TYPE_MAINTENANCE,531);
+            }};
+
+            if(!reportTypes.containsKey(event.getType())) return "";
+
+            LOGGER.info("Sitrack report proccess");
+            WebService ws = cacheManager.getStorage().getObject(WebService.class,
+                    new Request(new Columns.All(), new Condition.Equals("tableName", "tc_sitrack")));
+            LOGGER.info(ws.toString());
+            JSONObject obj = new JSONObject();
+            Device device = cacheManager.getObject(Device.class, position.getDeviceId()); // Context.getDeviceManager().getById(position.getDeviceId());
+            LOGGER.info(device.toString());
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            // Get the current date-time with timezone
+            ZonedDateTime now = ZonedDateTime.now();
+
+            // Define the ISO 8601 formatter with timezone
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
+
+            // Format the date
+            String formattedDate = now.format(formatter);
+
+
+
+            obj.put("loginCode",device.getCarPlate());
+            obj.put("reportDate", formattedDate);
+            obj.put("reportTYpe",String.valueOf(0));
+            obj.put("latitude", position.getLatitude());
+            obj.put("longitude", position.getLongitude());
+            obj.put("gpsDop", position.getAccuracy());
+            obj.put("angle", String.valueOf(position.getCourse()));
+            obj.put("speed", String.valueOf(position.getSpeed() * 1.852));
+            obj.put("altitude", position.getAltitude());
+
+            LOGGER.info("Sitrack report obj:");
+            LOGGER.info(obj.toString());                                                         // siempre la letra A
+
+            String token = SitrackAuthGenerator.createAuthorization("gpstracker", "1234567890");
+            System.out.println(token);
+            String result = GeneralUtils.genericPOST("https://test-externalrgw.sitrack.com.mx/frame", obj.toString(), new HashMap<>(){{
+                put("Authorization", token);
+            }}, 5);
+            LOGGER.info(obj.toString());
+            return result;
+        } catch (IOException | JSONException | StorageException e) {
+            LOGGER.info("Sitrack proccess error");
+            LOGGER.info(e.getMessage());
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+
 
     public static String recursoConfiable(Position position, CacheManager cacheManager) {
         try {

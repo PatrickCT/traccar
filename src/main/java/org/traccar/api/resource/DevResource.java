@@ -32,6 +32,7 @@ import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
+import org.traccar.utils.ExternalUtils;
 import org.traccar.utils.GenericUtils;
 
 /**
@@ -83,6 +84,15 @@ public class DevResource extends BaseResource{
             Logger.getLogger(WSResource.class.getName()).log(Level.SEVERE, null, ex);
         }        
         return Response.ok().build();
-    }    
+    }
 
+    @Path("sitracktest/{device}")
+    @PermitAll
+    @GET
+    public String stracktest(@PathParam("device") long id){
+        Position position = cacheManager.getPosition(id);
+        Event event = new Event();
+        event.setType(Event.TYPE_DEVICE_MOVING);
+        return ExternalUtils.sitrackSendReport(position, event, cacheManager);
+    }
 }

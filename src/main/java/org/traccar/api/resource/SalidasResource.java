@@ -5,6 +5,7 @@
 package org.traccar.api.resource;
 
 import java.text.ParseException;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -110,8 +111,13 @@ public class SalidasResource extends BaseObjectResource<Salida> {
         Date newDate = new Date(tickets.get(0).getExpectedTime().getTime());
 
         Date parsedDate = GenericUtils.parseTime((String) values.get("time"));
+        Logger.getLogger(TransporteUtils.class.getName()).log(Level.INFO, "Adjusting hour of salida "+salidaId+" to time "+parsedDate);
+        Logger.getLogger(TransporteUtils.class.getName()).log(Level.INFO, "OG date "+newDate+" Parsed "+parsedDate);
+
         newDate.setHours(parsedDate.getHours());
         newDate.setMinutes(parsedDate.getMinutes());
+
+        Logger.getLogger(TransporteUtils.class.getName()).log(Level.INFO, "OG date after set"+newDate);
 
         long differenceInMillis = newDate.getTime() - tickets.get(0).getExpectedTime().getTime();
 

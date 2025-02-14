@@ -16,9 +16,11 @@
  */
 package org.traccar.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.traccar.storage.StorageName;
 
 @StorageName("tc_maintenances")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Maintenance extends ExtendedModel {
 
     private String name;
