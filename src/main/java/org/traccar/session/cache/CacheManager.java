@@ -497,13 +497,17 @@ public class CacheManager implements BroadcastInterface {
     private void unsafeRemoveDevice(long deviceId) {
         deviceCache.remove(new CacheKey(Device.class,
                 deviceId));
-        deviceLinks.remove(deviceId).forEach((clazz, ids) -> ids.forEach(id -> {
-            var key = new CacheKey(clazz, id);
-            deviceCache.computeIfPresent(key, (k, value) -> {
-                value.release(deviceId);
-                return value.getReferences().size() > 0 ? value : null;
-            });
-        }));
+        var links = deviceLinks.remove(deviceId);
+        if(links != null){
+            links.forEach((clazz, ids) -> ids.forEach(id -> {
+                var key = new CacheKey(clazz, id);
+                deviceCache.computeIfPresent(key, (k, value) -> {
+                    value.release(deviceId);
+                    return value.getReferences().size() > 0 ? value : null;
+                });
+            }));
+        }
+
         devicePositions.remove(deviceId);
     }
 
