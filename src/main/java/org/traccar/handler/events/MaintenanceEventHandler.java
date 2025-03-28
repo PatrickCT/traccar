@@ -68,13 +68,13 @@ public class MaintenanceEventHandler extends BaseEventHandler {
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.forLanguageTag("es-MX"));
                     LocalDate localDate = LocalDate.parse(maintenance.getAttributes().getOrDefault("last", sdf.format(new Date())).toString(), formatter);
 
-                    int each = (int)maintenance.getPeriod();
+                    int each = (int) maintenance.getPeriod();
                     each *= 30;
-                    Map<TimeUnit, Long> diff = GenericUtils.computeDiff( Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant()), new Date());
+                    Map<TimeUnit, Long> diff = GenericUtils.computeDiff(Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant()), new Date());
 
                     var diff_days = diff.get(TimeUnit.DAYS);//if negative, localdate is in the future
 
-                    if(diff_days >= each){
+                    if (diff_days >= each) {
                         maintenance.getAttributes().put("last", sdf.format(new Date()));
                         try {
                             cacheManager.getStorage().updateObject(maintenance, new Request(
@@ -89,14 +89,34 @@ public class MaintenanceEventHandler extends BaseEventHandler {
                         events.put(event, position);
                     }
 
-                } else {
+                } else if (maintenance.getType().equals("hours")) {
                     double oldValue = lastPosition.getDouble(maintenance.getType());
                     double newValue = position.getDouble(maintenance.getType());
+
+                    oldValue = oldValue / 3600000;
+                    newValue = newValue / 3600000;
 
                     if (oldValue != 0.0 && newValue != 0.0 && newValue >= maintenance.getStart()) {
                         if (oldValue < maintenance.getStart()
                                 || (long) ((oldValue - maintenance.getStart()) / maintenance.getPeriod())
                                 < (long) ((newValue - maintenance.getStart()) / maintenance.getPeriod())) {
+                            Event event = new Event(Event.TYPE_MAINTENANCE, position);
+                            event.setMaintenanceId(maintenance.getId());
+                            event.set(maintenance.getType(), newValue);
+                            events.put(event, position);
+                        }
+                    }
+                } else {
+                    double oldValue = lastPosition.getDouble(maintenance.getType());
+                    double newValue = position.getDouble(maintenance.getType());
+
+                    oldValue = oldValue * 0.001;
+                    newValue = newValue * 0.001;
+
+                    if (oldValue != 0.0 && newValue != 0.0 && newValue >= (maintenance.getStart() / 100)) {
+                        if (oldValue < maintenance.getStart()
+                                || (long) ((oldValue - (maintenance.getStart() / 100)) / maintenance.getPeriod())
+                                < (long) ((newValue - (maintenance.getStart() / 100)) / maintenance.getPeriod())) {
                             Event event = new Event(Event.TYPE_MAINTENANCE, position);
                             event.setMaintenanceId(maintenance.getId());
                             event.set(maintenance.getType(), newValue);

@@ -16,9 +16,11 @@
 package org.traccar.storage;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+
 import org.traccar.config.Config;
 import org.traccar.model.BaseModel;
 import org.traccar.model.Device;
@@ -113,6 +115,8 @@ public class DatabaseStorage extends Storage {
         query.append(" SET ");
         query.append(formatColumns(columns, c -> c + " = :" + c));
         query.append(formatCondition(request.getCondition()));
+
+
         try {
             QueryBuilder builder = QueryBuilder.create(config, dataSource, objectMapper, query.toString());
             builder.setObject(entity, columns);
@@ -120,6 +124,10 @@ public class DatabaseStorage extends Storage {
                 builder.setValue(variable.getKey(), variable.getValue());
             }
             builder.executeUpdate();
+//            if (entity.getClass().equals(Device.class) && ((Device) entity).getId() == 7110) {
+//                System.out.println(query.toString());
+//                System.out.println("update device " + ((Device) entity).getId() + " position id " + ((Device) entity).getPositionId());
+//            }
         } catch (SQLException e) {
             throw new StorageException(e);
         }
@@ -428,13 +436,13 @@ public class DatabaseStorage extends Storage {
     public <T> List<T> getObjectsByQuery(Class<T> clazz, String queryString) throws StorageException {
         StringBuilder query = new StringBuilder(queryString);
         try {
-            QueryBuilder builder = QueryBuilder.create(config, dataSource, objectMapper, query.toString());            
+            QueryBuilder builder = QueryBuilder.create(config, dataSource, objectMapper, query.toString());
             return builder.executeQuery(clazz);
         } catch (SQLException e) {
             throw new StorageException(e);
         }
     }
-    
+
     @Override
     public void executeQuery(String query) throws StorageException {
         try {
@@ -444,17 +452,17 @@ public class DatabaseStorage extends Storage {
             throw new StorageException(e);
         }
     }
-    
+
     @Override
     public boolean checkTable(String table) {
         int counter = 0;
         try (Connection con = dataSource.getConnection();
-                PreparedStatement pst = con.prepareStatement(""
-                        + String.format("SELECT COUNT(*) AS counter  "
-                                + "FROM information_schema.tables  "
-                                + "WHERE table_schema = DATABASE() "
-                                + "AND TABLE_NAME = '%s';", table));
-                ResultSet rs = pst.executeQuery();) {
+             PreparedStatement pst = con.prepareStatement(""
+                     + String.format("SELECT COUNT(*) AS counter  "
+                     + "FROM information_schema.tables  "
+                     + "WHERE table_schema = DATABASE() "
+                     + "AND TABLE_NAME = '%s';", table));
+             ResultSet rs = pst.executeQuery();) {
             while (rs.next()) {
                 counter = rs.getInt("counter");
             }
@@ -466,16 +474,16 @@ public class DatabaseStorage extends Storage {
         }
         return false;
     }
-    
+
     @Override
     public List<String> getImeisWS(String table) {
         List<String> imeis = new ArrayList();
         try (Connection con = dataSource.getConnection();
-                PreparedStatement pst = con.prepareStatement(""
-                        + String.format("SELECT imei AS imei "
-                                + "FROM %s "
-                                , table));
-                ResultSet rs = pst.executeQuery();) {
+             PreparedStatement pst = con.prepareStatement(""
+                     + String.format("SELECT imei AS imei "
+                             + "FROM %s "
+                     , table));
+             ResultSet rs = pst.executeQuery();) {
             while (rs.next()) {
                 imeis.add(String.valueOf(rs.getObject("imei")));
             }
@@ -483,7 +491,7 @@ public class DatabaseStorage extends Storage {
             Logger.getLogger(DatabaseStorage.class.getName()).log(Level.SEVERE, null, ex);
         }
         return imeis;
-    }    
+    }
 
     @Override
     public boolean checkWSTable(String imei, String table) {
@@ -495,10 +503,10 @@ public class DatabaseStorage extends Storage {
         }
 
         try (Connection con = dataSource.getConnection();
-                PreparedStatement pst = con.prepareStatement("SELECT count(*) as counter "
-                        + "FROM " + table + " "
-                        + "WHERE imei like '%" + imei + "%'");
-                ResultSet rs = pst.executeQuery();) {
+             PreparedStatement pst = con.prepareStatement("SELECT count(*) as counter "
+                     + "FROM " + table + " "
+                     + "WHERE imei like '%" + imei + "%'");
+             ResultSet rs = pst.executeQuery();) {
 
             while (rs.next()) {
                 counter = rs.getInt("counter");

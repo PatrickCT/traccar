@@ -85,18 +85,36 @@ public class MainEventHandler extends ChannelInboundHandlerAdapter {
             Device device = cacheManager.getObject(Device.class, position.getDeviceId());
 
             try {
+                // temporal fix, force tc_devices to always have as positionid the last position received
+//                device.setId(position.getDeviceId());
+//                device.setPositionId(position.getId());
+//                storage.updateObject(device, new Request(
+//                        new Columns.Include("positionId"),
+//                        new Condition.Equals("id", device.getId())));
+//
+//                cacheManager.updatePosition(position);
+//                connectionManager.updatePosition(true, position);
+
+                LOGGER.info("analizing position of device " + device.getId());
+                LOGGER.info("[{}] position {} at {}", device.getId(), position.getId(), position.getFixTime());
+
                 if (PositionUtil.isLatest(cacheManager, position)) {
-                    Device updatedDevice = new Device();
-                    updatedDevice.setId(position.getDeviceId());
-                    updatedDevice.setPositionId(position.getId());
-                    storage.updateObject(updatedDevice, new Request(
-                            new Columns.Include("positionId"),
-                            new Condition.Equals("id", updatedDevice.getId())));
+                    //Device updatedDevice = new Device();
+//                    updatedDevice.setId(position.getDeviceId());
+//                    updatedDevice.setPositionId(position.getId());
+                    device.setId(position.getDeviceId());
+                    device.setPositionId(position.getId());
+//                    storage.updateObject(device, new Request(
+//                            new Columns.Exclude("id"),
+//                            new Condition.Equals("id", device.getId())));
 
                     cacheManager.updatePosition(position);
                     connectionManager.updatePosition(true, position);
+                    LOGGER.info("[" + device.getId() + "] new positionId ");
+                } else {
+                    LOGGER.info("[" + device.getId() + "] position is not the last");
                 }
-            } catch (StorageException error) {
+            } catch (Exception error) {
                 LOGGER.warn("Failed to update device", error);
             }
 

@@ -15,6 +15,8 @@
  */
 package org.traccar.helper.model;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.traccar.model.BaseModel;
 import org.traccar.model.Device;
 import org.traccar.model.Position;
@@ -32,12 +34,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public final class PositionUtil {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Position.class);
 
     private PositionUtil() {
     }
 
     public static boolean isLatest(CacheManager cacheManager, Position position) {
         Position lastPosition = cacheManager.getPosition(position.getDeviceId());
+        LOGGER.info("comparing positions last {} against  new {}", lastPosition.getFixTime(), position.getFixTime() );
         return lastPosition == null || position.getFixTime().compareTo(lastPosition.getFixTime()) >= 0;
     }
 

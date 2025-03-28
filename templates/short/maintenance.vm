@@ -1,2 +1,6 @@
 #set($subject = "$device.name: maintenance is required")
-ALERTA DEL SISTEMA DE RASTREO\nEquipo: $device.name \nAlerta: *Mantenimiento $maintenance.name requerido*\n Fecha y Hora: $dateTool.format("YYYY-MM-dd HH:mm:ss", $event.eventTime, $locale, $timezone)\nhttps://www.google.com/maps/search/$position.latitude,$position.longitude
+#if($maintenance.type == "date")
+	#set($extra = $position.attributes.totalDistance/1000)
+#elseif($maintenance.type == "totalDistance")
+	#set($extra = $dateTool.format("YYYY-MM-dd HH:mm:ss", $position.deviceTime, $locale, $timezone))
+ALERTA DEL SISTEMA DE RASTREO\nEquipo: $device.name \nAlerta: *Mantenimiento $maintenance.name requerido* \n$extra\n Fecha y Hora: $dateTool.format("YYYY-MM-dd HH:mm:ss", $event.eventTime, $locale, $timezone) \nhttps://www.google.com/maps/search/$position.latitude,$position.longitude

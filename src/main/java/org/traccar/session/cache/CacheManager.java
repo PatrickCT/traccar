@@ -390,18 +390,6 @@ public class CacheManager implements BroadcastInterface {
 
     }
 
-    public void invalidateCalculationDevices() {
-        try {
-            recalculateDevices();
-        } catch (StorageException ex) {
-            java.util.logging.Logger.getLogger(CacheManager.class
-                    .getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
-            java.util.logging.Logger.getLogger(CacheManager.class
-                    .getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-
     private void addObject(long deviceId, BaseModel object) {
         deviceCache.computeIfAbsent(new CacheKey(object), k -> new CacheValue(object)).retain(deviceId);
     }
@@ -561,15 +549,7 @@ public class CacheManager implements BroadcastInterface {
     }
 
     public int getDevicesPerUser(long userId) {
-        return devicesPerUser.containsKey(userId) ? devicesPerUser.get(userId) : 0;
-    }
-
-    public boolean isCalculating() {
-        return calculating;
-    }
-
-    public void setCalculating(boolean calculating) {
-        this.calculating = calculating;
+        return devicesPerUser.getOrDefault(userId, 0);
     }
 
     public void setDevicesPerUser(long userid, int v) {

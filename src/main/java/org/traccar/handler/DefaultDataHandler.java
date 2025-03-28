@@ -19,9 +19,11 @@ import io.netty.channel.ChannelHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.traccar.BaseDataHandler;
+import org.traccar.model.Device;
 import org.traccar.model.Position;
 import org.traccar.storage.Storage;
 import org.traccar.storage.query.Columns;
+import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
 
 import javax.inject.Inject;
@@ -43,7 +45,20 @@ public class DefaultDataHandler extends BaseDataHandler {
     @Override
     protected Position handlePosition(Position position) {
         try {
-            position.setId(storage.addObject(position, new Request(new Columns.Exclude("id"))));            
+            position.setId(storage.addObject(position, new Request(new Columns.Exclude("id"))));
+            Device device = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", position.getDeviceId())));
+
+            device.setId(position.getDeviceId());
+            device.setPositionId(position.getId());
+//            if (device.getId() == 7110) {
+//                System.out.println("update device on defaulthandler");
+//                System.out.println(device);
+//                System.out.println(position);
+//            }
+            storage.updateObject(device, new Request(
+                    new Columns.Include("positionId"),
+                    new Condition.Equals("id", device.getId())));
+
         } catch (Exception error) {
             LOGGER.warn("Failed to store position", error);
         }

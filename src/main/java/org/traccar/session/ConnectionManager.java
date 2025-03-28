@@ -59,6 +59,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+
 import org.traccar.model.WebService;
 import org.traccar.utils.ExternalUtils;
 
@@ -219,17 +220,21 @@ public class ConnectionManager implements BroadcastInterface {
     }
 
     public void updateDevice(long deviceId, String status, Date time) {
-        Device device = cacheManager.getObject(Device.class, deviceId);
+//        Device device = cacheManager.getObject(Device.class, deviceId);
+        Device device = null;
+        try {
+            device = storage.getObject(Device.class, new Request(new Columns.All(), new Condition.Equals("id", deviceId)));
+//            if (deviceId == 7110) {
+//                System.out.println("from db");
+//            }
+        } catch (StorageException e) {
+
+        }
         if (device == null) {
-            try {
-                device = storage.getObject(Device.class, new Request(
-                        new Columns.All(), new Condition.Equals("id", deviceId)));
-            } catch (StorageException e) {
-                LOGGER.warn("Failed to get device", e);
-            }
-            if (device == null) {
-                return;
-            }
+//            if (deviceId == 7110) {
+//                System.out.println("from cache");
+//            }
+            device = cacheManager.getObject(Device.class, deviceId);
         }
 
         String oldStatus = device.getStatus();
@@ -271,6 +276,10 @@ public class ConnectionManager implements BroadcastInterface {
         }
 
         try {
+//            if(deviceId == 7110){
+//                System.out.println("update device from connection");
+//                System.out.println(device);
+//            }
             storage.updateObject(device, new Request(
                     new Columns.Include("status", "lastUpdate"),
                     new Condition.Equals("id", deviceId)));

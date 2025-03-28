@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -514,5 +515,20 @@ public class GenericUtils {
         }
 
         return sb.toString();
+    }
+
+    public static <T> List<T> removeDuplicates(List<T> list, Function<T, Object> keyExtractor) {
+        HashSet<Object> uniqueIds = new HashSet<>();
+        ArrayList<T> filteredList = new ArrayList<>();
+
+        for (T obj : list) {
+            Object key = keyExtractor.apply(obj);
+            if (!uniqueIds.contains(key)) {
+                uniqueIds.add(key);
+                filteredList.add(obj);
+            }
+        }
+
+        return filteredList;
     }
 }

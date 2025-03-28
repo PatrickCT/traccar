@@ -19,10 +19,7 @@ import org.traccar.api.BaseObjectResource;
 import org.traccar.broadcast.BroadcastService;
 import org.traccar.database.MediaManager;
 import org.traccar.helper.LogAction;
-import org.traccar.model.Device;
-import org.traccar.model.DeviceAccumulators;
-import org.traccar.model.Position;
-import org.traccar.model.User;
+import org.traccar.model.*;
 import org.traccar.session.ConnectionManager;
 import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.StorageException;
@@ -30,6 +27,7 @@ import org.traccar.storage.query.Columns;
 import org.traccar.storage.query.Condition;
 import org.traccar.storage.query.Request;
 
+import javax.annotation.security.PermitAll;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -47,19 +45,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.json.JSONObject;
-import org.traccar.model.Driver;
-import org.traccar.model.Salida;
-import org.traccar.model.Subroute;
-import org.traccar.model.Ticket;
+import org.traccar.utils.GeneralUtils;
+import org.traccar.utils.GenericUtils;
 
 @Path("devices")
 @Produces(MediaType.APPLICATION_JSON)
@@ -292,5 +284,62 @@ public class DeviceResource extends BaseObjectResource<Device> {
             Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
         }
         return new ArrayList<>();
+    }
+
+    @PermitAll
+    @Path("reporte")
+    @GET
+    @Produces("application/json")
+    public Response reporte() throws SQLException, StorageException {
+        JSONObject obj = new JSONObject();
+        List<Device> todos = storage.getObjectsByQuery(Device.class, "select * from tc_devices");
+        //List<Device> todosCopy = new ArrayList<>(todos);
+        List<Device> principalesDirectos = storage.getObjectsByQuery(Device.class, String.format(""
+                + "SELECT d.*, u.name as userName \n"
+                + "\n"
+                + "FROM tc_users u \n"
+                + "INNER JOIN tc_user_device ud ON ud.userid = u.id\n"
+                + "INNER JOIN tc_devices d ON d.id = ud.deviceid\n"
+                + "\n"
+                + "WHERE u.main"
+        ));
+        List<Device> principalesGrupos = storage.getObjectsByQuery(Device.class,String.format(""
+                + "SELECT d.*, u.name as userName \n"
+                + "FROM tc_users u \n"
+                + "INNER JOIN tc_user_group ug ON ug.userid = u.id\n"
+                + "INNER JOIN tc_devices d ON d.groupid=ug.groupid\n"
+                + "INNER JOIN tc_groups g ON g.id=ug.groupid\n"
+                + "WHERE u.main"
+        ));
+        List<Device> principales = new ArrayList<>();
+        List<Device> duplicados = new ArrayList<>();
+        List<Device> duplicadosOriginal = new ArrayList<>();
+
+        duplicadosOriginal.addAll(principalesDirectos);
+        duplicadosOriginal.addAll(principalesGrupos);
+        principales.addAll(principalesDirectos);
+        for (Device d : principalesGrupos) {
+            if (principales.stream().filter(o -> o.getId() == d.getId()).findFirst().orElse(null) == null) {
+                principales.add(d);
+            }
+        }
+
+        Map<Long, Integer> idCountMap = new HashMap<>();
+        for (Device device : duplicadosOriginal) {
+            idCountMap.put(device.getId(), idCountMap.getOrDefault(device.getId(), 0) + 1);
+        }
+
+        for (Device device : duplicadosOriginal) {
+            if (idCountMap.get(device.getId()) > 1) {
+                duplicados.add(device);
+            }
+        }
+
+        obj.put("todos", todos);
+        obj.put("principales", GenericUtils.removeDuplicates(principales, Device::getUniqueId));
+        obj.put("duplicados", duplicados);
+//        obj.put("faltantes", todosCopy);
+
+        return Response.ok().entity(obj.toMap()).build();
     }
 }
