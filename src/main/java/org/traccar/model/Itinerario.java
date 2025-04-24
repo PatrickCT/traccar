@@ -19,6 +19,7 @@ public class Itinerario extends ExtendedModel {
     private long horasId;
     private long geofenceId;
     private long horasIdRel;
+    private boolean forceCreateOnEnter;
 
     public String getName() {
         return name;
@@ -66,12 +67,18 @@ public class Itinerario extends ExtendedModel {
 
     public void setHorasIdRel(long horasIdRel) {
         this.horasIdRel = horasIdRel;
-    }        
+    }    
+
+    public boolean getForceCreateOnEnter() {
+        return forceCreateOnEnter;
+    }
+
+    public void setForceCreateOnEnter(boolean forceCreateOnEnter) {
+        this.forceCreateOnEnter = forceCreateOnEnter;
+    }   
 
     @Override
     public String toString() {
         return "Itinerario{" + "name=" + name + ", days=" + days + ", subrouteId=" + subrouteId + ", horasId=" + horasId + ", geofenceId=" + geofenceId + ", attributes=" + getAttributes() + '}';
-    }
-    
-
+    }   
 }

@@ -112,7 +112,7 @@ public class TransporteUtils {
                 List<Salida> salidas_today = cacheManager.getStorage().getObjectsByQuery(Salida.class, String.format("select * from tc_salidas where deviceid=%s and valid=true and date(tc_salidas.date) = curdate()", deviceId));
                 if (salidas_today.isEmpty()) {
                     logger.info("primer salida del dia");
-                    itinerarioSelected = findClosestObject(todayItinerarios, new Date(), 1, cacheManager.getStorage(), true,logger);
+                    itinerarioSelected = findClosestObject(todayItinerarios, new Date(), 1, cacheManager.getStorage(), true, logger);
                     List<HoraSalida> horas = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getHorasId()))).getGroup_uuid())));
 
                     itinerarioSelected.getAttributes().put("horaFinal", horas.get(0).getHour());
@@ -195,7 +195,13 @@ public class TransporteUtils {
                 today = time;
             }
             today.setSeconds(0);
-            logger.info("today "+String.valueOf(today));
+            if (itinerarioSelected.getForceCreateOnEnter()) {
+                List<Event> entered = cacheManager.getStorage().getObjectsByQuery(Event.class, String.format("SELECT * FROM tc_events WHERE deviceid = %s  AND TYPE = 'geofenceEnter' AND geofenceid = %d ORDER BY eventtime DESC LIMIT 1", deviceId, geofenceId));
+                if (!entered.isEmpty()) {
+                    today = entered.get(0).getEventTime();
+                }
+            }
+            logger.info("today " + String.valueOf(today));
             Date endDate = today;
             Salida newSalida = new Salida();
             newSalida.setGeofenceId(geofenceId);
@@ -222,7 +228,7 @@ public class TransporteUtils {
             if (!isFirstTicket) {
                 logger.info("Buscando hora inicial");
                 Date posibleStart = findFirstEventTime(newSalida.getId(), itinerarioSelected.getId(), cacheManager);
-                logger.info("posible start "+posibleStart);
+                logger.info("posible start " + posibleStart);
                 if (posibleStart != null) {
                     ticketStart = posibleStart;
                 } else {
@@ -233,7 +239,7 @@ public class TransporteUtils {
                         }
                     }
                 }
-                logger.info("ticket start "+ticketStart);
+                logger.info("ticket start " + ticketStart);
                 if (finalItinerarioSelected.getHorasId() > 0) {
                     Date _start = findClosestHour(ticketStart, finalItinerarioSelected, cacheManager.getStorage());
                     if (_start != null) {
@@ -241,7 +247,7 @@ public class TransporteUtils {
                     }
                 }
 
-                logger.info("ticket start re"+ticketStart);
+                logger.info("ticket start re" + ticketStart);
 
                 newSalida.setDate(ticketStart);
                 cacheManager.getStorage().updateObject(newSalida, new Request(
@@ -587,9 +593,13 @@ public class TransporteUtils {
                 cacheManager.getStorage().updateObject(ticket, new Request(
                         new Columns.Exclude("id"),
                         new Condition.Equals("id", ticket.getId())));
-                if (ticket.getGeofenceId() == salida.getGeofenceId()) stop = true;
+                if (ticket.getGeofenceId() == salida.getGeofenceId()) {
+                    stop = true;
+                }
 
-                if (stop) break;
+                if (stop) {
+                    break;
+                }
             }
 
         } catch (StorageException ex) {
@@ -876,8 +886,8 @@ public class TransporteUtils {
      * Revisar si existe unsa salida pendiente, del mismo dispositivo en la
      * misma geocerca. Cancelar la salida, es un falso
      *
-     * @param geofenceId   id de la geocerca donde se inicia la salida.
-     * @param deviceId     The second integer.
+     * @param geofenceId id de la geocerca donde se inicia la salida.
+     * @param deviceId The second integer.
      * @param cacheManager The second integer.
      */
     public static void cleanSalidas(long geofenceId, long deviceId, CacheManager cacheManager) {
@@ -910,12 +920,12 @@ public class TransporteUtils {
         }
     }
 
-    public static void finishOldSalidas(long geofenceId, long deviceId, CacheManager cacheManager){
+    public static void finishOldSalidas(long geofenceId, long deviceId, CacheManager cacheManager) {
         try {
             ProccessLogger logger = new ProccessLogger(LOGGER);
             List<Itinerario> itinerarios = cacheManager.getStorage().getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofenceId", geofenceId)));
             if (itinerarios.isEmpty()) {
-               return;
+                return;
             }
             Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -923,7 +933,7 @@ public class TransporteUtils {
                     add(new Condition.Equals("deviceId", deviceId));
                 }
             })));
-            if(salida == null){
+            if (salida == null) {
                 return;
             }
             salida.setFinished(true);
