@@ -216,6 +216,7 @@ public class TransporteUtils {
             newSalida.setEndingDate(endDate);
             newSalida.setGroupId(group.getId());
             newSalida.setSubrouteId(itinerarioSelected.getSubrouteId());
+            newSalida.setManual(false);
             newSalida.setId(cacheManager.getStorage().addObject(newSalida, new Request(new Columns.Exclude("id"))));
 
             //crear tickets
@@ -361,14 +362,12 @@ public class TransporteUtils {
 //                    add(new Condition.Equals("geofenceId", geofenceId));
 //                }
 //            })));
-            Ticket ticket = tickets.stream().filter((t) -> t.getGeofenceId() == geofenceId).findFirst().orElse(null);
+            Ticket ticket = tickets.stream().filter((t) -> t.getGeofenceId() == geofenceId && (first? t.getEnterTime() == null:t.getExitTime()==null)).findFirst().orElse(null);
             logger.info("Ticket " + ticket);
             if (ticket == null) {
                 logger.info("No ticket");
                 return;
             }
-            boolean isFirstTicket = ticket.getId() == tickets.get(0).getId();
-
             boolean isLastTicket = ticket.getId() == tickets.get(tickets.size() - 1).getId();
 
             int time = 29;
@@ -707,25 +706,6 @@ public class TransporteUtils {
         }
         return inicios;
     }
-//    public static void terminarSalidas(CacheManager cacheManager) {
-//        try {
-//            List<Salida> salidas = cacheManager.getStorage().getObjects(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-//                {
-//                    add(new Condition.Equals("finished", false));
-//                }
-//            })));
-//            for (Salida salida : salidas) {
-//                if (salida.getEndingDate().getTime() > new Date().getTime()) {
-//                    salida.setFinished(true);
-//                    cacheManager.getStorage().updateObject(salida, new Request(
-//                            new Columns.Exclude("id"),
-//                            new Condition.Equals("id", salida.getId())));
-//                }
-//            }
-//        } catch (StorageException ex) {
-//            Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//    }
 
     public static JSONObject obtenerTickets(long deviceId, Date from, Date to, Storage storage) throws StorageException {
         JSONObject response = new JSONObject("{}");
@@ -902,7 +882,7 @@ public class TransporteUtils {
                 }
             })));
 
-            if (salida == null) {
+            if (salida == null || salida.getManual()) {
                 logger.info("Sin salidas anteriores");
                 return;
             }
@@ -933,7 +913,7 @@ public class TransporteUtils {
                     add(new Condition.Equals("deviceId", deviceId));
                 }
             })));
-            if (salida == null) {
+            if (salida == null || salida.getManual()) {
                 return;
             }
             salida.setFinished(true);
@@ -945,9 +925,8 @@ public class TransporteUtils {
         }
     }
 
-    public static void generarSalida(long deviceId, long itinerario, Date start, Storage storage) throws ParseException {
+    public static void generarSalida(long deviceId, long itinerario, Date start, Storage storage, boolean manual) throws ParseException {
         try {
-
             //obtener dispositivo
             Device device = storage.getObject(Device.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
@@ -966,7 +945,6 @@ public class TransporteUtils {
             })));
 
             //encontrar puntos de control
-            final Itinerario finalItinerarioSelected = itinerarioSelected;
             List<Permission> permisos = storage.getPermissions(Itinerario.class, Tramo.class);
 
             List<Tramo> tramos = new ArrayList<>();
@@ -991,6 +969,8 @@ public class TransporteUtils {
             if (tramos.isEmpty()) {
                 return;
             }
+            
+            Subroute subruta = storage.getObject(Subroute.class, new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getSubrouteId())));
 
             //crear nueva salida
             Date today = new Date();
@@ -1006,13 +986,15 @@ public class TransporteUtils {
             }
             newSalida.setEndingDate(endDate);
             newSalida.setGroupId(device.getGroupId());
+            if(subruta!= null){
+                newSalida.setGroupId(subruta.getGroupId());
+            }
             newSalida.setSubrouteId(itinerarioSelected.getSubrouteId());
+            newSalida.setManual(manual);
             newSalida.setId(storage.addObject(newSalida, new Request(new Columns.Exclude("id"))));
 
             //crear tickets
             Date ticketStart = start;
-
-            boolean isFirstTicket = true;
 
             Ticket ticket = null;
             for (Tramo tramo : tramos) {
@@ -1026,7 +1008,6 @@ public class TransporteUtils {
                 ticket.setId(storage.addObject(ticket, new Request(new Columns.Exclude("id"))));
 
             }
-            return;
         } catch (StorageException ex) {
             ex.printStackTrace();
             Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
@@ -1052,6 +1033,24 @@ public class TransporteUtils {
         }
 
         return closest;
+    }
+    
+    public static void cancelarSalida(long salidaId, Storage storage){
+        try {
+            Salida salida = storage.getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                {
+                    add(new Condition.Equals("id", salidaId));
+                }
+            })));
+            
+            if(salida != null){
+                salida.setFinished(true);
+            storage.updateObject(salida, new Request(
+                    new Columns.Exclude("id"),
+                    new Condition.Equals("id", salida.getId())));
+            }
+        } catch (Exception e) {
+        }
     }
 }
 

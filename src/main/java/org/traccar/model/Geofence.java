@@ -16,15 +16,16 @@
 package org.traccar.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.traccar.geofence.GeofenceCircle;
 import org.traccar.geofence.GeofenceGeometry;
 import org.traccar.geofence.GeofencePolygon;
 import org.traccar.geofence.GeofencePolyline;
 import org.traccar.storage.QueryIgnore;
 import org.traccar.storage.StorageName;
-
 import java.text.ParseException;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @StorageName("tc_geofences")
 public class Geofence extends ScheduledModel {
 

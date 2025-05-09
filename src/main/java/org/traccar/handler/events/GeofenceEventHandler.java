@@ -88,7 +88,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
                     Event event = new Event(Event.TYPE_GEOFENCE_EXIT, position);
                     event.setGeofenceId(geofenceId);
                     events.put(event, position);
-                    Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence exit evt " + event + " device " + position.getDeviceId());
+                    Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence exit evt " + event + " device " + position.getDeviceId()+" group "+d.getGroupId());
 //                    cacheManager.getDevLog().log("Salida geocerca " + geofence.getId() + " " + d.getId());
 //                    cacheManager.getDevLog().log(geofence.toString());
                     CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {
@@ -129,7 +129,7 @@ public class GeofenceEventHandler extends BaseEventHandler {
                 Event event = new Event(Event.TYPE_GEOFENCE_ENTER, position);
                 event.setGeofenceId(geofenceId);
                 events.put(event, position);
-                Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter evt " + event + " device " + position.getDeviceId());
+                Logger.getLogger(GeofenceEventHandler.class.getName()).log(Level.INFO, "Geofence enter evt " + event + " device " + position.getDeviceId()+" group "+d.getGroupId());
 //                cacheManager.getDevLog().log("Entrada geocerca " + g.getId() + " " + d.getId());
 //                cacheManager.getDevLog().log(g.toString());
                 CompletableFuture<Void> asyncTask = CompletableFuture.supplyAsync(() -> {

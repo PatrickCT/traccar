@@ -16,6 +16,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -26,6 +27,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.json.JSONObject;
+import org.slf4j.LoggerFactory;
 import org.traccar.api.BaseObjectResource;
 import org.traccar.model.Device;
 import org.traccar.model.Itinerario;
@@ -49,7 +51,8 @@ import org.traccar.utils.TransporteUtils;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class SalidasResource extends BaseObjectResource<Salida> {
-
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(SalidasResource.class);
+    
     public SalidasResource() {
         super(Salida.class);
     }
@@ -153,10 +156,12 @@ public class SalidasResource extends BaseObjectResource<Salida> {
     @POST
     @Path("crear")
     public Response crear(Salida entity) throws StorageException, ParseException {
+        LOGGER.info(String.format("Solicitud de creacion de salida a las %s, data: %s", new Date(), entity.toString()));
         if (TransporteUtils.hasSalida(entity.getDeviceId(), storage)) {
             return Response.status(Response.Status.BAD_REQUEST).build();
         }
-        TransporteUtils.generarSalida(entity.getDeviceId(), entity.getScheduleId(), entity.getDate(), storage);
+        entity.getDate().setSeconds(0);
+        TransporteUtils.generarSalida(entity.getDeviceId(), entity.getScheduleId(), entity.getDate(), storage, true);
         return Response.ok(entity).build();
     }
 
@@ -173,5 +178,12 @@ public class SalidasResource extends BaseObjectResource<Salida> {
                 + " "));
 
         return Response.ok(result).build();
+    }
+    
+    @DELETE
+    @Path("cancel/{id}")
+    public Response cancel(@PathParam("id") long salidaId){
+        TransporteUtils.cancelarSalida(salidaId, storage);
+        return Response.ok().build();
     }
 }

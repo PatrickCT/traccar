@@ -24,6 +24,7 @@ public class Salida extends BaseModel {
     private long geofenceId;
     private int modifiedBy;
     private Date modifiedWhen;
+    private boolean manual;
 
     public boolean getFinished() {
         return finished;
@@ -112,6 +113,14 @@ public class Salida extends BaseModel {
     public void setModifiedWhen(Date modifiedWhen) {
         this.modifiedWhen = modifiedWhen;
     }        
+
+    public boolean getManual() {
+        return manual;
+    }
+
+    public void setManual(boolean manual) {
+        this.manual = manual;
+    }
             
     @Override
     public String toString() {
