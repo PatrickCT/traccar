@@ -51,8 +51,9 @@ import org.traccar.utils.TransporteUtils;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class SalidasResource extends BaseObjectResource<Salida> {
+
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(SalidasResource.class);
-    
+
     public SalidasResource() {
         super(Salida.class);
     }
@@ -114,13 +115,13 @@ public class SalidasResource extends BaseObjectResource<Salida> {
         Date newDate = new Date(tickets.get(0).getExpectedTime().getTime());
 
         Date parsedDate = GenericUtils.parseTime((String) values.get("time"));
-        Logger.getLogger(TransporteUtils.class.getName()).log(Level.INFO, "Adjusting hour of salida "+salidaId+" to time "+parsedDate);
-        Logger.getLogger(TransporteUtils.class.getName()).log(Level.INFO, "OG date "+newDate+" Parsed "+parsedDate);
+        Logger.getLogger(TransporteUtils.class.getName()).log(Level.INFO, "Adjusting hour of salida " + salidaId + " to time " + parsedDate);
+        Logger.getLogger(TransporteUtils.class.getName()).log(Level.INFO, "OG date " + newDate + " Parsed " + parsedDate);
 
         newDate.setHours(parsedDate.getHours());
         newDate.setMinutes(parsedDate.getMinutes());
 
-        Logger.getLogger(TransporteUtils.class.getName()).log(Level.INFO, "OG date after set"+newDate);
+        Logger.getLogger(TransporteUtils.class.getName()).log(Level.INFO, "OG date after set" + newDate);
 
         long differenceInMillis = newDate.getTime() - tickets.get(0).getExpectedTime().getTime();
 
@@ -179,10 +180,10 @@ public class SalidasResource extends BaseObjectResource<Salida> {
 
         return Response.ok(result).build();
     }
-    
+
     @DELETE
     @Path("cancel/{id}")
-    public Response cancel(@PathParam("id") long salidaId){
+    public Response cancel(@PathParam("id") long salidaId) {
         TransporteUtils.cancelarSalida(salidaId, storage);
         return Response.ok().build();
     }

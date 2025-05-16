@@ -362,7 +362,7 @@ public class TransporteUtils {
 //                    add(new Condition.Equals("geofenceId", geofenceId));
 //                }
 //            })));
-            Ticket ticket = tickets.stream().filter((t) -> t.getGeofenceId() == geofenceId && (first? t.getEnterTime() == null:t.getExitTime()==null)).findFirst().orElse(null);
+            Ticket ticket = tickets.stream().filter((t) -> t.getGeofenceId() == geofenceId && (first ? t.getEnterTime() == null : t.getExitTime() == null)).findFirst().orElse(null);
             logger.info("Ticket " + ticket);
             if (ticket == null) {
                 logger.info("No ticket");
@@ -969,12 +969,20 @@ public class TransporteUtils {
             if (tramos.isEmpty()) {
                 return;
             }
-            
+
             Subroute subruta = storage.getObject(Subroute.class, new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getSubrouteId())));
 
             //crear nueva salida
             Date today = new Date();
             Date endDate = today;
+            
+            if ((today.getDate() < start.getDate()) && manual) {
+                start.setDate(today.getDate());
+            }
+            if(manual){
+                endDate = start;
+            }
+            
             Salida newSalida = new Salida();
             newSalida.setValid(true);
             newSalida.setDate(today);
@@ -986,7 +994,7 @@ public class TransporteUtils {
             }
             newSalida.setEndingDate(endDate);
             newSalida.setGroupId(device.getGroupId());
-            if(subruta!= null){
+            if (subruta != null) {
                 newSalida.setGroupId(subruta.getGroupId());
             }
             newSalida.setSubrouteId(itinerarioSelected.getSubrouteId());
@@ -996,7 +1004,8 @@ public class TransporteUtils {
             //crear tickets
             Date ticketStart = start;
 
-            Ticket ticket = null;
+            Ticket ticket = null;            
+            
             for (Tramo tramo : tramos) {
                 ticket = new Ticket();
                 ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, tramo.getMinTime());
@@ -1034,20 +1043,21 @@ public class TransporteUtils {
 
         return closest;
     }
-    
-    public static void cancelarSalida(long salidaId, Storage storage){
+
+    public static void cancelarSalida(long salidaId, Storage storage) {
         try {
             Salida salida = storage.getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("id", salidaId));
                 }
             })));
-            
-            if(salida != null){
+
+            if (salida != null) {
                 salida.setFinished(true);
-            storage.updateObject(salida, new Request(
-                    new Columns.Exclude("id"),
-                    new Condition.Equals("id", salida.getId())));
+                salida.setValid(false);
+                storage.updateObject(salida, new Request(
+                        new Columns.Exclude("id"),
+                        new Condition.Equals("id", salida.getId())));
             }
         } catch (Exception e) {
         }
