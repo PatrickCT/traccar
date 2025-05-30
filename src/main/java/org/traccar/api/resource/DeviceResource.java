@@ -50,7 +50,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.json.JSONObject;
-import org.traccar.utils.GeneralUtils;
 import org.traccar.utils.GenericUtils;
 
 @Path("devices")
