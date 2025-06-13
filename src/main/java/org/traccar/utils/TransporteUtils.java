@@ -96,7 +96,7 @@ public class TransporteUtils {
             List<Itinerario> todayItinerarios = new ArrayList<>();
             for (Itinerario itinerario : itinerarios) {
                 if (subroutesId.contains(itinerario.getSubrouteId())) {
-                    if (GenericUtils.isDaySelected(itinerario.getDays(), GenericUtils.getDayValue(new Date()))) {
+                    if (GenericUtils.isDaySelected(itinerario.getDays(), GenericUtils.getDayValue(GenericUtils.addTimeToDate(new Date(), Calendar.HOUR_OF_DAY, -8)))) {
                         todayItinerarios.add(itinerario);
                     }
                 }
@@ -907,20 +907,25 @@ public class TransporteUtils {
             if (itinerarios.isEmpty()) {
                 return;
             }
-            Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+
+            List<Salida> salidas = cacheManager.getStorage().getObjects(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("finished", false));
                     add(new Condition.Equals("deviceId", deviceId));
                 }
             })));
-            if (salida == null || salida.getManual()) {
+
+            if (salidas.isEmpty()) {
                 return;
             }
-            salida.setFinished(true);
-            cacheManager.getStorage().updateObject(salida, new Request(
-                    new Columns.Exclude("id"),
-                    new Condition.Equals("id", salida.getId())));
-            logger.info("Anulando salida: " + salida);
+            for (Salida salida : salidas) {
+                salida.setFinished(true);
+                cacheManager.getStorage().updateObject(salida, new Request(
+                        new Columns.Exclude("id"),
+                        new Condition.Equals("id", salida.getId())));
+                logger.info("Anulando salida: " + salida);
+            }
+
         } catch (StorageException e) {
         }
     }
@@ -975,14 +980,14 @@ public class TransporteUtils {
             //crear nueva salida
             Date today = new Date();
             Date endDate = today;
-            
+
             if ((today.getDate() < start.getDate()) && manual) {
                 start.setDate(today.getDate());
             }
-            if(manual){
+            if (manual) {
                 endDate = start;
             }
-            
+
             Salida newSalida = new Salida();
             newSalida.setValid(true);
             newSalida.setDate(today);
@@ -1004,8 +1009,8 @@ public class TransporteUtils {
             //crear tickets
             Date ticketStart = start;
 
-            Ticket ticket = null;            
-            
+            Ticket ticket = null;
+
             for (Tramo tramo : tramos) {
                 ticket = new Ticket();
                 ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, tramo.getMinTime());
