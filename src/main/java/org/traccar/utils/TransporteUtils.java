@@ -41,246 +41,433 @@ public class TransporteUtils {
 
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(TransporteUtils.class);
 
-    public static void generarSalida(long deviceId, long geofenceId, Date time, CacheManager cacheManager) throws ParseException {
+    public static void generarSalida(long deviceId, long geofenceId, Date time, CacheManager cacheManager) {
         try {
-            ProccessLogger logger = new ProccessLogger(LOGGER);
-            logger.info("Generando salida " + deviceId + ", " + time);
-//            cacheManager.getDevLog().log("Nueva salida salida");
-//            cacheManager.getDevLog().log(deviceId + ", " + geofenceId + ", " + time);
-            //revisar salidas pendientes
-            Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                {
-                    add(new Condition.Equals("finished", false));
-                    add(new Condition.Equals("deviceId", deviceId));
-                }
-            })));
-            if (salida != null) {
-                return;
-            }
-            logger.info("Salida" + salida);
-            //obtener dispositivo
-            Device device = cacheManager.getStorage().getObject(Device.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                {
-                    add(new Condition.Equals("id", deviceId));
-                }
-            })));
-
-            if (device == null) {
-                return;
-            }
-            //obetener grupo
-            logger.info("Device" + device);
-            Group group = cacheManager.getStorage().getObject(Group.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                {
-                    add(new Condition.Equals("id", device.getGroupId()));
-                }
-            })));
-
-            if (group == null) {
-                return;
-            }
-            logger.info("Group" + group);
-            //obtener subrutas
-            List<Subroute> subroutes = cacheManager.getStorage().getObjects(Subroute.class, new Request(new Columns.All(), new Condition.Equals("groupId", group.getId())));
-            List<Long> subroutesId = subroutes.stream().map((s) -> s.getId()).collect(Collectors.toList());
-
-            //encontrar itinerario
-            //Itinerario itinerario = cacheManager.getStorage().getObject(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofence", salida)));
-            List<Itinerario> itinerarios = cacheManager.getStorage().getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofenceId", geofenceId)));
-
-            if (itinerarios.isEmpty()) {
-                return;
-            }
-            Itinerario itinerarioSelected = null;
-
-            List<Itinerario> todayItinerarios = new ArrayList<>();
-            for (Itinerario itinerario : itinerarios) {
-                if (subroutesId.contains(itinerario.getSubrouteId())) {
-                    if (GenericUtils.isDaySelected(itinerario.getDays(), GenericUtils.getDayValue(GenericUtils.addTimeToDate(new Date(), Calendar.HOUR_OF_DAY, -8)))) {
-                        todayItinerarios.add(itinerario);
-                    }
-                }
-            }
-
-            //si es de villas
-            if (group.hasAttribute("vp") && (boolean) group.getAttributes().get("vp")) {
-                logger.info("Villas");
-//                cacheManager.getDevLog().log("Villas");
-                //si es la primer salida del dia
-
-                logger.info(String.format("select * from tc_salidas where deviceid=%s and valid=true and date(tc_salidas.date) = curdate()", deviceId));
-                List<Salida> salidas_today = cacheManager.getStorage().getObjectsByQuery(Salida.class, String.format("select * from tc_salidas where deviceid=%s and valid=true and date(tc_salidas.date) = curdate()", deviceId));
-                if (salidas_today.isEmpty()) {
-                    logger.info("primer salida del dia");
-                    itinerarioSelected = findClosestObject(todayItinerarios, new Date(), 1, cacheManager.getStorage(), true, logger);
-                    List<HoraSalida> horas = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getHorasId()))).getGroup_uuid())));
-
-                    itinerarioSelected.getAttributes().put("horaFinal", horas.get(0).getHour());
-                    logger.info("iti sel: " + itinerarioSelected);
-                } else {
-                    logger.info("n salida del dia");
-                    boolean back = false;
-                    itinerarioSelected = cacheManager.getStorage().getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                        {
-                            add(new Condition.Equals("id", salidas_today.get(0).getScheduleId()));
-                        }
-
-                    })));
-                    if (itinerarioSelected.getGeofenceId() != geofenceId) {
-                        back = true;
-                        itinerarioSelected = cacheManager.getStorage().getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                            {
-                                add(new Condition.Equals("horasIdRel", cacheManager.getStorage().getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                                    {
-                                        add(new Condition.Equals("id", salidas_today.get(0).getScheduleId()));
-                                    }
-
-                                }))).getHorasId()));
-                            }
-
-                        })));
-                    }
-                    List<HoraSalida> horas = cacheManager.getStorage().getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", cacheManager.getStorage().getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getHorasId()))).getGroup_uuid())));
-                    if ((salidas_today.size() / 2) >= horas.size()) {
-                        return;
-                    }
-                    itinerarioSelected.getAttributes().put("horaFinal", horas.get((int) (salidas_today.size() / 2)).getHour());
-                    logger.info(itinerarioSelected.toString());
-                }
-                //si no
-            } else {
-                itinerarioSelected = findClosestObject(todayItinerarios, time, 3, cacheManager.getStorage(), false, logger);
-            }
-            //si no es de villas
-            if (itinerarioSelected == null) {
-                logger.info("no itinerario");
-                return;
-            }
-
-            logger.info(String.valueOf(itinerarioSelected));
-            //encontrar puntos de control
-            final Itinerario finalItinerarioSelected = itinerarioSelected;
-            List<Permission> permisos = cacheManager.getStorage().getPermissions(Itinerario.class, Tramo.class);
-
-            List<Tramo> tramos = new ArrayList<>();
-            permisos.stream().filter((p) -> p.getOwnerId() == finalItinerarioSelected.getId()).forEach((p) -> {
-                try {
-                    Tramo t = cacheManager.getStorage().getObject(Tramo.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                        {
-                            add(new Condition.Equals("id", p.getPropertyId()));
-                        }
-                    })));
-
-                    if (t != null && p.getOwnerId() == finalItinerarioSelected.getId()) {
-                        tramos.add(t);
-                    }
-                } catch (StorageException ex) {
-                    Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            });
-
-            if (tramos.isEmpty()) {
-                logger.info("no tramos");
-                return;
-            }
-
-            //crear nueva salida
-            logger.info("nueva salida");
-            Date today = new Date();
-            if (group.hasAttribute("vp") && (boolean) group.getAttributes().get("vp")) {
-                Date hourDate = (Date) itinerarioSelected.getAttributes().get("horaFinal");
-                today.setHours(hourDate.getHours());
-                today.setMinutes(hourDate.getMinutes());
-            } else {
-                today = time;
-            }
-            today.setSeconds(0);
-            if (itinerarioSelected.getForceCreateOnEnter()) {
-                List<Event> entered = cacheManager.getStorage().getObjectsByQuery(Event.class, String.format("SELECT * FROM tc_events WHERE deviceid = %s  AND TYPE = 'geofenceEnter' AND geofenceid = %d ORDER BY eventtime DESC LIMIT 1", deviceId, geofenceId));
-                if (!entered.isEmpty()) {
-                    today = entered.get(0).getEventTime();
-                }
-            }
-            logger.info("today " + String.valueOf(today));
-            Date endDate = today;
-            Salida newSalida = new Salida();
-            newSalida.setGeofenceId(geofenceId);
-            newSalida.setValid(true);
-            newSalida.setDate(today);
-            newSalida.setDeviceId(deviceId);
-            newSalida.setFinished(false);
-            newSalida.setScheduleId(itinerarioSelected.getId());
-            for (Tramo tramo : tramos) {
-                endDate = GenericUtils.addTimeToDate(endDate, Calendar.MINUTE, tramo.getMinTime());
-            }
-            newSalida.setEndingDate(endDate);
-            newSalida.setGroupId(group.getId());
-            newSalida.setSubrouteId(itinerarioSelected.getSubrouteId());
-            newSalida.setManual(false);
-            newSalida.setId(cacheManager.getStorage().addObject(newSalida, new Request(new Columns.Exclude("id"))));
-
-            //crear tickets
-            Date ticketStart = (itinerarioSelected.hasAttribute("horaFinal") ? (Date) itinerarioSelected.getAttributes().get("horaFinal") : today);
-            ticketStart.setMonth((new Date()).getMonth());
-            ticketStart.setDate((new Date()).getDate());
-//            logger.info(ticketStart);
-            boolean isFirstTicket = geofenceId == tramos.get(0).getGeofenceId();
-//            logger.info("Device " + device + "caso especial");
+            //pasos
+            cacheManager.getDeviceLog().log(deviceId, "Nueva salida");
+            cacheManager.getDeviceLog().log(deviceId, String.format("geofenceId: %s, time: %s", geofenceId, time.toString()));
+            //1
+            verifyActiveExits(cacheManager.getStorage(), deviceId);
+            cacheManager.getDeviceLog().log(deviceId, "Paso 1 correcto: sin salida activa");
+            //2
+            Device device = getDevice(cacheManager.getStorage(), deviceId);
+            cacheManager.getDeviceLog().log(deviceId, "Paso 2 correcto: el dispositivo existe");
+            cacheManager.getDeviceLog().log(deviceId, "Paso 2 " + device.toString());
+            //3
+            Group group = getGroup(cacheManager.getStorage(), device.getGroupId());
+            cacheManager.getDeviceLog().log(deviceId, "Paso 3 correcto: el grupo existe");
+            cacheManager.getDeviceLog().log(deviceId, "Paso 3 " + group.toString());
+            //4
+            List<Subroute> subroutes = getSubroutes(cacheManager.getStorage(), group.getId());
+            cacheManager.getDeviceLog().log(deviceId, "Paso 4 correcto: obtenidas subrutas del grupo " + group.getId());
+            cacheManager.getDeviceLog().log(deviceId, "Paso 4 " + objectListToLogString(subroutes));
+            //5
+            List<Itinerario> schedules = getSchedules(cacheManager.getStorage(), subroutes, geofenceId);
+            cacheManager.getDeviceLog().log(deviceId, "Paso 5 correcto: obtenidos los itinerarios disparados por la geocerca " + geofenceId);
+            cacheManager.getDeviceLog().log(deviceId, "Paso 5 " + objectListToLogString(schedules));
+            //6
+            Itinerario selectedSchedule = getSelectedSchedule(cacheManager.getStorage(), group, schedules, deviceId, geofenceId, time);
+            cacheManager.getDeviceLog().log(deviceId, "Paso 6 correcto: seleccionar un itinerario adecuado");
+            cacheManager.getDeviceLog().log(deviceId, "Paso 6 " + selectedSchedule.toString());
+            //7
+            List<Tramo> sections = getSections(cacheManager.getStorage(), selectedSchedule);
+            cacheManager.getDeviceLog().log(deviceId, "Paso 7 correcto: obtener los tramos del itinerario");
+            cacheManager.getDeviceLog().log(deviceId, "Paso 7 " + objectListToLogString(sections));
+            //8
+            Salida dispatch = createDispatch(cacheManager.getStorage(), group, selectedSchedule, sections, time, deviceId, geofenceId);
+            cacheManager.getDeviceLog().log(deviceId, "Paso 8 correcto: generar una nueva salida");
+            cacheManager.getDeviceLog().log(deviceId, "Paso 8 " + dispatch.toString());
+            //9
+            List<Ticket> tickets = createTickets(cacheManager.getStorage(), sections, selectedSchedule, dispatch, dispatch.getDate(), geofenceId);
+            cacheManager.getDeviceLog().log(deviceId, "Paso 9 correcto: crear los tickets para la salida");
+            cacheManager.getDeviceLog().log(deviceId, "Paso 9 " + objectListToLogString(tickets));
+            //10
+            boolean isFirstTicket = geofenceId == sections.get(0).getGeofenceId();
             if (!isFirstTicket) {
-                logger.info("Buscando hora inicial");
-                Date posibleStart = findFirstEventTime(newSalida.getId(), itinerarioSelected.getId(), cacheManager);
-                logger.info("posible start " + posibleStart);
-                if (posibleStart != null) {
-                    ticketStart = posibleStart;
-                } else {
-                    for (Tramo tramo : tramos) {
-                        ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, (tramo.getMinTime() * -1));
-                        if (tramo.getGeofenceId() == geofenceId) {
-                            break;
-                        }
-                    }
-                }
-                logger.info("ticket start " + ticketStart);
-                if (finalItinerarioSelected.getHorasId() > 0) {
-                    Date _start = findClosestHour(ticketStart, finalItinerarioSelected, cacheManager.getStorage());
-                    if (_start != null) {
-                        ticketStart = _start;
-                    }
-                }
-
-                logger.info("ticket start re" + ticketStart);
-
-                newSalida.setDate(ticketStart);
-                cacheManager.getStorage().updateObject(newSalida, new Request(
-                        new Columns.Exclude("id"),
-                        new Condition.Equals("id", newSalida.getId())));
+                updateOldTramos(dispatch.getId(), selectedSchedule.getId(), cacheManager, geofenceId);
             }
-            Ticket ticket = null;
-            for (Tramo tramo : tramos) {
-                ticket = new Ticket();
-                ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, tramo.getMinTime());
-                ticket.setExpectedTime(ticketStart);
-                ticket.setGeofenceId(tramo.getGeofenceId());
-                ticket.setPunishment(tramo.getPunishment());
-                ticket.setSalidaId(newSalida.getId());
-                ticket.setTramo(tramo.getId());
-                ticket.setId(cacheManager.getStorage().addObject(ticket, new Request(new Columns.Exclude("id"))));
-
+            //11
+            if (sections.stream().anyMatch(Tramo::getForceBacktrackSearch)) {
+                updateForcedTramos(dispatch.getId(), selectedSchedule.getId(), cacheManager, geofenceId);
             }
-
-            if (!isFirstTicket) {
-                updateOldTramos(newSalida.getId(), itinerarioSelected.getId(), cacheManager, geofenceId);
-            }
-
-            updateSalida(deviceId, geofenceId, time, cacheManager, true);
-        } catch (StorageException ex) {
-            ex.printStackTrace();
-            Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
+            //12
+            updateSalida(deviceId, geofenceId, selectedSchedule.getForceCreateOnEnter()?dispatch.getDate():time, cacheManager, true);
+        } catch (Exception e) {
+            cacheManager.getDeviceLog().log(deviceId, String.format("Error al generar nueva salida %s", e.getMessage()));
+            return;
         }
     }
+
+    private static void verifyActiveExits(Storage storage, long deviceId) throws StorageException {
+        List<Salida> salidas = storage.getObjectsByQuery(Salida.class, String.format("SELECT * FROM tc_salidas WHERE finished=false AND deviceId = %s", deviceId));
+        if (!salidas.isEmpty()) throw new RuntimeException("Salida activa encontrada");
+    }
+
+    private static Device getDevice(Storage storage, long deviceId) throws StorageException {
+        List<Device> devices = storage.getObjectsByQuery(Device.class, String.format("SELECT * FROM tc_devices WHERE id = %s", deviceId));
+        if (devices.isEmpty()) throw new RuntimeException("Dispositivo no encontrado en base de datos");
+        return devices.get(0);
+    }
+
+    private static Group getGroup(Storage storage, long groupId) throws StorageException {
+        List<Group> groups = storage.getObjectsByQuery(Group.class, String.format("SELECT * FROM tc_groups WHERE id = %s", groupId));
+        if (groups.isEmpty()) throw new RuntimeException("Grupo no encontrado");
+        return groups.get(0);
+    }
+
+    private static List<Subroute> getSubroutes(Storage storage, long groupId) throws StorageException {
+        List<Subroute> subroutes = storage.getObjectsByQuery(Subroute.class, String.format("SELECT * FROM tc_subroutes WHERE groupId=%s", groupId));
+        return subroutes;
+    }
+
+    private static List<Itinerario> getSchedules(Storage storage, List<Subroute> subroutes, long geofenceId) throws StorageException {
+        Set<Long> subrouteIds = subroutes.stream().map(Subroute::getId).collect(Collectors.toSet());
+        List<Itinerario> schedules = storage.getObjectsByQuery(Itinerario.class, String.format("SELECT * FROM tc_itinerarios WHERE geofenceId=%s", geofenceId));
+        if (schedules.isEmpty()) throw new RuntimeException("No se encontraron itinerarios");
+
+        int todayDayValue = GenericUtils.getDayValue(
+                GenericUtils.addTimeToDate(new Date(), Calendar.HOUR_OF_DAY, -8)
+        );
+
+        List<Itinerario> todaySchedules = schedules.stream()
+                .filter(it -> subrouteIds.contains(it.getSubrouteId()))
+                .filter(it -> GenericUtils.isDaySelected(it.getDays(), todayDayValue))
+                .collect(Collectors.toList());
+
+        return todaySchedules;
+    }
+
+    private static Itinerario getSelectedSchedule(Storage storage, Group group, List<Itinerario> schedules, long deviceId, long geofenceId, Date time) throws StorageException, ParseException, IOException {
+        Itinerario itinerarioSelected = null;
+
+        if (group.hasAttribute("vp") && Boolean.TRUE.equals(group.getAttributes().get("vp"))) {
+            String query = String.format(
+                    "select * from tc_salidas where deviceid=%s and valid=true and date(tc_salidas.date) = curdate()",
+                    deviceId
+            );
+
+            List<Salida> salidasToday = storage.getObjectsByQuery(Salida.class, query);
+
+            if (salidasToday.isEmpty()) {
+                itinerarioSelected = findClosestObject(schedules, new Date(), 1, storage, true);
+
+                if (itinerarioSelected == null)
+                    throw new RuntimeException("No se encontro un itinerario valido para el grupo de villas del pedregal " + group.getId());
+
+                HoraSalida horaBase = storage.getObject(HoraSalida.class,
+                        new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getHorasId())));
+
+                if (horaBase != null) {
+                    List<HoraSalida> horas = storage.getObjects(HoraSalida.class,
+                            new Request(new Columns.All(), new Condition.Equals("group_uuid", horaBase.getGroup_uuid())));
+
+                    if (!horas.isEmpty()) {
+                        itinerarioSelected.getAttributes().put("horaFinal", horas.get(0).getHour());
+                    }
+                }
+            } else {
+                Salida firstSalida = salidasToday.get(0);
+                Itinerario salidaItinerario = storage.getObject(Itinerario.class,
+                        new Request(new Columns.All(), new Condition.Equals("id", firstSalida.getScheduleId())));
+
+                if (salidaItinerario == null)
+                    throw new RuntimeException("No se encontro una salida generada anteriormente para villas del pedregal que usar como base");
+
+                if (salidaItinerario.getGeofenceId() == geofenceId) {
+                    itinerarioSelected = salidaItinerario;
+                } else {
+                    Itinerario origen = storage.getObject(Itinerario.class,
+                            new Request(new Columns.All(), new Condition.Equals("id", firstSalida.getScheduleId())));
+
+                    if (origen != null) {
+                        itinerarioSelected = storage.getObject(Itinerario.class,
+                                new Request(new Columns.All(), new Condition.Equals("horasIdRel", origen.getHorasId())));
+                    }
+                }
+
+                if (itinerarioSelected == null)
+                    throw new RuntimeException("No se encontro un itinerario valido para el grupo de villas del pedregal " + group.getId());
+
+                HoraSalida horaBase = storage.getObject(HoraSalida.class,
+                        new Request(new Columns.All(), new Condition.Equals("id", itinerarioSelected.getHorasId())));
+
+                if (horaBase != null) {
+                    List<HoraSalida> horas = storage.getObjects(HoraSalida.class,
+                            new Request(new Columns.All(), new Condition.Equals("group_uuid", horaBase.getGroup_uuid())));
+
+                    int salidaIndex = salidasToday.size() / 2;
+
+                    if (salidaIndex >= horas.size())
+                        throw new RuntimeException("La salida encontrada esta fuera del indice valido");
+
+                    itinerarioSelected.getAttributes().put("horaFinal", horas.get(salidaIndex).getHour());
+                }
+
+            }
+
+        } else {
+            itinerarioSelected = findClosestObject(schedules, time, 3, storage, false);
+        }
+
+        if (itinerarioSelected == null)
+            throw new RuntimeException("No se encontro un itinerario valido para el grupo de villas del pedregal " + group.getId());
+
+        return itinerarioSelected;
+    }
+
+    private static List<Tramo> getSections(Storage storage, Itinerario selectedSchedule) throws StorageException {
+        List<Permission> permisos = storage.getPermissions(Itinerario.class, Tramo.class);
+
+        long itinerarioId = selectedSchedule.getId();
+
+        List<Long> tramoIds = permisos.stream()
+                .filter(p -> p.getOwnerId() == itinerarioId)
+                .map(Permission::getPropertyId)
+                .collect(Collectors.toList());
+
+        String idList = tramoIds.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+
+        String query = String.format("SELECT * FROM tc_tramos WHERE id IN (%s)", idList);
+
+        return storage.getObjectsByQuery(Tramo.class, query);
+    }
+
+    private static Salida createDispatch(Storage storage, Group group, Itinerario schedule, List<Tramo> sections, Date time, long deviceId, long geofenceId) throws StorageException {
+        Date salidaDate = new Date();
+
+        if (group.hasAttribute("vp") && Boolean.TRUE.equals(group.getAttributes().get("vp"))) {
+            Date horaFinal = (Date) schedule.getAttributes().get("horaFinal");
+
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(salidaDate);
+            cal.set(Calendar.HOUR_OF_DAY, horaFinal.getHours());
+            cal.set(Calendar.MINUTE, horaFinal.getMinutes());
+            cal.set(Calendar.SECOND, 0);
+
+            salidaDate = cal.getTime();
+        } else {
+            salidaDate = time;
+            salidaDate.setSeconds(0);
+        }
+
+        if (schedule.getForceCreateOnEnter()) {
+            List<Event> enteredEvents = storage.getObjectsByQuery(
+                    Event.class,
+                    String.format(
+                            "SELECT * FROM tc_events WHERE deviceid = %s AND TYPE = 'geofenceEnter' AND geofenceid = %d ORDER BY eventtime DESC LIMIT 1",
+                            deviceId,
+                            geofenceId
+                    )
+            );
+
+            if (!enteredEvents.isEmpty()) {
+                salidaDate = enteredEvents.get(0).getEventTime();
+            }
+        }
+
+        Date endDate = salidaDate;
+
+        for (Tramo tramo : sections) {
+            endDate = GenericUtils.addTimeToDate(endDate, Calendar.MINUTE, tramo.getMinTime());
+        }
+
+        Salida newSalida = new Salida();
+        newSalida.setGeofenceId(geofenceId);
+        newSalida.setValid(true);
+        newSalida.setDate(salidaDate);
+        newSalida.setDeviceId(deviceId);
+        newSalida.setFinished(false);
+        newSalida.setScheduleId(schedule.getId());
+        newSalida.setEndingDate(endDate);
+        newSalida.setGroupId(group.getId());
+        newSalida.setSubrouteId(schedule.getSubrouteId());
+        newSalida.setManual(false);
+
+        long newSalidaId = storage.addObject(
+                newSalida,
+                new Request(new Columns.Exclude("id"))
+        );
+
+        newSalida.setId(newSalidaId);
+        return newSalida;
+    }
+
+    private static List<Ticket> createTickets(Storage storage, List<Tramo> sections, Itinerario schedule, Salida dispatch, Date time, long geofenceId) throws StorageException {
+        Date now = new Date();
+        Date ticketStart = schedule.hasAttribute("horaFinal")
+                ? new Date(((Date) schedule.getAttributes().get("horaFinal")).getTime())
+                : new Date(time.getTime());
+
+        ticketStart.setMonth(now.getMonth());
+        ticketStart.setDate(now.getDate());
+        ticketStart.setSeconds(0); // normalize seconds too if needed
+
+        boolean isFirstTicket = geofenceId == sections.get(0).getGeofenceId();
+
+        if (!isFirstTicket) {
+            Date possibleStart = findFirstEventTime(dispatch.getId(), schedule.getId(), storage);
+
+            if (possibleStart != null) {
+                ticketStart = new Date(possibleStart.getTime());
+            } else {
+                for (Tramo tramo : sections) {
+                    ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, -tramo.getMinTime());
+                    if (tramo.getGeofenceId() == geofenceId) break;
+                }
+            }
+
+            if (schedule.getHorasId() > 0) {
+                Date adjustedStart = findClosestHour(ticketStart, schedule, storage);
+                if (adjustedStart != null) {
+                    ticketStart = adjustedStart;
+                }
+            }
+
+            // Update departure with recalculated time
+            dispatch.setDate(ticketStart);
+            storage.updateObject(
+                    dispatch,
+                    new Request(new Columns.Exclude("id"), new Condition.Equals("id", dispatch.getId()))
+            );
+        }
+
+        List<Ticket> tickets = new ArrayList<>();
+        for (Tramo tramo : sections) {
+            ticketStart = GenericUtils.addTimeToDate(ticketStart, Calendar.MINUTE, tramo.getMinTime());
+
+            Ticket ticket = new Ticket();
+            ticket.setExpectedTime(ticketStart);
+            ticket.setGeofenceId(tramo.getGeofenceId());
+            ticket.setPunishment(tramo.getPunishment());
+            ticket.setSalidaId(dispatch.getId());
+            ticket.setTramo(tramo.getId());
+
+            ticket.setId(storage.addObject(ticket, new Request(new Columns.Exclude("id"))));
+            tickets.add(ticket);
+        }
+        return tickets;
+    }
+
+    private static String objectListToLogString(List<?> list) {
+        if (list == null || list.isEmpty()) {
+            return "[]";
+        }
+
+        return list.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(",\n", "[\n", "\n]"));
+    }
+
+    public static Itinerario findClosestObject(List<Itinerario> objects, Date date, int rangeInMinutes, Storage storage, boolean lookupInitial)
+            throws ParseException, StorageException, IOException {
+
+        if (objects == null || objects.isEmpty()) return null;
+
+        Itinerario closestObject = null;
+        long closestDifference = Long.MAX_VALUE;
+
+        List<Itinerario> filteredByHours = filterByHours(objects);
+        Map<Long, Date> startTimes = startHour(date, objects, objects.get(0).getGeofenceId(), storage);
+
+        for (Itinerario itinerario : filteredByHours) {
+            if (itinerario.getHorasId() > 0) {
+                HoraSalida horaBase = storage.getObject(HoraSalida.class,
+                        new Request(new Columns.All(), new Condition.Equals("id", itinerario.getHorasId())));
+                if (horaBase == null) continue;
+
+                List<HoraSalida> horas = storage.getObjects(HoraSalida.class,
+                        new Request(new Columns.All(), new Condition.Equals("group_uuid", horaBase.getGroup_uuid())));
+
+                for (HoraSalida h : horas) {
+                    Date hora = (Date) h.getHour().clone();
+                    hora.setDate(date.getDate());
+                    hora.setYear(date.getYear());
+                    hora.setMonth(date.getMonth());
+
+                    Date ref = lookupInitial ? startTimes.getOrDefault(itinerario.getId(), date) : date;
+                    long difference = Math.abs(ref.getTime() - hora.getTime());
+
+                    if (difference < closestDifference) {
+                        closestDifference = difference;
+                        closestObject = itinerario;
+                        closestObject.getAttributes().put("horaFinal", hora);
+                    }
+                }
+            } else if (closestObject == null) {
+                closestObject = itinerario; // fallback when no horaId
+            }
+        }
+
+        return closestObject;
+    }
+
+    private static List<Itinerario> filterByHours(List<Itinerario> itinerarios) throws ParseException, IOException {
+        List<Itinerario> filtered = new ArrayList<>();
+        int[] utc = GenericUtils.fetchUTCDate();
+        int today = GenericUtils.getDayValue(new Date());
+
+        for (Itinerario iti : itinerarios) {
+            if (!iti.hasAttribute("hours")) continue;
+
+            String rawHours = iti.getAttributes().get("hours").toString()
+                    .replaceAll("1=", "\"1\":")
+                    .replaceAll(" 2=", " \"2\":")
+                    .replaceAll(" 4=", " \"4\":")
+                    .replaceAll(" 8=", " \"8\":")
+                    .replaceAll(" 16=", " \"16\":")
+                    .replaceAll(" 32=", " \"32\":")
+                    .replaceAll(" 64=", " \"64\":")
+                    .replaceAll("desde=", "\"desde\":")
+                    .replaceAll("hasta=", "\"hasta\":")
+                    .replaceAll("=", ":");
+
+            JSONObject obj = new JSONObject(rawHours);
+            if (!obj.has(String.valueOf(today))) continue;
+
+            JSONObject horas = obj.getJSONObject(String.valueOf(today));
+            int[] desde = {
+                    horas.getJSONArray("desde").optInt(0),
+                    horas.getJSONArray("desde").optInt(1)
+            };
+            int[] hasta = {
+                    horas.getJSONArray("hasta").optInt(0),
+                    horas.getJSONArray("hasta").optInt(1)
+            };
+
+            if (GenericUtils.isTimeInRange(utc, desde, hasta)) {
+                filtered.add(iti);
+            }
+        }
+
+        return filtered;
+    }
+
+    private static Map<Long, Date> startHour(Date eventDate, List<Itinerario> itinerarios, Long geofenceId, Storage storage)
+            throws StorageException {
+
+        Map<Long, Date> startTimes = new HashMap<>();
+
+        for (Itinerario iti : itinerarios) {
+            List<Tramo> tramos = storage.getObjectsByQuery(Tramo.class,
+                    String.format("SELECT * FROM tc_tramos WHERE id IN (SELECT tramoid FROM tc_itinerario_tramo WHERE itinerarioid = %d)", iti.getId()));
+
+            Date adjusted = (Date) eventDate.clone();
+            for (Tramo tramo : tramos) {
+                adjusted = GenericUtils.addTimeToDate(adjusted, Calendar.MINUTE, -tramo.getMinTime());
+                if (tramo.getGeofenceId() == geofenceId) {
+                    break;
+                }
+            }
+
+            startTimes.put(iti.getId(), adjusted);
+        }
+
+        return startTimes;
+    }
+
+    // old methods
 
     public static boolean hasSalida(long deviceId, CacheManager cacheManager, long geofenceId) {
         ProccessLogger logger = new ProccessLogger(LOGGER);
@@ -298,15 +485,6 @@ public class TransporteUtils {
             }
 
             return true;
-//            List<Itinerario> itinerarios = cacheManager.getStorage().getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofenceId", geofenceId)));
-//            if (!itinerarios.isEmpty()) {
-//                salida.setFinished(true);
-//                cacheManager.getStorage().updateObject(salida, new Request(
-//                        new Columns.Exclude("id"),
-//                        new Condition.Equals("id", salida.getId())));
-//                return false;
-//            }
-//            return itinerarios.isEmpty();
 
         } catch (StorageException ex) {
             logger.info("Error al buscar salida");
@@ -356,12 +534,7 @@ public class TransporteUtils {
                 }
             })));
             logger.info("Tickets " + tickets);
-//            Ticket ticket = cacheManager.getStorage().getObject(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-//                {
-//                    add(new Condition.Equals("salidaId", salida.getId()));
-//                    add(new Condition.Equals("geofenceId", geofenceId));
-//                }
-//            })));
+
             Ticket ticket = tickets.stream().filter((t) -> t.getGeofenceId() == geofenceId && (first ? t.getEnterTime() == null : t.getExitTime() == null)).findFirst().orElse(null);
             logger.info("Ticket " + ticket);
             if (ticket == null) {
@@ -607,196 +780,22 @@ public class TransporteUtils {
         }
     }
 
-    public static Itinerario findClosestObject(List<Itinerario> objects, Date date, int rangeInMinutes, Storage storage, boolean lookupInitial, ProccessLogger logger) throws ParseException, StorageException, IOException {
-        logger.info("find closest");
-        logger.info(objects.stream().map(Object::toString)
-                .collect(Collectors.joining(", ")));
-        Itinerario closestObject = null;
-        long closestDifference = Long.MAX_VALUE;
-        List<Itinerario> filteredByDay = objects;
-        List<Itinerario> filteredByHours = filterByHours(filteredByDay);
-        Map<Long, Date> inicios = startHour(date, objects, objects.get(0).getGeofenceId(), storage);
-        logger.info("filtered by hours");
-        logger.info(filteredByHours.stream().map(Object::toString)
-                .collect(Collectors.joining(", ")));
-
-        for (Itinerario obj : filteredByHours) {
-            if (obj.getHorasId() > 0) {
-                for (HoraSalida h : storage.getObjects(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("group_uuid", storage.getObject(HoraSalida.class, new Request(new Columns.All(), new Condition.Equals("id", obj.getHorasId()))).getGroup_uuid())))) {
-                    h.getHour().setDate(new Date().getDate());
-                    h.getHour().setYear(new Date().getYear());
-                    h.getHour().setMonth(new Date().getMonth());
-
-                    logger.info(h.toString());
-                    long difference = Math.abs((lookupInitial ? inicios.getOrDefault(obj.getId(), date) : date).getTime() - h.getHour().getTime());
-
-//                    if (difference <= rangeInMinutes * 60000 && difference < closestDifference) {
-                    if (difference < closestDifference) {
-                        closestObject = obj;
-                        closestObject.getAttributes().put("horaFinal", h.getHour());
-                        closestDifference = difference;
-                    }
-                }  // Parse "desde" value to Date
-
-            } else {
-                if (closestObject == null) {
-                    closestObject = obj;
-                }
-            }
-        }
-
-        return closestObject;
-    }
-
-    private static List<Itinerario> filterByHours(List<Itinerario> i) throws ParseException, IOException {
-        List<Itinerario> filterd = new ArrayList<>();
-        int[] utc = GenericUtils.fetchUTCDate();
-        LOGGER.info(String.valueOf(utc[0]));
-        LOGGER.info(String.valueOf(utc[1]));
-
-        i.forEach((iti) -> {
-
-            if (iti.hasAttribute("hours")) {
-                LOGGER.info("hours");
-                JSONObject obj = new JSONObject(iti.getAttributes().get("hours").toString()
-                        .replaceAll("1=", "\"1\":")
-                        .replaceAll(" 2=", " \"2\":")
-                        .replaceAll(" 4=", " \"4\":")
-                        .replaceAll(" 8=", " \"8\":")
-                        .replaceAll(" 16=", " \"16\":")
-                        .replaceAll(" 32=", " \"32\":")
-                        .replaceAll(" 64=", " \"64\":")
-                        .replaceAll("desde=", "\"desde\":")
-                        .replaceAll("hasta=", "\"hasta\":")
-                        .replaceAll("=", ":"));
-
-                if (obj.has(String.valueOf(GenericUtils.getDayValue(new Date())))) {
-                    JSONObject horas = obj.getJSONObject(String.valueOf(GenericUtils.getDayValue(new Date())));
-                    LOGGER.info(horas.toMap().toString());
-                    int[] a = new int[2];
-                    a[0] = horas.getJSONArray("desde").optInt(0);
-                    a[1] = horas.getJSONArray("desde").optInt(1);
-                    int[] b = new int[2];
-                    b[0] = horas.getJSONArray("hasta").optInt(0);
-                    b[1] = horas.getJSONArray("hasta").optInt(1);
-                    if (GenericUtils.isTimeInRange(utc, a, b)) {
-                        filterd.add(iti);
-                    }
-                }
-            }
-        });
-        return filterd;
-    }
-
-    private static Map<Long, Date> startHour(Date evt, List<Itinerario> itinerarios, Long geo, Storage storage) throws StorageException {
-        Map<Long, Date> inicios = new HashMap<>();
-        for (Itinerario i : itinerarios) {
-            List<Tramo> tramos = storage.getObjectsByQuery(Tramo.class, String.format("select * from tc_tramos where id in (select tramoid from tc_itinerario_tramo where itinerarioid = %d)", i.getId()));
-            Date initial = evt;
-            long t = tramos.stream().filter(item -> item.getGeofenceId() == geo).count();
-            if (t > 0) {
-                for (Tramo tr : tramos) {
-                    initial = GenericUtils.addTimeToDate(initial, Calendar.MINUTE, tr.getMinTime() * -1);
-                    if (tr.getGeofenceId() == geo) {
-                        break;
-                    }
-                }
-            }
-            inicios.put(i.getId(), initial);
-        }
-        return inicios;
-    }
-
-    public static JSONObject obtenerTickets(long deviceId, Date from, Date to, Storage storage) throws StorageException {
-        JSONObject response = new JSONObject("{}");
-        Salida salida = storage.getObject(Salida.class,
-                new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                    {
-                        add(new Condition.Equals("deviceId", deviceId));
-                        add(new Condition.Equals("finished", false));
-                    }
-                })));
-        List<Salida> salidas = storage.getObjects(Salida.class,
-                new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                    {
-                        add(new Condition.Equals("deviceId", deviceId));
-                        add(new Condition.Between("date", "from", from, "to", to));
-                    }
-                })));
-        response.put("vueltas", salidas.size());
-        List<Driver> choferes = new ArrayList<>();
-        List<Long> permisos = storage.getPermissions(Device.class, Driver.class).stream()
-                .filter((p) -> p.getOwnerId() == deviceId).map((p) -> p.getPropertyId()).collect(Collectors.toList());
-        permisos.forEach((id) -> {
-            try {
-                choferes.add(storage.getObject(Driver.class,
-                        new Request(new Columns.All(), new Condition.Equals("id", id))));
-            } catch (StorageException ex) {
-                Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        });
-        response.put("choferes", choferes);
-        if (salida != null) {
-            response.put("salida", salida);
-            List<Ticket> tickets = storage.getObjects(Ticket.class,
-                    new Request(new Columns.All(), new Condition.Equals("salidaId", salida.getId())));
-            response.put("ticket", tickets);
-            List<Geofence> geoNames = new ArrayList<>();
-            Map<Long, Object> otros = new HashMap<>();
-
-            List<Salida> otras_salidas = storage.getObjects(Salida.class,
-                    new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                        {
-                            add(new Condition.Equals("scheduleId", salida.getScheduleId()));
-                            add(new Condition.Between("date", "from", from, "to", to));
-                        }
-                    })));
-
-            for (int i = 0; i < tickets.size(); i++) {
-                Ticket ticket = tickets.get(i);
-                Geofence g;
-                List<Ticket> t;
-                try {
-                    g = storage.getObject(Geofence.class,
-                            new Request(new Columns.All(), new Condition.Equals("id", ticket.getGeofenceId())));
-                    geoNames.add(g);
-
-                    t = storage.getObjects(Ticket.class,
-                            new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                                {
-                                    add(new Condition.Equals("geofenceId", g.getId()));
-                                    add(new Condition.Between("enterTime", "from", from, "to", to));
-                                }
-                            })));
-
-                    if (!t.isEmpty()) {
-
-                    }
-                } catch (StorageException ex) {
-                    Logger.getLogger(DeviceResource.class.getName()).log(Level.SEVERE, null, ex);
-                }
-
-                response.put("geofencesNames", geoNames);
-                response.put("geofencesPassed", otros);
-            }
-        }
-
-        return response;
-    }
-
-    private static Date findFirstEventTime(long salidaId, long itinerarioId, CacheManager cacheManager) {
+    private static void updateForcedTramos(long salidaId, long itinerarioId, CacheManager cacheManager, long geofenceId) {
+        LOGGER.info("update forced for salidaId=" + salidaId + ", scheduleId=" + itinerarioId);
         try {
+            boolean stop = false;
             Salida salida = cacheManager.getStorage().getObject(Salida.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                 {
                     add(new Condition.Equals("id", salidaId));
                 }
             })));
-//            LOGGER.info(salida);
+
             if (salida == null) {
-                return null;
+                return;
             }
+            LOGGER.info(salida.toString());
             if (salida.getFinished()) {
-                return null;
+                return;
             }
 
             Itinerario itinerario = cacheManager.getStorage().getObject(Itinerario.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
@@ -805,60 +804,155 @@ public class TransporteUtils {
                 }
             })));
 //            LOGGER.info(itinerario);
-            final Itinerario b_i = itinerario;
             if (itinerario == null) {
-                return null;
+                return;
             }
+            LOGGER.info(itinerario.toString());
             if (itinerario.getDays() <= 0) {
-                return null;
+                return;
             }
 
-            List<Permission> permisos = cacheManager.getStorage().getPermissions(Itinerario.class, Tramo.class);
+            List<Ticket> tickets = cacheManager.getStorage().getObjects(Ticket.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                {
+                    add(new Condition.Equals("salidaId", salida.getId()));
+                }
+            })));
 
-            List<Tramo> tramos = new ArrayList<>();
-            permisos.forEach((p) -> {
-                try {
-                    Tramo t = cacheManager.getStorage().getObject(Tramo.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+            for (Ticket ticket : tickets) {
+                Tramo tramo = cacheManager.getStorage().getObject(Tramo.class, new Request(new Columns.All(), new Condition.Equals("id", ticket.getTramo())));
+                if (!tramo.getForceBacktrackSearch()) continue;
+                if (ticket.getEnterTime() == null) {
+                    List<Event> events = cacheManager.getStorage().getObjects(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
                         {
-                            add(new Condition.Equals("id", p.getPropertyId()));
+                            add(new Condition.Equals("type", "geofenceEnter"));
+                            add(new Condition.Equals("deviceid", salida.getDeviceId()));
+                            add(new Condition.Equals("geofenceid", ticket.getGeofenceId()));
+                            add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.MINUTE, -90), "to", GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.MINUTE, 10)));
+                        }
+                    })));
+                    LOGGER.info(events.toString());
+                    Event event = events.get(events.size() - 1);
+                    LOGGER.info(event.toString());
+
+                    if (event == null) {
+                        continue;
+                    }
+
+                    ticket.setEnterTime(event.getEventTime());
+
+                    long differenceInMillis = ticket.getEnterTime().getTime() - ticket.getExpectedTime().getTime();
+                    long minutesDifference = differenceInMillis / (1000 * 60);
+
+                    if (differenceInMillis < 0) {
+                        minutesDifference *= -1;
+                    }
+                    ticket.setPunishment((int) (minutesDifference * ticket.getPunishment()));
+                    if (ticket.getEnterTime().getTime() < ticket.getExpectedTime().getTime()) {
+                        minutesDifference *= -1;
+                    }
+                    ticket.setDifference(minutesDifference);
+                    cacheManager.getStorage().updateObject(ticket, new Request(
+                            new Columns.Exclude("id"),
+                            new Condition.Equals("id", ticket.getId())));
+
+                    LOGGER.info("updated enterTime for: ticket= " + ticket.getId() + ", tramo=" + tramo.getId() + ", event=" + event.getId());
+                }
+
+                if (ticket.getExitTime() == null) {
+                    Event event = cacheManager.getStorage().getObject(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
+                        {
+                            add(new Condition.Equals("type", "geofenceExit"));
+                            add(new Condition.Equals("deviceid", salida.getDeviceId()));
+                            add(new Condition.Equals("geofenceid", ticket.getGeofenceId()));
+                            add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.MINUTE, -90), "to", GenericUtils.addTimeToDate(ticket.getExpectedTime(), Calendar.MINUTE, 10)));
                         }
                     })));
 
-                    if (t != null && p.getOwnerId() == b_i.getId()) {
-                        tramos.add(t);
+                    if (event == null) {
+                        continue;
                     }
-                } catch (StorageException ex) {
-                    Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
+
+                    ticket.setExitTime(event.getEventTime());
+
+                    cacheManager.getStorage().updateObject(ticket, new Request(
+                            new Columns.Exclude("id"),
+                            new Condition.Equals("id", ticket.getId())));
+
+                    LOGGER.info("updated exitTime for: ticket= " + ticket.getId() + ", tramo=" + tramo.getId() + ", event=" + event.getId());
                 }
-            });
+            }
+
+        } catch (StorageException ex) {
+            ex.printStackTrace();
+            Logger.getLogger(TransporteUtils.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private static Date findFirstEventTime(long salidaId, long itinerarioId, Storage storage) {
+        try {
+            // Load Salida
+            Salida salida = storage.getObject(Salida.class, new Request(
+                    new Columns.All(), new Condition.Equals("id", salidaId)
+            ));
+
+            if (salida == null || salida.getFinished()) {
+                return null;
+            }
+
+            // Load Itinerario
+            Itinerario itinerario = storage.getObject(Itinerario.class, new Request(
+                    new Columns.All(), new Condition.Equals("id", itinerarioId)
+            ));
+
+            if (itinerario == null || itinerario.getDays() <= 0) {
+                return null;
+            }
+
+            // Fetch tramos (segments) associated with the itinerario via permissions
+            List<Permission> permisos = storage.getPermissions(Itinerario.class, Tramo.class);
+
+            List<Long> tramoIds = permisos.stream()
+                    .filter(p -> p.getOwnerId() == itinerario.getId())
+                    .map(Permission::getPropertyId)
+                    .collect(Collectors.toList());
+
+            if (tramoIds.isEmpty()) {
+                return null;
+            }
+
+            String idList = tramoIds.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(","));
+
+            List<Tramo> tramos = storage.getObjectsByQuery(Tramo.class,
+                    String.format("SELECT * FROM tc_tramos WHERE id IN (%s)", idList)
+            );
 
             if (tramos.isEmpty()) {
                 return null;
             }
 
-//            LOGGER.info(tramos);
-            if (!tramos.isEmpty()) {
-                for (Tramo tramo : tramos) {
-                    List<Event> events = cacheManager.getStorage().getObjects(Event.class, new Request(new Columns.All(), Condition.merge(new ArrayList<>() {
-                        {
-                            add(new Condition.Equals("type", "geofenceExit"));
-                            add(new Condition.Equals("deviceid", salida.getDeviceId()));
-                            add(new Condition.Equals("geofenceid", tramo.getGeofenceId()));
-//                        add(new Condition.Between("eventtime", "from", GenericUtils.addTimeToDate(salida.getDate(), Calendar.MINUTE, -15), "to", new Date()));
-                        }
-                    })));
-                    Event event = events.get(events.size() - 1);
-                    if (event != null) {
-                        LOGGER.info("Esta debe de ser la hora " + event.getEventTime());
-                        return event.getEventTime();
-                    }
+            // Look for the last geofenceExit event for each tramo
+            for (Tramo tramo : tramos) {
+                List<Event> events = storage.getObjects(Event.class, new Request(
+                        new Columns.All(),
+                        Condition.merge(Arrays.asList(
+                                new Condition.Equals("type", "geofenceExit"),
+                                new Condition.Equals("deviceid", salida.getDeviceId()),
+                                new Condition.Equals("geofenceid", tramo.getGeofenceId())
+                        ))
+                ));
+
+                if (!events.isEmpty()) {
+                    Event latestEvent = events.get(events.size() - 1);
+                    return latestEvent.getEventTime();
                 }
             }
 
-            return null;
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (StorageException e) {
+            e.printStackTrace(); // or use a centralized error handler
         }
+
         return null;
     }
 
@@ -866,8 +960,8 @@ public class TransporteUtils {
      * Revisar si existe unsa salida pendiente, del mismo dispositivo en la
      * misma geocerca. Cancelar la salida, es un falso
      *
-     * @param geofenceId id de la geocerca donde se inicia la salida.
-     * @param deviceId The second integer.
+     * @param geofenceId   id de la geocerca donde se inicia la salida.
+     * @param deviceId     The second integer.
      * @param cacheManager The second integer.
      */
     public static void cleanSalidas(long geofenceId, long deviceId, CacheManager cacheManager) {
@@ -903,7 +997,8 @@ public class TransporteUtils {
     public static void finishOldSalidas(long geofenceId, long deviceId, CacheManager cacheManager) {
         try {
             ProccessLogger logger = new ProccessLogger(LOGGER);
-            List<Itinerario> itinerarios = cacheManager.getStorage().getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofenceId", geofenceId)));
+            List<Itinerario> itinerarios = cacheManager.getStorage().getObjectsByQuery(Itinerario.class, "SELECT * FROM tc_itinerarios WHERE geofenceId = " + geofenceId + " and (days & (1 << (WEEKDAY(CURDATE())))) != 0;");
+            //List<Itinerario> itinerarios = cacheManager.getStorage().getObjects(Itinerario.class, new Request(new Columns.All(), new Condition.Equals("geofenceId", geofenceId)));
             if (itinerarios.isEmpty()) {
                 return;
             }

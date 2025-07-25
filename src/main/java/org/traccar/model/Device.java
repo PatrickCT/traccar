@@ -332,4 +332,12 @@ public class Device extends GroupedModel implements Disableable {
     public String toJson() {
         return "{ name=" + name + ", uniqueId=" + uniqueId + ", status=" + status + ", lastUpdate=" + lastUpdate + ", positionId=" + positionId + ", phone=" + phone + ", model=" + model + ", contact=" + contact + ", category=" + category + ", disabled=" + disabled + ", expirationTime=" + expirationTime + ", motionStreak=" + motionStreak + ", motionState=" + motionState + ", motionTime=" + motionTime + ", motionDistance=" + motionDistance + ", overspeedState=" + overspeedState + ", overspeedTime=" + overspeedTime + ", overspeedGeofenceId=" + overspeedGeofenceId + ", carPlate=" + carPlate + ", serie=" + serie + ", year=" + year + ", maker=" + maker + ", policy=" + policy + ", insuranceExpiration=" + insuranceExpiration + ", simType=" + simType + ", simKey=" + simKey + ", insuranceCompanyId=" + insuranceCompanyId + '}';
     }
+
+    public String toDeviceReport() {
+        String report = "Device state" +
+                "Current group "+getGroupId()+"" +
+                "";
+
+        return report;
+    }
 }

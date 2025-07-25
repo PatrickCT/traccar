@@ -18,6 +18,8 @@ public class Tramo extends BaseModel {
     private int delay;
     private long geofenceId;
     private int punishment;
+    private boolean forceBacktrackSearch;
+    private boolean forceUseExitTime;
 
     public String getName() {
         return name;
@@ -59,9 +61,24 @@ public class Tramo extends BaseModel {
         this.delay = delay;
     }
 
-    @Override
-    public String toString() {
-        return "Tramo{id=" + getId() + "name=" + name + ", minTime=" + minTime + ", delay=" + delay + ", geofenceId=" + geofenceId + ", punishment=" + punishment + '}';
+    public boolean getForceBacktrackSearch() {
+        return forceBacktrackSearch;
     }
 
+    public void setForceBacktrackSearch(boolean forceBacktrackSearch) {
+        this.forceBacktrackSearch = forceBacktrackSearch;
+    }
+
+    public boolean getForceUseExitTime() {
+        return forceUseExitTime;
+    }
+
+    public void setForceUseExitTime(boolean forceUseExitTime) {
+        this.forceUseExitTime = forceUseExitTime;
+    }
+
+    @Override
+    public String toString() {
+        return "Tramo{" + "name=" + name + ", minTime=" + minTime + ", delay=" + delay + ", geofenceId=" + geofenceId + ", punishment=" + punishment + ", forceBacktrackSearch=" + forceBacktrackSearch + '}';
+    }    
 }

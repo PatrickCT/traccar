@@ -15,6 +15,7 @@
  */
 package org.traccar.handler.events;
 
+import java.util.HashSet;
 import java.util.Map;
 
 import org.traccar.BaseDataHandler;
@@ -26,7 +27,7 @@ import javax.inject.Inject;
 import org.json.JSONObject;
 import org.traccar.model.Device;
 import org.traccar.session.cache.CacheManager;
-import org.traccar.utils.GeneralUtils;
+import java.util.Set;
 
 public abstract class BaseEventHandler extends BaseDataHandler {
 
@@ -46,8 +47,22 @@ public abstract class BaseEventHandler extends BaseDataHandler {
 //        cacheManager.getDevLog().log(position.toString());
         Map<Event, Position> events = analyzePosition(position);
         if (events != null && !events.isEmpty()) {
+            // Collect keys to remove
+            Set<Event> toRemove = new HashSet<>();
+            for (Map.Entry<Event, Position> entry : events.entrySet()) {
+                Position v = entry.getValue();
+                if (v.hasAttribute(Position.KEY_ALARM)
+                        && Position.ALARM_TAMPERING.equals(v.getString(Position.KEY_ALARM))) {
+                    toRemove.add(entry.getKey());
+                }
+            }
+
+            // Remove the collected keys
+            toRemove.forEach(events::remove);
+
             notificationManager.updateEvents(events);
         }
+
         JSONObject obj = new JSONObject();
         obj.put("type", "position");
         obj.put("data", position);

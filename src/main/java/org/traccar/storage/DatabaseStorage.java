@@ -116,7 +116,6 @@ public class DatabaseStorage extends Storage {
         query.append(formatColumns(columns, c -> c + " = :" + c));
         query.append(formatCondition(request.getCondition()));
 
-
         try {
             QueryBuilder builder = QueryBuilder.create(config, dataSource, objectMapper, query.toString());
             builder.setObject(entity, columns);
@@ -124,10 +123,6 @@ public class DatabaseStorage extends Storage {
                 builder.setValue(variable.getKey(), variable.getValue());
             }
             builder.executeUpdate();
-//            if (entity.getClass().equals(Device.class) && ((Device) entity).getId() == 7110) {
-//                System.out.println(query.toString());
-//                System.out.println("update device " + ((Device) entity).getId() + " position id " + ((Device) entity).getPositionId());
-//            }
         } catch (SQLException e) {
             throw new StorageException(e);
         }
@@ -520,4 +515,5 @@ public class DatabaseStorage extends Storage {
         }
         return false;
     }
+
 }

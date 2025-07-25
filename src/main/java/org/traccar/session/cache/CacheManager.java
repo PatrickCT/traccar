@@ -67,6 +67,7 @@ import java.util.stream.Collectors;
 import org.traccar.api.AsyncSocket;
 import org.traccar.model.Permission;
 import org.traccar.utils.DailyLogger;
+import org.traccar.utils.DeviceDailyLogger;
 
 @Singleton
 public class CacheManager implements BroadcastInterface {
@@ -96,6 +97,7 @@ public class CacheManager implements BroadcastInterface {
     private boolean calculating;
     
     private DailyLogger devLog;
+    private DeviceDailyLogger devDailyLogger;
 
     @Inject
     public CacheManager(Config config, Storage storage, BroadcastService broadcastService) throws StorageException, InterruptedException {
@@ -107,6 +109,7 @@ public class CacheManager implements BroadcastInterface {
         broadcastService.registerListener(this);
         recalculateDevices();
         this.devLog = new DailyLogger();
+        this.devDailyLogger = new DeviceDailyLogger();
         
     }
 
@@ -563,5 +566,9 @@ public class CacheManager implements BroadcastInterface {
 
     public DailyLogger getDevLog() {
         return devLog;
-    }        
+    } 
+    
+    public DeviceDailyLogger getDeviceLog() {
+        return devDailyLogger;
+    } 
 }

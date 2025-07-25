@@ -55,6 +55,8 @@ public final class QueryBuilder {
     private PreparedStatement statement;
     private final String query;
     private final boolean returnGeneratedKeys;
+    private final Map<Integer, Object> parameterValues = new HashMap<>();
+
 
     private QueryBuilder(
             Config config, DataSource dataSource, ObjectMapper objectMapper,
@@ -159,6 +161,7 @@ public final class QueryBuilder {
         for (int i : indexes(name)) {
             try {
                 statement.setBoolean(i, value);
+                parameterValues.put(i, value);
             } catch (SQLException error) {
                 statement.close();
                 connection.close();
@@ -172,6 +175,7 @@ public final class QueryBuilder {
         for (int i : indexes(name)) {
             try {
                 statement.setInt(i, value);
+                parameterValues.put(i, value);
             } catch (SQLException error) {
                 statement.close();
                 connection.close();
@@ -190,8 +194,10 @@ public final class QueryBuilder {
             try {
                 if (value == 0 && nullIfZero) {
                     statement.setNull(i, Types.INTEGER);
+                    parameterValues.put(i, "NULL");
                 } else {
                     statement.setLong(i, value);
+                    parameterValues.put(i, value);
                 }
             } catch (SQLException error) {
                 statement.close();
@@ -206,6 +212,7 @@ public final class QueryBuilder {
         for (int i : indexes(name)) {
             try {
                 statement.setDouble(i, value);
+                parameterValues.put(i, value);
             } catch (SQLException error) {
                 statement.close();
                 connection.close();
@@ -220,8 +227,10 @@ public final class QueryBuilder {
             try {
                 if (value == null) {
                     statement.setNull(i, Types.VARCHAR);
+                    parameterValues.put(i, "NULL");
                 } else {
                     statement.setString(i, value);
+                    parameterValues.put(i, value);
                 }
             } catch (SQLException error) {
                 statement.close();
@@ -237,8 +246,10 @@ public final class QueryBuilder {
             try {
                 if (value == null) {
                     statement.setNull(i, Types.TIMESTAMP);
+                    parameterValues.put(i, "NULL");
                 } else {
                     statement.setTimestamp(i, new Timestamp(value.getTime()));
+                    parameterValues.put(i, value);
                 }
             } catch (SQLException error) {
                 statement.close();
@@ -406,11 +417,10 @@ public final class QueryBuilder {
         List<T> result = new LinkedList<>();
 
         if (query != null) {
-
             try {
-
                 logQuery();
-
+                LOGGER.debug("Full query: {}", getFinalQueryWithValues());
+                parameterValues.clear();
                 try (ResultSet resultSet = statement.executeQuery()) {
 
                     ResultSetMetaData resultMetaData = resultSet.getMetaData();
@@ -507,4 +517,19 @@ public final class QueryBuilder {
         return result;
     }
 
+    private String getFinalQueryWithValues() {
+        String parsedQuery = parse(query.trim(), new HashMap<>());
+        StringBuilder result = new StringBuilder();
+        int paramIndex = 1;
+        for (int i = 0; i < parsedQuery.length(); i++) {
+            char c = parsedQuery.charAt(i);
+            if (c == '?') {
+                Object value = parameterValues.get(paramIndex++);
+                result.append(value != null ? value.toString() : "NULL");
+            } else {
+                result.append(c);
+            }
+        }
+        return result.toString();
+    }
 }
