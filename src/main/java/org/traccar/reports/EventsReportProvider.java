@@ -16,6 +16,8 @@
  */
 package org.traccar.reports;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.traccar.config.Config;
 import org.traccar.config.Keys;
@@ -42,24 +44,34 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import org.traccar.helper.DateUtil;
+import org.traccar.model.GeofenceOrder;
+import org.traccar.model.User;
+import org.traccar.session.cache.CacheManager;
+import org.traccar.utils.GenericUtils;
+import org.traccar.utils.ReportesV2;
 
 public class EventsReportProvider {
 
     private final Config config;
     private final ReportUtils reportUtils;
     private final Storage storage;
+    private final CacheManager cacheManager;
 
     @Inject
-    public EventsReportProvider(Config config, ReportUtils reportUtils, Storage storage) {
+    public EventsReportProvider(Config config, ReportUtils reportUtils, Storage storage, CacheManager cache) {
         this.config = config;
         this.reportUtils = reportUtils;
         this.storage = storage;
+        this.cacheManager = cache;
     }
 
     private List<Event> getEvents(long deviceId, Date from, Date to) throws StorageException {
@@ -77,7 +89,7 @@ public class EventsReportProvider {
         reportUtils.checkPeriodLimit(from, to);
 
         ArrayList<Event> result = new ArrayList<>();
-        for (Device device: DeviceUtil.getAccessibleDevices(storage, userId, deviceIds, groupIds)) {
+        for (Device device : DeviceUtil.getAccessibleDevices(storage, userId, deviceIds, groupIds)) {
             Collection<Event> events = getEvents(device.getId(), from, to);
             boolean all = types.isEmpty() || types.contains(Event.ALL_EVENTS);
             for (Event event : events) {
@@ -87,7 +99,7 @@ public class EventsReportProvider {
                     if ((geofenceId == 0 || reportUtils.getObject(userId, Geofence.class, geofenceId) != null)
                             && (maintenanceId == 0
                             || reportUtils.getObject(userId, Maintenance.class, maintenanceId) != null)) {
-                       result.add(event);
+                        result.add(event);
                     }
                 }
             }
@@ -105,10 +117,10 @@ public class EventsReportProvider {
         HashMap<Long, String> geofenceNames = new HashMap<>();
         HashMap<Long, String> maintenanceNames = new HashMap<>();
         HashMap<Long, Position> positions = new HashMap<>();
-        for (Device device: DeviceUtil.getAccessibleDevices(storage, userId, deviceIds, groupIds)) {
+        for (Device device : DeviceUtil.getAccessibleDevices(storage, userId, deviceIds, groupIds)) {
             Collection<Event> events = getEvents(device.getId(), from, to);
             boolean all = types.isEmpty() || types.contains(Event.ALL_EVENTS);
-            for (Iterator<Event> iterator = events.iterator(); iterator.hasNext();) {
+            for (Iterator<Event> iterator = events.iterator(); iterator.hasNext(); ) {
                 Event event = iterator.next();
                 if (all || types.contains(event.getType())) {
                     long geofenceId = event.getGeofenceId();
@@ -165,6 +177,220 @@ public class EventsReportProvider {
             context.putVar("from", from);
             context.putVar("to", to);
             reportUtils.processTemplateWithSheets(inputStream, outputStream, context);
+        }
+    }
+
+    public void getExcelHOptimized(OutputStream outputStream,
+                                   long userId,
+                                   Collection<Long> deviceIds,
+                                   Collection<Long> groupIds,
+                                   Collection<String> types,
+                                   Date from,
+                                   Date to) throws StorageException, IOException {
+
+        //long totalStart = System.currentTimeMillis();
+        reportUtils.checkPeriodLimit(from, to);
+        //long start = System.currentTimeMillis();
+        try {
+            SimpleDateFormat sdfFull = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            SimpleDateFormat sdfTime = new SimpleDateFormat("HH:mm:ss");
+
+            List<GeofenceOrder> geofenceOrders = getOrderedGeofences(userId);
+            //System.out.println("[getExcelH] Geofence orders fetched in " + (System.currentTimeMillis() - start) + "ms");
+            Set<Integer> geofenceIds = geofenceOrders.stream().map(GeofenceOrder::getGeofenceid).collect(Collectors.toSet());
+
+            //start = System.currentTimeMillis();
+            // Cache geofence names
+            Map<Long, String> geofenceNames = storage.getObjectsByQuery(Geofence.class, "select * from tc_geofences").stream()
+                    .filter(g -> geofenceIds.contains(g.getId()))
+                    .collect(Collectors.toMap(Geofence::getId, Geofence::getName));
+            //System.out.println("[getExcelH] Geofences fetched in " + (System.currentTimeMillis() - start) + "ms");
+            List<String> headers = buildHeaders(geofenceOrders, geofenceNames);
+
+            //start = System.currentTimeMillis();
+
+            Set<Long> allDeviceIds = new HashSet<>(deviceIds);
+
+            if (!groupIds.isEmpty()) {
+                for (Long groupId : groupIds) {
+                    List<Device> devices;
+                    if (deviceIds.isEmpty()) {
+                        devices = storage.getObjectsByQuery(Device.class, String.format("select * from tc_devices where groupId=%s", groupId));
+                    } else {
+                        String deviceIdsStr = deviceIds.stream().map(String::valueOf).collect(Collectors.joining(",", "(", ")"));
+                        devices = storage.getObjectsByQuery(Device.class, String.format("select * from tc_devices where groupId=%s and id not in %s", groupId, deviceIdsStr));
+                    }
+                    allDeviceIds.addAll(devices.stream().map(Device::getId).collect(Collectors.toList()));
+                }
+            }
+
+            //System.out.println("[getExcelH] Devices filtered fetched in " + (System.currentTimeMillis() - start) + "ms");
+            //start = System.currentTimeMillis();
+            // Cache all devices
+            Map<Long, Device> deviceMap = storage.getObjectsByQuery(Device.class, "select * from tc_devices").stream()
+                    .filter(d -> allDeviceIds.contains(d.getId()))
+                    .collect(Collectors.toMap(Device::getId, Function.identity()));
+
+            //System.out.println("[getExcelH] Devices fetched in " + (System.currentTimeMillis() - start) + "ms");
+
+            String deviceIdStr = allDeviceIds.stream().map(String::valueOf).collect(Collectors.joining(",", "(", ")"));
+            String typeStr = types.stream().map(t -> "'" + t + "'").collect(Collectors.joining(",", "(", ")"));
+
+            //start = System.currentTimeMillis();
+            Collection<Event> allEvents = storage.getObjectsByQuery(Event.class, String.format(
+                    "select * from tc_events where deviceId in %s and type in %s and eventtime between '%s' and '%s'",
+                    deviceIdStr,
+                    typeStr,
+                    sdfFull.format(from),
+                    sdfFull.format(to)));
+
+            //System.out.println("[getExcelH] Events fetched in " + (System.currentTimeMillis() - start) + "ms");
+            // Group events by device
+            Map<Long, List<Event>> eventsByDevice = allEvents.stream()
+                    .collect(Collectors.groupingBy(Event::getDeviceId));
+
+            List<String[]> data = new ArrayList<>();
+
+            //start = System.currentTimeMillis();
+            for (long deviceId : allDeviceIds) {
+                Device device = deviceMap.get(deviceId);
+                if (device == null) continue;
+
+                List<Event> deviceEvents = eventsByDevice.getOrDefault(deviceId, Collections.emptyList());
+                deviceEvents.sort(Comparator.comparing(Event::getEventTime));
+
+                List<Event> entries = filterEvents(deviceEvents, Event.TYPE_GEOFENCE_ENTER);
+                List<Event> exits = filterEvents(deviceEvents, Event.TYPE_GEOFENCE_EXIT);
+
+                int rowCount = Math.max(entries.size(), exits.size()) + 1;
+                List<String[]> deviceRows = IntStream.range(0, rowCount)
+                        .mapToObj(i -> {
+                            String[] row = new String[headers.size()];
+                            Arrays.fill(row, "");
+                            row[0] = device.getName();
+                            return row;
+                        }).collect(Collectors.toList());
+
+                Map<Integer, Integer> geofenceIndexMap = new HashMap<>();
+                int colIndex = 1;
+                for (GeofenceOrder go : geofenceOrders) {
+                    geofenceIndexMap.put(go.getGeofenceid(), colIndex);
+                    colIndex += go.isExits() ? 2 : 1;
+                }
+
+                fillEventDataOptimized(deviceRows, entries, geofenceOrders, geofenceIndexMap, deviceMap, sdfTime, true);
+                fillEventDataOptimized(deviceRows, exits, geofenceOrders, geofenceIndexMap, deviceMap, sdfTime, false);
+
+                deviceRows.removeIf(row -> Arrays.stream(row).skip(1).allMatch(String::isEmpty));
+                data.addAll(deviceRows);
+            }
+
+            //System.out.println("[getExcelH] Data proccessed in " + (System.currentTimeMillis() - start) + "ms");
+
+            ReportesV2 reporter = new ReportesV2();
+            reporter.createReporte("reporte", "devices", headers, data, outputStream,
+                    String.format("%s - %s", DateUtil.formatDate(from), DateUtil.formatDate(to)));
+
+            //System.out.println("[getExcelHOptimized] Completed in " + (System.currentTimeMillis() - totalStart) + "ms");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private List<GeofenceOrder> getOrderedGeofences(long userId) throws StorageException, JsonProcessingException {
+        User user = storage.getObject(User.class, new Request(new Columns.All(), new Condition.Equals("id", userId)));
+        List<GeofenceOrder> ordered = new ArrayList<>();
+
+        // Step 1: Parse JSON array string into Java List<String>
+        ObjectMapper mapper = new ObjectMapper();
+        List<String> entries = mapper.readValue(user.getString("geofencesOrder", "[]"), List.class);
+
+        // Step 2: Convert to List of Maps        
+        int index = 0;
+        for (String entry : entries) {
+            String[] parts = entry.split("\\|");
+            if (parts.length == 2) {
+                Map<String, Boolean> map = new HashMap<>();
+                ordered.add(new GeofenceOrder(Integer.parseInt(parts[0]), index, Boolean.parseBoolean(parts[1])));
+            }
+        }
+
+        return ordered;
+    }
+
+    private List<String> buildHeaders(List<GeofenceOrder> geo, Map<Long, String> geofenceNames) {
+        List<String> headers = new ArrayList<>();
+        headers.add("Dispositivo");
+        for (GeofenceOrder go : geo) {
+            String name = getGeofenceName(go.getGeofenceid(), geofenceNames);
+            headers.add(name + "(Entrada)");
+            if (go.isExits()) {
+                headers.add(name + "(Salida)");
+            }
+        }
+        return headers;
+    }
+
+    private String getGeofenceName(long id, Map<Long, String> cache) {
+        return cache.computeIfAbsent(id, gid -> {
+            Geofence g = null;
+            try {
+                g = storage.getObject(Geofence.class, new Request(new Columns.All(), new Condition.Equals("id", gid)));
+            } catch (StorageException ex) {
+                Logger.getLogger(EventsReportProvider.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            return g != null ? g.getName() : "";
+        });
+    }
+
+    private List<Event> filterEvents(List<Event> events, String type) {
+        return events.stream()
+                .filter(e -> type.equals(e.getType()))
+                .sorted(Comparator.comparing(Event::getEventTime))
+                .collect(Collectors.toList());
+    }
+
+    private void fillEventDataOptimized(List<String[]> rows,
+                                        List<Event> events,
+                                        List<GeofenceOrder> geo,
+                                        Map<Integer, Integer> geofenceIndexMap,
+                                        Map<Long, Device> deviceMap,
+                                        SimpleDateFormat sdf,
+                                        boolean isEntry) {
+
+        // Group rows by device name (can have multiple rows per device)
+        Map<String, List<String[]>> rowMap = new HashMap<>();
+        for (String[] row : rows) {
+            rowMap.computeIfAbsent(row[0], k -> new ArrayList<>()).add(row);
+        }
+
+        for (Event e : events) {
+            int geofenceId = (int) e.getGeofenceId();
+            Optional<GeofenceOrder> orderOpt = geo.stream()
+                    .filter(g -> g.getGeofenceid() == geofenceId)
+                    .findFirst();
+            if (!orderOpt.isPresent()) continue;
+
+            GeofenceOrder go = orderOpt.get();
+            if (!isEntry && !go.isExits()) continue;
+
+            int colIndex = geofenceIndexMap.getOrDefault(geofenceId, -1);
+            if (colIndex < 0) continue;
+            if (!isEntry) colIndex += 1;
+
+            Device device = deviceMap.get(e.getDeviceId());
+            if (device == null) continue;
+
+            List<String[]> deviceRows = rowMap.get(device.getName());
+            if (deviceRows == null) continue;
+
+            for (String[] row : deviceRows) {
+                if (row[colIndex].isEmpty()) {
+                    row[colIndex] = sdf.format(e.getEventTime());
+                    break;
+                }
+            }
         }
     }
 }

@@ -120,6 +120,10 @@ public class ReportUtils {
         return distance/fuelEfficiency;
     }
 
+    public double calculateFuelPprMotorHour(SummaryReportItem result, double fuelEfficiency) {
+        return result.getEngineHours()*fuelEfficiency;
+    }
+
     public String findDriver(Position firstPosition, Position lastPosition) {
         if (firstPosition.hasAttribute(Position.KEY_DRIVER_UNIQUE_ID)) {
             return firstPosition.getString(Position.KEY_DRIVER_UNIQUE_ID);

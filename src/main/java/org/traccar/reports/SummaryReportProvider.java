@@ -28,6 +28,7 @@ import org.traccar.model.Device;
 import org.traccar.model.Position;
 import org.traccar.reports.common.ReportUtils;
 import org.traccar.reports.model.SummaryReportItem;
+import org.traccar.session.cache.CacheManager;
 import org.traccar.storage.Storage;
 import org.traccar.storage.StorageException;
 import org.traccar.storage.query.Columns;
@@ -56,14 +57,16 @@ public class SummaryReportProvider {
     private final ReportUtils reportUtils;
     private final PermissionsService permissionsService;
     private final Storage storage;
+    private final CacheManager cacheManager;
 
     @Inject
     public SummaryReportProvider(
-            Config config, ReportUtils reportUtils, PermissionsService permissionsService, Storage storage) {
+            Config config, ReportUtils reportUtils, PermissionsService permissionsService, Storage storage, CacheManager cache) {
         this.config = config;
         this.reportUtils = reportUtils;
         this.permissionsService = permissionsService;
         this.storage = storage;
+        this.cacheManager = cache;
     }
 
     private Position getEdgePosition(long deviceId, Date from, Date to, boolean end) throws StorageException {
@@ -107,10 +110,19 @@ public class SummaryReportProvider {
 
             long durationMilliseconds;
             if (first.hasAttribute(Position.KEY_HOURS) && last.hasAttribute(Position.KEY_HOURS)) {
+                cacheManager.getDeviceLog().log(device.getId(), "Report summary calculating engine hours per atts");
+                cacheManager.getDeviceLog().log(device.getId(), "Report summary first " + first.getLong(Position.KEY_HOURS));
+                cacheManager.getDeviceLog().log(device.getId(), "Report summary last " + last.getLong(Position.KEY_HOURS));
                 durationMilliseconds = last.getLong(Position.KEY_HOURS) - first.getLong(Position.KEY_HOURS);
                 result.setEngineHours(durationMilliseconds);
+                cacheManager.getDeviceLog().log(device.getId(), "Report summary engine hours " + durationMilliseconds);
             } else {
-                durationMilliseconds = last.getFixTime().getTime() - first.getFixTime().getTime();
+                cacheManager.getDeviceLog().log(device.getId(), "Report summary calculating engine hours per atts");
+                cacheManager.getDeviceLog().log(device.getId(), "Report summary first " + first.getFixTime().getTime());
+                cacheManager.getDeviceLog().log(device.getId(), "Report summary last " + last.getFixTime().getTime());
+                durationMilliseconds = last.getLong(Position.KEY_HOURS) - first.getLong(Position.KEY_HOURS);
+                result.setEngineHours(durationMilliseconds);
+                cacheManager.getDeviceLog().log(device.getId(), "Report summary engine hours " + durationMilliseconds);
             }
 
             if (durationMilliseconds > 0) {
@@ -128,8 +140,23 @@ public class SummaryReportProvider {
 
             result.setStartTime(first.getFixTime());
             result.setEndTime(last.getFixTime());
-            if(result.getSpentFuel() == 0){
-                var fuelEfficiency = Double.parseDouble(device.getAttributes().getOrDefault("fuelEfficiency", device.getAttributes().getOrDefault("rendimiento", 0)).toString());
+            if (result.getSpentFuel() == 0) {
+                var efficiency = device.getAttributes().getOrDefault("fuelEfficiency", 0);
+                var efficiency_per_hour = device.getAttributes().getOrDefault("fuelEfficiencyPerMotorHour", 0);
+                if (efficiency == "null" || efficiency == null) {
+                    efficiency = "0";
+                }
+                if (efficiency_per_hour == "null" || efficiency_per_hour == null) {
+                    efficiency_per_hour = "0";
+                }
+
+                var fuelEfficiency = 0.0;
+                if (efficiency == "0" && efficiency_per_hour == "0") {
+                    fuelEfficiency = Double.parseDouble(efficiency.toString());
+                } else if (efficiency == "0" && efficiency_per_hour != "0") {
+                    fuelEfficiency = Double.parseDouble(efficiency_per_hour.toString());
+                }
+
                 result.setSpentFuel(reportUtils.calculateFuel(result, fuelEfficiency));
             }
             return List.of(result);
@@ -166,7 +193,7 @@ public class SummaryReportProvider {
         var tz = UserUtil.getTimezone(permissionsService.getServer(), permissionsService.getUser(userId)).toZoneId();
 
         ArrayList<SummaryReportItem> result = new ArrayList<>();
-        for (Device device: DeviceUtil.getAccessibleDevices(storage, userId, deviceIds, groupIds)) {
+        for (Device device : DeviceUtil.getAccessibleDevices(storage, userId, deviceIds, groupIds)) {
             var deviceResults = calculateDeviceResults(
                     device, from.toInstant().atZone(tz), to.toInstant().atZone(tz), daily);
             for (SummaryReportItem summaryReport : deviceResults) {
@@ -179,8 +206,8 @@ public class SummaryReportProvider {
     }
 
     public void getExcel(OutputStream outputStream,
-            long userId, Collection<Long> deviceIds, Collection<Long> groupIds,
-            Date from, Date to, boolean daily) throws StorageException, IOException {
+                         long userId, Collection<Long> deviceIds, Collection<Long> groupIds,
+                         Date from, Date to, boolean daily) throws StorageException, IOException {
         Collection<SummaryReportItem> summaries = getObjects(userId, deviceIds, groupIds, from, to, daily);
 
         File file = Paths.get(config.getString(Keys.TEMPLATES_ROOT), "export", "summary.xlsx").toFile();

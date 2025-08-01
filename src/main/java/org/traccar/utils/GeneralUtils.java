@@ -67,6 +67,7 @@ public class GeneralUtils {
             System.out.println("error generic post");
             System.out.println(ex.getMessage());
             System.out.println(ex);
+            ex.printStackTrace();
         }
         return "";
     }

@@ -193,6 +193,23 @@ public class ReportResource extends SimpleObjectResource<Report> {
             eventsReportProvider.getExcel(stream, getUserId(), deviceIds, groupIds, types, from, to);
         });
     }
+    
+    @Path("eventsh")
+    @GET
+    @Produces(EXCEL)
+    public Response getEventsHExcel(
+            @QueryParam("deviceId") List<Long> deviceIds,
+            @QueryParam("groupId") List<Long> groupIds,
+            @QueryParam("type") List<String> types,
+            @QueryParam("from") Date from,
+            @QueryParam("to") Date to,
+            @QueryParam("mail") boolean mail) throws StorageException {
+        permissionsService.checkRestriction(getUserId(), UserRestrictions::getDisableReports);
+        return executeReport(getUserId(), mail, stream -> {
+            LogAction.logReport(getUserId(), "events", from, to, deviceIds, groupIds);            
+            eventsReportProvider.getExcelHOptimized(stream, getUserId(), deviceIds, groupIds, types, from, to);
+        });
+    }
 
     @Path("events/{type:xlsx|mail}")
     @GET
@@ -205,6 +222,19 @@ public class ReportResource extends SimpleObjectResource<Report> {
             @QueryParam("to") Date to,
             @PathParam("type") String type) throws StorageException {
         return getEventsExcel(deviceIds, groupIds, types, from, to, type.equals("mail"));
+    }
+    
+    @Path("eventsh/{type:xlsx|mail}")
+    @GET
+    @Produces(EXCEL)
+    public Response getEventsHorizontalExcel(
+            @QueryParam("deviceId") List<Long> deviceIds,
+            @QueryParam("groupId") List<Long> groupIds,
+            @QueryParam("type") List<String> types,
+            @QueryParam("from") Date from,
+            @QueryParam("to") Date to,
+            @PathParam("type") String type) throws StorageException {
+        return getEventsHExcel(deviceIds, groupIds, types, from, to, false);
     }
 
     @Path("summary")
