@@ -19,9 +19,11 @@ package org.traccar.reports;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.poi.ss.util.WorkbookUtil;
+import org.traccar.api.security.PermissionsService;
 import org.traccar.config.Config;
 import org.traccar.config.Keys;
 import org.traccar.helper.model.DeviceUtil;
+import org.traccar.helper.model.UserUtil;
 import org.traccar.model.Device;
 import org.traccar.model.Event;
 import org.traccar.model.Geofence;
@@ -175,10 +177,19 @@ public class EventsReportProvider {
             context.putVar("maintenanceNames", maintenanceNames);
             context.putVar("positions", positions);
             context.putVar("from", from);
+
             context.putVar("to", to);
             reportUtils.processTemplateWithSheets(inputStream, outputStream, context);
         }
     }
+
+    public static Date convertDateToTimeZone(Date date, TimeZone toTimeZone) {
+        long timeInMillis = date.getTime();
+        int fromOffset = TimeZone.getDefault().getOffset(timeInMillis);
+        int toOffset = toTimeZone.getOffset(timeInMillis);
+        return new Date(timeInMillis - fromOffset + toOffset);
+    }
+
 
     public void getExcelHOptimized(OutputStream outputStream,
                                    long userId,
@@ -192,6 +203,11 @@ public class EventsReportProvider {
         reportUtils.checkPeriodLimit(from, to);
         //long start = System.currentTimeMillis();
         try {
+            var server = reportUtils.getPermissionsService().getServer();
+            var user = reportUtils.getPermissionsService().getUser(userId);
+            var userTimeZone = UserUtil.getTimezone(server, user);
+
+
             SimpleDateFormat sdfFull = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             SimpleDateFormat sdfTime = new SimpleDateFormat("HH:mm:ss");
 
@@ -244,6 +260,7 @@ public class EventsReportProvider {
                     sdfFull.format(from),
                     sdfFull.format(to)));
 
+
             //System.out.println("[getExcelH] Events fetched in " + (System.currentTimeMillis() - start) + "ms");
             // Group events by device
             Map<Long, List<Event>> eventsByDevice = allEvents.stream()
@@ -257,7 +274,14 @@ public class EventsReportProvider {
                 if (device == null) continue;
 
                 List<Event> deviceEvents = eventsByDevice.getOrDefault(deviceId, Collections.emptyList());
+
+
                 deviceEvents.sort(Comparator.comparing(Event::getEventTime));
+
+                for (Event event : deviceEvents) {
+                    Date localDate = convertDateToTimeZone(event.getEventTime(), userTimeZone);
+                    event.setEventTime(localDate);
+                }
 
                 List<Event> entries = filterEvents(deviceEvents, Event.TYPE_GEOFENCE_ENTER);
                 List<Event> exits = filterEvents(deviceEvents, Event.TYPE_GEOFENCE_EXIT);

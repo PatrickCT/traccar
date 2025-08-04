@@ -66,7 +66,7 @@ public class TransporteUtils {
             cacheManager.getDeviceLog().log(deviceId, "Paso 5 correcto: obtenidos los itinerarios disparados por la geocerca " + geofenceId);
             cacheManager.getDeviceLog().log(deviceId, "Paso 5 " + objectListToLogString(schedules));
             //6
-            Itinerario selectedSchedule = getSelectedSchedule(cacheManager.getStorage(), group, schedules, deviceId, geofenceId, time);
+            Itinerario selectedSchedule = getSelectedSchedule(cacheManager.getStorage(), group, schedules, deviceId, geofenceId, time, cacheManager);
             cacheManager.getDeviceLog().log(deviceId, "Paso 6 correcto: seleccionar un itinerario adecuado");
             cacheManager.getDeviceLog().log(deviceId, "Paso 6 " + selectedSchedule.toString());
             //7
@@ -137,7 +137,7 @@ public class TransporteUtils {
         return todaySchedules;
     }
 
-    private static Itinerario getSelectedSchedule(Storage storage, Group group, List<Itinerario> schedules, long deviceId, long geofenceId, Date time) throws StorageException, ParseException, IOException {
+    private static Itinerario getSelectedSchedule(Storage storage, Group group, List<Itinerario> schedules, long deviceId, long geofenceId, Date time, CacheManager cacheManager) throws StorageException, ParseException, IOException {
         Itinerario itinerarioSelected = null;
 
         if (group.hasAttribute("vp") && Boolean.TRUE.equals(group.getAttributes().get("vp"))) {
@@ -149,6 +149,7 @@ public class TransporteUtils {
             List<Salida> salidasToday = storage.getObjectsByQuery(Salida.class, query);
 
             if (salidasToday.isEmpty()) {
+                cacheManager.getDeviceLog().log(deviceId, "Lista de salida para el día de hoy vacías en dispositivo " +deviceId);
                 itinerarioSelected = findClosestObject(schedules, new Date(), 1, storage, true);
 
                 if (itinerarioSelected == null)
@@ -166,6 +167,7 @@ public class TransporteUtils {
                     }
                 }
             } else {
+                cacheManager.getDeviceLog().log(deviceId, "Lista de salida para el día de hoy NO vacías en dispositivo " +deviceId);
                 Salida firstSalida = salidasToday.get(0);
                 Itinerario salidaItinerario = storage.getObject(Itinerario.class,
                         new Request(new Columns.All(), new Condition.Equals("id", firstSalida.getScheduleId())));
