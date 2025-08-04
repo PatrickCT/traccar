@@ -112,7 +112,10 @@ public class SalidasResource extends BaseObjectResource<Salida> {
             }
         });
 
-        Date newDate = new Date(tickets.get(0).getExpectedTime().getTime());
+        Date newDate = new Date(salida.getDate().getTime());
+        newDate.setHours(tickets.get(0).getExpectedTime().getHours());
+        newDate.setMinutes(tickets.get(0).getExpectedTime().getMinutes());
+        newDate.setSeconds(tickets.get(0).getExpectedTime().getSeconds());
 
         Date parsedDate = GenericUtils.parseTime((String) values.get("time"));
         Logger.getLogger(TransporteUtils.class.getName()).log(Level.INFO, "Adjusting hour of salida " + salidaId + " to time " + parsedDate);

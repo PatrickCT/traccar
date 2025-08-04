@@ -1022,6 +1022,7 @@ public class TransporteUtils {
             }
 
         } catch (StorageException e) {
+            cacheManager.getDeviceLog().log(deviceId, "Error anulando salidas anteriores");
         }
     }
 

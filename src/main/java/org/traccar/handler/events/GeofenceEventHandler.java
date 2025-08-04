@@ -98,7 +98,9 @@ public class GeofenceEventHandler extends BaseEventHandler {
                                 TransporteUtils.updateSalida(position.getDeviceId(), geofenceId, event.getEventTime(), cacheManager, false);
                             }
                         } catch (Exception e) {
-                            // Handle exceptions if needed
+                            cacheManager.getDeviceLog().log(position.getDeviceId(), "Error on hanlder");
+                            cacheManager.getDeviceLog().log(position.getDeviceId(), e.getMessage());
+                            e.printStackTrace();
                         }
                         return null;
                     });

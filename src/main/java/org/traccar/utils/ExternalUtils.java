@@ -505,7 +505,7 @@ public final class ExternalUtils {
             try {
                 result = genericPOST(endpoint, body, headers, 5);
             } catch (IOException ex) {
-                ex.printStackTrace();
+                //ex.printStackTrace();
                 //System.out.println(ex);
             }
             LOGGER.info("WS Response");

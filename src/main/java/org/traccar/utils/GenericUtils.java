@@ -20,6 +20,7 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -530,5 +531,25 @@ public class GenericUtils {
         }
 
         return filteredList;
+    }
+    
+    public static String objectListToLogString(List<?> list) {
+        if (list == null || list.isEmpty()) {
+            return "[]";
+        }
+
+        return list.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(",\n", "[\n", "\n]"));
+    }
+    
+    public static String objectListToQueryString(List<?> list) {
+        if (list == null || list.isEmpty()) {
+            return "()";
+        }
+
+        return list.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(",\n", "(\n", "\n)"));
     }
 }
