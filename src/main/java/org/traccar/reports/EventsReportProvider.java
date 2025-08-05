@@ -252,13 +252,18 @@ public class EventsReportProvider {
             String deviceIdStr = allDeviceIds.stream().map(String::valueOf).collect(Collectors.joining(",", "(", ")"));
             String typeStr = types.stream().map(t -> "'" + t + "'").collect(Collectors.joining(",", "(", ")"));
 
+            long sixHoursInMillis = 6 * 60 * 60 * 1000;
+
+            Date utcFrom = new Date(from.getTime() - sixHoursInMillis);
+            Date utcTo = new Date(to.getTime() - sixHoursInMillis);
+
             //start = System.currentTimeMillis();
             Collection<Event> allEvents = storage.getObjectsByQuery(Event.class, String.format(
                     "select * from tc_events where deviceId in %s and type in %s and eventtime between '%s' and '%s'",
                     deviceIdStr,
                     typeStr,
-                    sdfFull.format(from),
-                    sdfFull.format(to)));
+                    sdfFull.format(utcFrom),
+                    sdfFull.format(utcTo)));
 
 
             //System.out.println("[getExcelH] Events fetched in " + (System.currentTimeMillis() - start) + "ms");
@@ -313,7 +318,7 @@ public class EventsReportProvider {
 
             ReportesV2 reporter = new ReportesV2();
             reporter.createReporte("reporte", "devices", headers, data, outputStream,
-                    String.format("%s - %s", DateUtil.formatDate(from), DateUtil.formatDate(to)));
+                    String.format("%s - %s", DateUtil.formatDate(convertDateToTimeZone(from, userTimeZone)), DateUtil.formatDate(convertDateToTimeZone(to, userTimeZone))));
 
             //System.out.println("[getExcelHOptimized] Completed in " + (System.currentTimeMillis() - totalStart) + "ms");
 

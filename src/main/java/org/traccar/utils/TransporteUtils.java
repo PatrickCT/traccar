@@ -139,6 +139,8 @@ public class TransporteUtils {
 
     private static Itinerario getSelectedSchedule(Storage storage, Group group, List<Itinerario> schedules, long deviceId, long geofenceId, Date time, CacheManager cacheManager) throws StorageException, ParseException, IOException {
         Itinerario itinerarioSelected = null;
+        ProccessLogger logger = new ProccessLogger(LOGGER);
+        logger.info("Intentando obtener itinerario para dispositivo " + deviceId);
 
         if (group.hasAttribute("vp") && Boolean.TRUE.equals(group.getAttributes().get("vp"))) {
             String query = String.format(
@@ -149,7 +151,7 @@ public class TransporteUtils {
             List<Salida> salidasToday = storage.getObjectsByQuery(Salida.class, query);
 
             if (salidasToday.isEmpty()) {
-                cacheManager.getDeviceLog().log(deviceId, "Lista de salida para el día de hoy vacías en dispositivo " +deviceId);
+                logger.info("Lista de salida para el día de hoy vacías en dispositivo " +deviceId);
                 itinerarioSelected = findClosestObject(schedules, new Date(), 1, storage, true);
 
                 if (itinerarioSelected == null)
@@ -167,7 +169,8 @@ public class TransporteUtils {
                     }
                 }
             } else {
-                cacheManager.getDeviceLog().log(deviceId, "Lista de salida para el día de hoy NO vacías en dispositivo " +deviceId);
+                logger.info("Lista de salida para el día de hoy NO vacías en dispositivo " +deviceId);
+
                 Salida firstSalida = salidasToday.get(0);
                 Itinerario salidaItinerario = storage.getObject(Itinerario.class,
                         new Request(new Columns.All(), new Condition.Equals("id", firstSalida.getScheduleId())));
@@ -208,6 +211,7 @@ public class TransporteUtils {
             }
 
         } else {
+            logger.info("Lista de salida para el día de hoy, obteniendo en base a objeto más cercano " +deviceId);
             itinerarioSelected = findClosestObject(schedules, time, 3, storage, false);
         }
 
@@ -408,7 +412,7 @@ public class TransporteUtils {
     private static List<Itinerario> filterByHours(List<Itinerario> itinerarios) throws ParseException, IOException {
         List<Itinerario> filtered = new ArrayList<>();
         int[] utc = GenericUtils.fetchUTCDate();
-        int today = GenericUtils.getDayValue(new Date());
+        int today = GenericUtils.getDayValue(GenericUtils.addTimeToDate(new Date(), Calendar.HOUR_OF_DAY, -8));
 
         for (Itinerario iti : itinerarios) {
             if (!iti.hasAttribute("hours")) continue;
