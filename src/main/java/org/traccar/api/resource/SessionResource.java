@@ -108,7 +108,9 @@ public class SessionResource extends BaseResource {
                     }
                 }
             }
+
             if (email != null && password != null) {
+
                 User user = loginService.login(email, password);
                 if (user != null) {
                     request.getSession().setAttribute(USER_ID_KEY, user.getId());

@@ -10,7 +10,7 @@
 
     -->
 
-    <entry key='web.port'>8083</entry>
+    <entry key='web.port'>8082</entry>
     <entry key='web.path'>./modern</entry>
     <entry key='web.sanitize'>false</entry>
     <entry key='web.persistSession'>false</entry>
